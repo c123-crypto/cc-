@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<title>AI商品图片工作台</title>
+<style>
+:root{
+  --bg:#f5f6f8;--card:#fff;--border:#e6e8ec;--text:#1f2329;--sub:#646a73;--light:#8f959e;
+  --primary:#2b6cff;--primary-bg:#e8efff;--success:#16a34a;--success-bg:#e8f7ee;
+  --warn:#d97706;--warn-bg:#fef3e6;--danger:#dc2626;--danger-bg:#fce8e8;
+  --taobao:#ff6a00;--pdd:#e02e24;--a1688:#ff7a00;
+  --radius:12px;--shadow:0 2px 8px rgba(31,35,41,.06);--shadow-lg:0 8px 24px rgba(31,35,41,.12);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.6}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input,textarea,select{font-family:inherit;font-size:14px;outline:none}
+::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-thumb{background:#cfd3da;border-radius:3px}
+
+.app{display:flex;height:100vh;overflow:hidden}
+
+/* === Sidebar === */
+.sidebar{width:240px;flex-shrink:0;background:#fff;border-right:1px solid var(--border);display:flex;flex-direction:column;height:100vh;overflow-y:auto;z-index:100}
+.logo{padding:20px 18px;font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)}
+.logo svg{flex-shrink:0;color:var(--primary)}
+.project-list{flex:1;padding:10px;overflow-y:auto}
+.project-item{display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;cursor:pointer;margin-bottom:4px;transition:all .15s}
+.project-item:hover{background:var(--bg)}
+.project-item.active{background:var(--primary-bg)}
+.project-thumb{width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid var(--border);flex-shrink:0;background:var(--bg)}
+.project-info{flex:1;min-width:0}
+.project-name{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.project-status{font-size:10px;color:var(--light)}
+.status-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:3px}
+.status-dot.idle{background:var(--light)}
+.status-dot.running{background:var(--warn);animation:pulse 1.5s infinite}
+.status-dot.done{background:var(--success)}
+.status-dot.error{background:var(--danger)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.sidebar-footer{padding:10px;border-top:1px solid var(--border)}
+.new-project-btn{width:100%;padding:10px;background:var(--primary);color:#fff;border-radius:8px;font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center;gap:6px}
+.new-project-btn:hover{background:#1e5ae6}
+.history-btn{width:100%;padding:8px;margin-top:6px;font-size:12px;color:var(--sub);display:flex;align-items:center;justify-content:center;gap:6px}
+.history-btn:hover{color:var(--primary)}
+
+/* === Main === */
+.main{flex:1;overflow-y:auto;display:flex;flex-direction:column}
+.topbar{background:rgba(255,255,255,.8);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);padding:0 24px;height:56px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:50}
+.topbar h1{font-size:16px;font-weight:600}
+.topbar .spacer{flex:1}
+.topbar .api-status{font-size:12px;color:var(--sub);display:flex;align-items:center;gap:4px}
+.topbar .settings-btn{width:36px;height:36px;border-radius:8px;background:var(--bg);display:flex;align-items:center;justify-content:center;color:var(--sub)}
+.topbar .settings-btn:hover{color:var(--primary)}
+.content{padding:24px;max-width:900px;width:100%;margin:0 auto}
+
+/* === Cards === */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);margin-bottom:16px}
+.card-title{font-size:15px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.card-title .icon{color:var(--primary)}
+.card-title .actions{margin-left:auto;display:flex;gap:8px}
+
+.btn{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;transition:all .15s;display:inline-flex;align-items:center;gap:5px;background:var(--bg);color:var(--sub);border:1px solid var(--border)}
+.btn:hover{background:#ebedf0}
+.btn-primary{background:var(--primary);color:#fff;border-color:var(--primary)}
+.btn-primary:hover{background:#1e5ae6}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-success{background:var(--success);color:#fff;border-color:var(--success)}
+
+/* === Upload === */
+.upload-zone{border:2px dashed var(--border);border-radius:var(--radius);padding:40px 20px;text-align:center;cursor:pointer;transition:all .15s}
+.upload-zone:hover{border-color:var(--primary);background:var(--primary-bg)}
+.upload-zone.has-image{padding:0;border-style:solid;border-color:var(--border)}
+.upload-zone img{max-width:100%;max-height:300px;border-radius:var(--radius);display:block;margin:0 auto}
+.upload-icon{color:var(--light);margin-bottom:8px}
+.upload-text{font-size:14px;color:var(--sub)}
+.upload-hint{font-size:12px;color:var(--light);margin-top:4px}
+
+/* === Platform & Suite === */
+.platform-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.platform-opt{padding:16px 12px;border:2px solid var(--border);border-radius:10px;text-align:center;cursor:pointer;transition:all .15s;font-size:13px;font-weight:500}
+.platform-opt:hover{border-color:var(--primary)}
+.platform-opt.sel{border-color:var(--primary);background:var(--primary-bg);color:var(--primary)}
+.platform-opt .p-icon{font-size:24px;margin-bottom:6px}
+.platform-opt .p-desc{font-size:11px;color:var(--light);margin-top:4px;font-weight:400}
+
+.suite-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.suite-opt{padding:12px;border:2px solid var(--border);border-radius:10px;text-align:center;cursor:pointer;transition:all .15s;font-size:13px}
+.suite-opt:hover{border-color:var(--primary)}
+.suite-opt.sel{border-color:var(--primary);background:var(--primary-bg);color:var(--primary)}
+.suite-opt .s-count{font-size:11px;color:var(--light);margin-top:2px}
+
+.direction-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:16px}
+.direction-opt{padding:10px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;transition:all .15s}
+.direction-opt:hover{border-color:var(--primary)}
+.direction-opt.sel{border-color:var(--primary);background:var(--primary-bg);color:var(--primary)}
+
+.label{font-size:13px;font-weight:600;margin-bottom:8px;display:block}
+.input,textarea.input{width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--card);font-size:13px}
+textarea.input{resize:vertical;min-height:60px}
+.input:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-bg)}
+
+/* === Generation Progress === */
+.gen-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+.gen-item{border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--bg)}
+.gen-item-img{width:100%;aspect-ratio:1;background:var(--bg);position:relative;display:flex;align-items:center;justify-content:center}
+.gen-item-img img{width:100%;height:100%;object-fit:cover}
+.gen-item-img.vertical img{object-fit:contain}
+.gen-item-placeholder{color:var(--light);font-size:12px;text-align:center;padding:20px}
+.gen-item-info{padding:8px 10px}
+.gen-item-label{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gen-item-meta{font-size:10px;color:var(--light);display:flex;align-items:center;gap:4px;margin-top:2px}
+.gen-item-actions{display:flex;gap:4px;margin-top:6px}
+
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500}
+.tag-success{background:var(--success-bg);color:var(--success)}
+.tag-warn{background:var(--warn-bg);color:var(--warn)}
+.tag-danger{background:var(--danger-bg);color:var(--danger)}
+.tag-info{background:var(--primary-bg);color:var(--primary)}
+.tag-default{background:#f0f1f3;color:var(--sub)}
+
+.progress-bar{height:4px;background:var(--bg);border-radius:2px;overflow:hidden;margin-top:4px}
+.progress-fill{height:100%;background:var(--primary);border-radius:2px;transition:width .3s}
+
+/* === Modal === */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto}
+.modal-overlay.show{display:flex}
+.modal{background:#fff;border-radius:16px;width:100%;max-width:480px;padding:24px;box-shadow:var(--shadow-lg);margin:auto}
+.modal-title{font-size:18px;font-weight:700;margin-bottom:16px}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}
+.form-group{margin-bottom:14px}
+
+/* === Toast === */
+.toast-container{position:fixed;top:16px;right:16px;z-index:300;display:flex;flex-direction:column;gap:8px}
+.toast{background:#fff;border-radius:8px;padding:12px 16px;box-shadow:var(--shadow-lg);font-size:13px;max-width:360px;border-left:4px solid var(--primary);animation:slideIn .3s ease}
+.toast.success{border-left-color:var(--success)}
+.toast.error{border-left-color:var(--danger)}
+.toast.warn{border-left-color:var(--warn)}
+@keyframes slideIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+
+/* === History === */
+.history-item{display:flex;gap:12px;padding:12px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;cursor:pointer}
+.history-item:hover{border-color:var(--primary)}
+.history-thumb{width:48px;height:48px;border-radius:8px;object-fit:cover;flex-shrink:0}
+.history-info{flex:1}
+.history-title{font-size:13px;font-weight:500}
+.history-meta{font-size:11px;color:var(--light);margin-top:2px}
+
+.empty{text-align:center;padding:40px 20px;color:var(--light);font-size:13px}
+.section-desc{font-size:12px;color:var(--sub);margin-bottom:14px}
+
+/* === Mobile === */
+.menu-btn{display:none;width:36px;height:36px;border-radius:8px;background:var(--bg);align-items:center;justify-content:center}
+.mobile-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:99}
+@media(max-width:768px){
+  .sidebar{position:fixed;left:0;top:0;transform:translateX(-100%);transition:transform .25s}
+  .sidebar.open{transform:translateX(0)}
+  .mobile-backdrop.show{display:block}
+  .menu-btn{display:flex}
+  .content{padding:14px}
+  .platform-grid,.suite-grid{grid-template-columns:1fr 1fr}
+  .direction-grid{grid-template-columns:1fr}
+  .gen-list{grid-template-columns:1fr 1fr}
+  .topbar h1{font-size:14px}
+}
+@media(max-width:480px){
+  .platform-grid,.suite-grid,.gen-list{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="logo">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.7l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.7l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+      AI图片工作台
+    </div>
+    <div class="project-list" id="project-list"></div>
+    <div class="sidebar-footer">
+      <button class="new-project-btn" onclick="newProject()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        新建项目
+      </button>
+      <button class="history-btn" onclick="showHistory()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        历史记录
+      </button>
+    </div>
+  </aside>
+  <div class="mobile-backdrop" id="backdrop" onclick="toggleSidebar(false)"></div>
+
+  <!-- Main -->
+  <div class="main">
+    <header class="topbar">
+      <button class="menu-btn" onclick="toggleSidebar(true)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <h1 id="page-title">AI商品图片工作台</h1>
+      <div class="spacer"></div>
+      <div class="api-status" id="api-status">未配置API</div>
+      <button class="settings-btn" onclick="showSettings()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      </button>
+    </header>
+    <div class="content" id="content"></div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modal"></div>
+</div>
+
+<!-- Toast -->
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+/* ============ STATE ============ */
+const STORAGE_KEY = 'ai_img_workbench';
+const MAX_PROJECTS = 6;
+let state = { projects:[], currentProject:null, settings:{arkKey:'',openaiKey:''} };
+
+function loadState(){
+  try{ const raw=localStorage.getItem(STORAGE_KEY); if(raw){ const s=JSON.parse(raw); state.settings=s.settings||{}; } }catch(e){}
+}
+function saveSettings(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({settings:state.settings}));
+}
+function getApiBase(){ return window.location.origin; }
+
+/* ============ IndexedDB ============ */
+let idb=null;
+function openIDB(){
+  return new Promise((resolve)=>{
+    if(idb) return resolve(idb);
+    const req=indexedDB.open('ai_img_history',1);
+    req.onupgradeneeded=e=>{ const db=e.target.result; if(!db.objectStoreNames.contains('records')) db.createObjectStore('records',{keyPath:'id'}); };
+    req.onsuccess=e=>{ idb=e.target.result; resolve(idb); };
+    req.onerror=()=>resolve(null);
+  });
+}
+async function idbAdd(rec){ const db=await openIDB(); if(!db)return; return new Promise(r=>{ const tx=db.transaction('records','readwrite'); tx.objectStore('records').add(rec); tx.oncomplete=()=>r(); tx.onerror=()=>r(); }); }
+async function idbAll(){ const db=await openIDB(); if(!db)return []; return new Promise(r=>{ const tx=db.transaction('records','readonly'); const req=tx.objectStore('records').getAll(); req.onsuccess=()=>r(req.result||[]); req.onerror=()=>r([]); }); }
+async function idbDel(id){ const db=await openIDB(); if(!db)return; return new Promise(r=>{ const tx=db.transaction('records','readwrite'); tx.objectStore('records').delete(id); tx.oncomplete=()=>r(); tx.onerror=()=>r(); }); }
+
+/* ============ TOAST ============ */
+function toast(msg,type){
+  const c=document.getElementById('toast-container');
+  const t=document.createElement('div');
+  t.className='toast '+(type||'');
+  t.textContent=msg;
+  c.appendChild(t);
+  setTimeout(()=>{ t.style.opacity='0'; setTimeout(()=>t.remove(),300); }, 4000);
+}
+
+/* ============ UTILS ============ */
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function esc(s){ return s==null?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fileToBase64(file){ return new Promise((resolve,reject)=>{ const r=new FileReader(); r.onload=()=>resolve(r.result); r.onerror=reject; r.readAsDataURL(file); }); }
+function base64ToBlob(b64){
+  const parts=b64.split(','); const mime=parts[0].match(/:(.*?);/)[1]; const data=atob(parts[1]);
+  const arr=new Uint8Array(data.length); for(let i=0;i<data.length;i++)arr[i]=data.charCodeAt(i);
+  return new Blob([arr],{type:mime});
+}
+function downloadBlob(blob,name){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); }
+function formatTime(t){ const d=new Date(t); return d.getMonth()+1+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
+
+/* ============ PROJECTS ============ */
+function newProject(){
+  if(state.projects.length>=MAX_PROJECTS){ toast('最多'+MAX_PROJECTS+'个项目同时运行','warn'); return; }
+  const p={id:uid(),name:'商品项目'+(state.projects.length+1),image:'',platform:'taobao',suiteType:'square',direction:'standard',userNote:'',status:'idle',analysis:null,whiteImage:'',series:[],qcResults:[],createdAt:Date.now()};
+  state.projects.push(p); state.currentProject=p.id;
+  renderProjectList(); renderMain();
+}
+function selectProject(id){ state.currentProject=id; renderProjectList(); renderMain(); }
+function deleteProject(id){
+  if(!confirm('删除该项目？')) return;
+  state.projects=state.projects.filter(p=>p.id!==id);
+  if(state.currentProject===id) state.currentProject=state.projects[0]?.id||null;
+  renderProjectList(); renderMain();
+}
+function getCurrentProject(){ return state.projects.find(p=>p.id===state.currentProject); }
+
+function renderProjectList(){
+  const el=document.getElementById('project-list');
+  if(state.projects.length===0){ el.innerHTML='<div class="empty" style="padding:20px 10px">点击下方新建项目</div>'; return; }
+  el.innerHTML=state.projects.map(p=>{
+    const doneCount=p.series.filter(s=>s.image).length;
+    const totalCount=p.series.length;
+    const stClass=p.status==='running'?'running':p.status==='done'?'done':p.status==='error'?'error':'idle';
+    const stText=p.status==='running'?'生成中':p.status==='done'?'已完成':p.status==='error'?'出错':'待开始';
+    return `<div class="project-item ${p.id===state.currentProject?'active':''}" onclick="selectProject('${p.id}')">
+      ${p.image?`<img class="project-thumb" src="${p.image}">`:`<div class="project-thumb" style="display:flex;align-items:center;justify-content:center;color:var(--light)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>`}
+      <div class="project-info">
+        <div class="project-name">${esc(p.name)}</div>
+        <div class="project-status"><span class="status-dot ${stClass}"></span>${stText} ${totalCount>0?doneCount+'/'+totalCount:''}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ============ MAIN RENDER ============ */
+function renderMain(){
+  const p=getCurrentProject();
+  const el=document.getElementById('content');
+  if(!p){
+    el.innerHTML=`<div class="card"><div class="empty">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:.3;margin-bottom:8px"><path d="M21 16V8a2 2 0 00-1-1.7l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.7l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+      <div>点击左侧「新建项目」开始</div>
+    </div></div>`;
+    return;
+  }
+  document.getElementById('page-title').textContent=p.name;
+
+  const platformLabels={taobao:'淘宝',pdd:'拼多多','1688':'1688'};
+  const suiteLabels={square:'五张商品套图',vertical:'五张详情图',full:'十张完整系列'};
+  const dirLabels={standard:'标准转化',scene:'生活场景',detail:'材质细节',procurement:'采购展示'};
+
+  el.innerHTML=`
+    <!-- Upload -->
+    <div class="card">
+      <div class="card-title">
+        <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        商品实拍图
+        ${p.image?`<span class="actions"><button class="btn btn-sm" onclick="document.getElementById('file-input').click()">重新上传</button></span>`:''}
+      </div>
+      <div class="upload-zone ${p.image?'has-image':''}" onclick="document.getElementById('file-input').click()">
+        ${p.image?`<img src="${p.image}">`:`<div><svg class="upload-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><div class="upload-text">点击上传商品实拍图</div><div class="upload-hint">支持 JPG、PNG、WebP，单张不超过8MB</div></div>`}
+      </div>
+      <input type="file" id="file-input" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="handleUpload(event)">
+    </div>
+
+    <!-- Platform -->
+    <div class="card">
+      <div class="card-title"><svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/></svg>目标平台</div>
+      <div class="platform-grid">
+        ${Object.entries({taobao:{icon:'🛍️',desc:'精致真实·生活感'},pdd:{icon:'🛒',desc:'醒目直接·手机端'},'1688':{icon:'🏭',desc:'专业目录·结构感'}}).map(([k,v])=>
+          `<div class="platform-opt ${p.platform===k?'sel':''}" onclick="setPlatform('${k}')"><div class="p-icon">${v.icon}</div>${platformLabels[k]}<div class="p-desc">${v.desc}</div></div>`
+        ).join('')}
+      </div>
+    </div>
+
+    <!-- Suite Type -->
+    <div class="card">
+      <div class="card-title"><svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>套图类型</div>
+      <div class="suite-grid">
+        ${Object.entries({square:{count:'5张正方形',desc:'商品套图'},vertical:{count:'5张2:3竖版',desc:'详情图'},full:{count:'10张完整',desc:'商品+详情'}}).map(([k,v])=>
+          `<div class="suite-opt ${p.suiteType===k?'sel':''}" onclick="setSuiteType('${k}')"><div>${v.count}</div><div class="s-count">${v.desc}</div></div>`
+        ).join('')}
+      </div>
+    </div>
+
+    <!-- Direction -->
+    <div class="card">
+      <div class="card-title"><svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>套图方向</div>
+      <div class="direction-grid">
+        ${Object.entries({standard:'标准转化套图',scene:'生活场景套图',detail:'材质细节套图',procurement:'采购展示套图'}).map(([k,v])=>
+          `<div class="direction-opt ${p.direction===k?'sel':''}" onclick="setDirection('${k}')">${v}</div>`
+        ).join('')}
+      </div>
+    </div>
+
+    <!-- User Note -->
+    <div class="card">
+      <div class="card-title"><svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 113 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>补充要求（可选）</div>
+      <textarea class="input" id="user-note" placeholder="背景、节日、场景或其他要求，不超过120字" maxlength="120" oninput="updateNote()">${esc(p.userNote)}</textarea>
+    </div>
+
+    <!-- Generate -->
+    <div class="card">
+      <div class="card-title">
+        <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        生成图片
+        ${p.series.length>0?`<span class="actions"><button class="btn btn-sm" onclick="downloadAll()">整套下载ZIP</button></span>`:''}
+      </div>
+      ${!state.settings.arkKey?`<div class="empty" style="padding:20px">⚠️ 请先在右上角设置中配置火山方舟API Key</div>`:
+        !p.image?`<div class="empty" style="padding:20px">请先上传商品实拍图</div>`:
+        `<button class="btn btn-primary" style="width:100%;font-size:15px;padding:12px;margin-bottom:16px" ${p.status==='running'?'disabled':''} onclick="startGeneration()">${p.status==='running'?'生成中...':'🚀 开始生成'}</button>`
+      }
+      ${p.analysis?`<div style="background:var(--bg);border-radius:8px;padding:12px;margin-bottom:12px"><div style="font-size:12px;font-weight:600;margin-bottom:4px">商品识别</div><div style="font-size:12px;color:var(--sub)">${esc(p.analysis.product_summary||'')}</div></div>`:''}
+      ${p.whiteImage?`<div style="margin-bottom:12px"><div style="font-size:12px;font-weight:600;margin-bottom:6px">白底基准图</div><img src="${p.whiteImage}" style="max-width:200px;border-radius:8px;border:1px solid var(--border)"></div>`:''}
+      ${p.series.length>0?renderSeries(p):''}
+    </div>
+  `;
+}
+
+function renderSeries(p){
+  const labels={square:['白底商品主图','核心卖点场景','材质做工细节','尺寸使用感知','转化留白构图'],vertical:['首屏卖点概览','核心结构功能','材质工艺证明','尺寸适配说明','使用场景收尾'],full:['白底商品主图','核心卖点场景','材质做工细节','尺寸使用感知','转化留白构图','首屏卖点概览','核心结构功能','材质工艺证明','尺寸适配说明','使用场景收尾']};
+  const items=labels[p.suiteType]||labels.square;
+  return `<div class="gen-list">
+    ${p.series.map((s,i)=>{
+      const qc=p.qcResults[i];
+      const isVert=p.suiteType==='vertical'||(p.suiteType==='full'&&i>=5);
+      return `<div class="gen-item">
+        <div class="gen-item-img ${isVert?'vertical':''}">
+          ${s.image?`<img src="${s.image}">`:`<div class="gen-item-placeholder">${s.status==='running'?'生成中...':s.status==='error'?'❌ 失败':'⏳ 待生成'}</div>`}
+        </div>
+        <div class="gen-item-info">
+          <div class="gen-item-label">${i+1}. ${esc(s.label||items[i])}</div>
+          <div class="gen-item-meta">
+            ${s.model?`<span class="tag tag-info">${s.model==='openai'?'OpenAI':'豆包'}</span>`:''}
+            ${qc?qc.pass?`<span class="tag tag-success">✓ ${qc.score}分</span>`:qc.score>=60?`<span class="tag tag-warn">重做 ${qc.score}分</span>`:`<span class="tag tag-danger">✗ ${qc.score}分</span>`:''}
+          </div>
+          ${s.image?`<div class="gen-item-actions">
+            <button class="btn btn-sm" onclick="downloadSingle(${i})">下载</button>
+            ${s.status!=='running'?`<button class="btn btn-sm" onclick="regenSingle(${i})">重做</button>`:''}
+          </div>`:''}
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+/* ============ SETTERS ============ */
+function setPlatform(k){ const p=getCurrentProject(); if(p){p.platform=k;renderMain();} }
+function setSuiteType(k){ const p=getCurrentProject(); if(p){p.suiteType=k;renderMain();} }
+function setDirection(k){ const p=getCurrentProject(); if(p){p.direction=k;renderMain();} }
+function updateNote(){ const p=getCurrentProject(); if(p){p.userNote=document.getElementById('user-note').value;} }
+
+async function handleUpload(e){
+  const file=e.target.files[0]; if(!file) return;
+  if(file.size>8*1024*1024){ toast('图片超过8MB限制','error'); return; }
+  const validTypes=['image/jpeg','image/png','image/webp'];
+  if(!validTypes.includes(file.type)){ toast('图片格式错误，支持JPG/PNG/WebP','error'); return; }
+  const p=getCurrentProject(); if(!p) return;
+  try{
+    const b64=await fileToBase64(file);
+    p.image=b64; p.name=file.name.replace(/\.[^.]+$/,'').slice(0,20)||p.name;
+    renderProjectList(); renderMain();
+    toast('图片上传成功','success');
+  }catch(err){ toast('图片读取失败','error'); }
+}
+
+/* ============ API CALLS ============ */
+async function apiCall(path,data,extraHeaders){
+  const headers={'Content-Type':'application/json',...(extraHeaders||{})};
+  if(state.settings.arkKey) headers['X-Ark-Key']=state.settings.arkKey;
+  if(state.settings.openaiKey) headers['X-OpenAI-Key']=state.settings.openaiKey;
+  const resp=await fetch(getApiBase()+path,{method:'POST',headers,body:JSON.stringify(data)});
+  const json=await resp.json();
+  if(!resp.ok) throw new Error(json.error||json.detail||'请求失败');
+  return json;
+}
+
+/* ============ GENERATION FLOW ============ */
+async function startGeneration(){
+  const p=getCurrentProject(); if(!p||!p.image) return;
+  if(!state.settings.arkKey){ toast('请先配置API Key','warn'); showSettings(); return; }
+
+  const labels={square:['白底商品主图','核心卖点场景','材质做工细节','尺寸使用感知','转化留白构图'],vertical:['首屏卖点概览','核心结构功能','材质工艺证明','尺寸适配说明','使用场景收尾'],full:['白底商品主图','核心卖点场景','材质做工细节','尺寸使用感知','转化留白构图','首屏卖点概览','核心结构功能','材质工艺证明','尺寸适配说明','使用场景收尾']};
+  const count=p.suiteType==='full'?10:5;
+  p.series=labels[p.suiteType].map((l,i)=>({id:i,label:l,prompt:'',image:'',status:'pending',model:''}));
+  p.qcResults=[]; p.status='running'; p.whiteImage='';
+  renderMain(); renderProjectList();
+
+  try{
+    // Phase 1: Analyze
+    toast('正在分析商品图片...','');
+    const analysis=await apiCall('/api/analyze',{imageBase64:p.image,platform:p.platform,suiteType:p.suiteType,direction:p.direction,userNote:p.userNote});
+    p.analysis=analysis; renderMain();
+
+    // Phase 2: White image
+    toast('正在生成白底基准图...','');
+    const whiteResp=await apiCall('/api/white-image',{prompt:analysis.white_prompt||'纯白背景商品主图，商品居中完整，轻微自然接触阴影，不生成额外文字水印',imageBase64:p.image});
+    p.whiteImage=whiteResp.image; renderMain();
+
+    // Phase 3: Series images
+    const series=analysis.series||[];
+    for(let i=0;i<count;i++){
+      const task=series[i]||{label:labels[p.suiteType][i],prompt:analysis.white_prompt||''};
+      p.series[i].prompt=task.prompt; p.series[i].status='running'; renderMain();
+      try{
+        const imgResp=await apiCall('/api/series-image',{prompt:task.prompt,whiteImageBase64:p.whiteImage});
+        p.series[i].image=imgResp.image; p.series[i].model=imgResp.model; p.series[i].status='done';
+
+        // Phase 4: QC
+        try{
+          const qcResp=await apiCall('/api/qc',{whiteImageBase64:p.whiteImage,generatedImageBase64:imgResp.image,taskLabel:task.label,platform:p.platform});
+          p.qcResults[i]=qcResp;
+          if(!qcResp.pass&&qcResp.score<80&&qcResp.correction){
+            // Auto redo once
+            toast('图'+(i+1)+'质检未通过，自动重做...','warn');
+            const redoResp=await apiCall('/api/series-image',{prompt:task.prompt+' '+qcResp.correction,whiteImageBase64:p.whiteImage});
+            p.series[i].image=redoResp.image; p.series[i].model=redoResp.model+' (redo)';
+            const qc2=await apiCall('/api/qc',{whiteImageBase64:p.whiteImage,generatedImageBase64:redoResp.image,taskLabel:task.label,platform:p.platform});
+            p.qcResults[i]=qc2;
+          }
+        }catch(qcErr){ toast('图'+(i+1)+'质检暂时无法完成','warn'); }
+        renderMain(); renderProjectList();
+      }catch(err){
+        p.series[i].status='error'; toast('图'+(i+1)+'生成失败：'+err.message,'error'); renderMain();
+      }
+    }
+    p.status='done'; renderProjectList();
+
+    // Save to history
+    const doneCount=p.series.filter(s=>s.image).length;
+    if(doneCount>0){
+      await idbAdd({id:p.id,name:p.name,platform:p.platform,suiteType:p.suiteType,direction:p.direction,whiteImage:p.whiteImage,series:p.series.map(s=>({label:s.label,image:s.image,model:s.model})),qcResults:p.qcResults,createdAt:Date.now()});
+      toast('生成完成！'+doneCount+'张图片已保存到历史记录','success');
+    }
+  }catch(err){
+    p.status='error'; renderProjectList();
+    toast('生成失败：'+err.message,'error');
+  }
+}
+
+async function regenSingle(idx){
+  const p=getCurrentProject(); if(!p) return;
+  const s=p.series[idx]; if(!s||!s.image) return;
+  s.status='running'; s.image=''; renderMain();
+  try{
+    const imgResp=await apiCall('/api/series-image',{prompt:s.prompt,whiteImageBase64:p.whiteImage});
+    s.image=imgResp.image; s.model=imgResp.model; s.status='done';
+    try{
+      const qc=await apiCall('/api/qc',{whiteImageBase64:p.whiteImage,generatedImageBase64:imgResp.image,taskLabel:s.label,platform:p.platform});
+      p.qcResults[idx]=qc;
+    }catch(e){}
+    renderMain(); toast('图'+(idx+1)+'重新生成完成','success');
+  }catch(err){ s.status='error'; renderMain(); toast('重新生成失败','error'); }
+}
+
+/* ============ DOWNLOAD ============ */
+function downloadSingle(idx){
+  const p=getCurrentProject(); if(!p) return;
+  const s=p.series[idx]; if(!s||!s.image) return;
+  const blob=base64ToBlob(s.image);
+  downloadBlob(blob,`${p.name}_${idx+1}_${s.label}.png`);
+}
+async function downloadAll(){
+  const p=getCurrentProject(); if(!p) return;
+  const imgs=p.series.filter(s=>s.image);
+  const expected=p.suiteType==='full'?10:5;
+  if(imgs.length<expected){ toast('需要'+expected+'张图才能下载整套，当前'+imgs.length+'张','warn'); return; }
+  toast('正在打包ZIP...','');
+  try{
+    if(typeof JSZip==='undefined'){ await loadScript('https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js'); }
+    const zip=new JSZip();
+    imgs.forEach((s,i)=>{ const blob=base64ToBlob(s.image); zip.file(`${p.name}_${String(i+1).padStart(2,'0')}_${s.label}.png`,blob); });
+    const content=await zip.generateAsync({type:'blob'});
+    downloadBlob(content,`${p.name}_套图.zip`);
+    toast('ZIP下载完成','success');
+  }catch(err){ toast('ZIP打包失败：'+err.message,'error'); }
+}
+function loadScript(src){ return new Promise((resolve,reject)=>{ const s=document.createElement('script'); s.src=src; s.onload=resolve; s.onerror=reject; document.head.appendChild(s); }); }
+
+/* ============ SETTINGS ============ */
+function showSettings(){
+  showModal(`
+    <div class="modal-title">API设置</div>
+    <div class="form-group">
+      <label class="label">火山方舟 API Key（必填）</label>
+      <input class="input" type="password" id="set-ark" value="${esc(state.settings.arkKey)}" placeholder="volc-xxx...">
+      <div style="font-size:11px;color:var(--light);margin-top:4px">用于商品理解、白底图、质检。获取：火山方舟控制台</div>
+    </div>
+    <div class="form-group">
+      <label class="label">OpenAI API Key（选填）</label>
+      <input class="input" type="password" id="set-openai" value="${esc(state.settings.openaiKey)}" placeholder="sk-xxx...">
+      <div style="font-size:11px;color:var(--light);margin-top:4px">填写后优先使用OpenAI编辑图片，失败自动切豆包</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="saveApiSettings()">保存</button>
+    </div>
+  `);
+}
+function saveApiSettings(){
+  state.settings.arkKey=document.getElementById('set-ark').value.trim();
+  state.settings.openaiKey=document.getElementById('set-openai').value.trim();
+  saveSettings(); closeModal(); updateApiStatus(); renderMain();
+  toast('设置已保存','success');
+}
+function updateApiStatus(){
+  const el=document.getElementById('api-status');
+  if(state.settings.arkKey&&state.settings.openaiKey) el.textContent='✅ 火山方舟+OpenAI';
+  else if(state.settings.arkKey) el.textContent='✅ 火山方舟';
+  else if(state.settings.openaiKey) el.textContent='⚠️ 仅OpenAI（需火山方舟）';
+  else el.textContent='❌ 未配置API';
+}
+
+/* ============ HISTORY ============ */
+async function showHistory(){
+  const records=await idbAll();
+  records.sort((a,b)=>b.createdAt-a.createdAt);
+  showModal(`
+    <div class="modal-title">历史记录（${records.length}条）</div>
+    <div style="max-height:60vh;overflow-y:auto">
+      ${records.length?records.map(r=>`
+        <div class="history-item" onclick="viewHistoryDetail('${r.id}')">
+          ${r.whiteImage?`<img class="history-thumb" src="${r.whiteImage}">`:`<div class="history-thumb" style="background:var(--bg)"></div>`}
+          <div class="history-info">
+            <div class="history-title">${esc(r.name)}</div>
+            <div class="history-meta">${{taobao:'淘宝',pdd:'拼多多','1688':'1688'}[r.platform]||r.platform} · ${r.series.length}张 · ${formatTime(r.createdAt)}</div>
+          </div>
+          <button class="btn btn-sm" onclick="event.stopPropagation();deleteHistory('${r.id}')">删除</button>
+        </div>
+      `).join(''):'<div class="empty">暂无历史记录</div>'}
+    </div>
+    <div class="modal-actions"><button class="btn btn-primary" onclick="closeModal()">关闭</button></div>
+  `);
+}
+async function viewHistoryDetail(id){
+  const records=await idbAll();
+  const r=records.find(x=>x.id===id); if(!r) return;
+  showModal(`
+    <div class="modal-title">${esc(r.name)} - 详情</div>
+    <div style="font-size:12px;color:var(--sub);margin-bottom:12px">${{taobao:'淘宝',pdd:'拼多多','1688':'1688'}[r.platform]} · ${formatTime(r.createdAt)}</div>
+    ${r.whiteImage?`<div style="margin-bottom:12px"><div style="font-size:12px;font-weight:600;margin-bottom:6px">白底基准图</div><img src="${r.whiteImage}" style="max-width:150px;border-radius:8px"></div>`:''}
+    <div class="gen-list">
+      ${r.series.map((s,i)=>`<div class="gen-item">
+        <div class="gen-item-img">${s.image?`<img src="${s.image}">`:'<div class="gen-item-placeholder">无图</div>'}</div>
+        <div class="gen-item-info"><div class="gen-item-label">${i+1}. ${esc(s.label)}</div>${s.image?`<div class="gen-item-actions"><button class="btn btn-sm" onclick="downloadHistoryImg('${r.id}',${i})">下载</button></div>`:''}</div>
+      </div>`).join('')}
+    </div>
+    <div class="modal-actions"><button class="btn" onclick="showHistory()">返回列表</button><button class="btn btn-primary" onclick="downloadHistoryZip('${r.id}')">整套下载</button></div>
+  `);
+}
+async function deleteHistory(id){
+  if(!confirm('删除该历史记录？')) return;
+  await idbDel(id); showHistory(); toast('已删除','success');
+}
+async function downloadHistoryImg(id,idx){
+  const records=await idbAll(); const r=records.find(x=>x.id===id); if(!r) return;
+  const s=r.series[idx]; if(!s||!s.image) return;
+  downloadBlob(base64ToBlob(s.image),`${r.name}_${idx+1}_${s.label}.png`);
+}
+async function downloadHistoryZip(id){
+  const records=await idbAll(); const r=records.find(x=>x.id===id); if(!r) return;
+  const imgs=r.series.filter(s=>s.image); if(!imgs.length){ toast('无可下载图片','warn'); return; }
+  toast('正在打包ZIP...','');
+  try{
+    if(typeof JSZip==='undefined'){ await loadScript('https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js'); }
+    const zip=new JSZip();
+    imgs.forEach((s,i)=>{ zip.file(`${r.name}_${String(i+1).padStart(2,'0')}_${s.label}.png`,base64ToBlob(s.image)); });
+    downloadBlob(await zip.generateAsync({type:'blob'}),`${r.name}_套图.zip`);
+    toast('ZIP下载完成','success');
+  }catch(err){ toast('ZIP打包失败','error'); }
+}
+
+/* ============ MODAL ============ */
+function showModal(html){ document.getElementById('modal').innerHTML=html; document.getElementById('modal-overlay').classList.add('show'); }
+function closeModal(){ document.getElementById('modal-overlay').classList.remove('show'); }
+function toggleSidebar(open){ document.getElementById('sidebar').classList.toggle('open',open); document.getElementById('backdrop').classList.toggle('show',open); }
+
+/* ============ INIT ============ */
+loadState(); updateApiStatus(); renderProjectList(); renderMain();
+</script>
+</body>
+</html>
