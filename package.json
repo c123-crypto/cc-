@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vinext dev",
-    "build": "vinext build && node scripts/prepare-hosting.mjs",
+    "build": "npm run check",
     "start": "vinext start",
     "check": "node --check lib/api.js && node --check app/api/[endpoint]/route.js && node --check worker.js",
     "cf:dev": "wrangler dev",
