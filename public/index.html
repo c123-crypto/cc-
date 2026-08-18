@@ -6,11 +6,11 @@
 <title>AI商品图片工作台</title>
 <style>
 :root{
-  --bg:#f5f6f8;--card:#fff;--border:#e6e8ec;--text:#1f2329;--sub:#646a73;--light:#8f959e;
-  --primary:#2b6cff;--primary-bg:#e8efff;--success:#16a34a;--success-bg:#e8f7ee;
+  --bg:#f4f2eb;--card:#fffefa;--border:#dedfd7;--text:#1d2922;--sub:#68736c;--light:#929a94;
+  --primary:#176b45;--primary-bg:#e9f3ed;--success:#168451;--success-bg:#e7f5ed;
   --warn:#d97706;--warn-bg:#fef3e6;--danger:#dc2626;--danger-bg:#fce8e8;
   --taobao:#ff6a00;--pdd:#e02e24;--a1688:#ff7a00;
-  --radius:12px;--shadow:0 2px 8px rgba(31,35,41,.06);--shadow-lg:0 8px 24px rgba(31,35,41,.12);
+  --radius:16px;--shadow:0 8px 28px rgba(29,50,38,.055);--shadow-lg:0 18px 50px rgba(22,44,31,.16);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.6}
@@ -21,41 +21,42 @@ input,textarea,select{font-family:inherit;font-size:14px;outline:none}
 .app{display:flex;height:100vh;overflow:hidden}
 
 /* === Sidebar === */
-.sidebar{width:240px;flex-shrink:0;background:#fff;border-right:1px solid var(--border);display:flex;flex-direction:column;height:100vh;overflow-y:auto;z-index:100}
-.logo{padding:20px 18px;font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)}
-.logo svg{flex-shrink:0;color:var(--primary)}
+.sidebar{width:250px;flex-shrink:0;background:#143f2d;color:#f4f0df;border-right:0;display:flex;flex-direction:column;height:100vh;overflow-y:auto;z-index:100}
+.logo{padding:24px 20px;font-size:17px;font-weight:700;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,.12)}
+.logo svg{flex-shrink:0;color:#efc57f}.logo small{display:block;font-size:9px;font-weight:400;color:#a9c1b3;letter-spacing:.08em}
 .project-list{flex:1;padding:10px;overflow-y:auto}
 .project-item{display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;cursor:pointer;margin-bottom:4px;transition:all .15s}
-.project-item:hover{background:var(--bg)}
-.project-item.active{background:var(--primary-bg)}
-.project-thumb{width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid var(--border);flex-shrink:0;background:var(--bg)}
+.project-item:hover{background:rgba(255,255,255,.08)}
+.project-item.active{background:rgba(255,255,255,.13)}
+.project-thumb{width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid rgba(239,197,127,.65);flex-shrink:0;background:#285943}
 .project-info{flex:1;min-width:0}
 .project-name{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.project-status{font-size:10px;color:var(--light)}
+.project-status{font-size:10px;color:#a7bdb0}.project-delete{opacity:0;color:#b9cabf;padding:5px;font-size:16px;line-height:1}.project-item:hover .project-delete{opacity:1}.project-delete:hover{color:#fff}
 .status-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:3px}
 .status-dot.idle{background:var(--light)}
 .status-dot.running{background:var(--warn);animation:pulse 1.5s infinite}
 .status-dot.done{background:var(--success)}
 .status-dot.error{background:var(--danger)}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-.sidebar-footer{padding:10px;border-top:1px solid var(--border)}
-.new-project-btn{width:100%;padding:10px;background:var(--primary);color:#fff;border-radius:8px;font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center;gap:6px}
-.new-project-btn:hover{background:#1e5ae6}
-.history-btn{width:100%;padding:8px;margin-top:6px;font-size:12px;color:var(--sub);display:flex;align-items:center;justify-content:center;gap:6px}
-.history-btn:hover{color:var(--primary)}
+.sidebar-footer{padding:14px;border-top:1px solid rgba(255,255,255,.12)}
+.new-project-btn{width:100%;padding:11px;background:#efc57f;color:#173c2c;border-radius:10px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px}
+.new-project-btn:hover{background:#f6d89e}
+.history-btn{width:100%;padding:9px;margin-top:6px;font-size:12px;color:#b8cbbf;display:flex;align-items:center;justify-content:center;gap:6px}
+.history-btn:hover{color:#fff}
 
 /* === Main === */
 .main{flex:1;overflow-y:auto;display:flex;flex-direction:column}
-.topbar{background:rgba(255,255,255,.8);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);padding:0 24px;height:56px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:50}
+.topbar{background:rgba(244,242,235,.88);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);padding:0 28px;height:64px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:50}
 .topbar h1{font-size:16px;font-weight:600}
 .topbar .spacer{flex:1}
 .topbar .api-status{font-size:12px;color:var(--sub);display:flex;align-items:center;gap:4px}
 .topbar .settings-btn{width:36px;height:36px;border-radius:8px;background:var(--bg);display:flex;align-items:center;justify-content:center;color:var(--sub)}
 .topbar .settings-btn:hover{color:var(--primary)}
-.content{padding:24px;max-width:900px;width:100%;margin:0 auto}
+.engine-pill{font-size:10px;color:#3f6752;border:1px solid #cbd7ce;background:rgba(255,255,255,.65);border-radius:99px;padding:6px 10px}.engine-pill::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:#29a469;margin-right:6px}
+.content{padding:30px;max-width:1080px;width:100%;margin:0 auto}.hero{display:flex;justify-content:space-between;gap:24px;align-items:flex-end;margin:4px 0 22px}.hero h2{font-family:Georgia,"Songti SC",serif;font-size:32px;font-weight:500;letter-spacing:-.03em}.hero p{color:var(--sub);font-size:12px;margin-top:7px}.flow-strip{display:flex;gap:6px;flex-wrap:wrap}.flow-strip span{font-size:10px;border:1px solid var(--border);background:rgba(255,255,255,.55);padding:6px 9px;border-radius:99px;color:#5f6c64}
 
 /* === Cards === */
-.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);margin-bottom:16px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow);margin-bottom:16px}
 .card-title{font-size:15px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:8px}
 .card-title .icon{color:var(--primary)}
 .card-title .actions{margin-left:auto;display:flex;gap:8px}
@@ -63,13 +64,13 @@ input,textarea,select{font-family:inherit;font-size:14px;outline:none}
 .btn{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;transition:all .15s;display:inline-flex;align-items:center;gap:5px;background:var(--bg);color:var(--sub);border:1px solid var(--border)}
 .btn:hover{background:#ebedf0}
 .btn-primary{background:var(--primary);color:#fff;border-color:var(--primary)}
-.btn-primary:hover{background:#1e5ae6}
+.btn-primary:hover{background:#105a39}
 .btn-sm{padding:5px 10px;font-size:12px}
 .btn:disabled{opacity:.4;cursor:not-allowed}
 .btn-success{background:var(--success);color:#fff;border-color:var(--success)}
 
 /* === Upload === */
-.upload-zone{border:2px dashed var(--border);border-radius:var(--radius);padding:40px 20px;text-align:center;cursor:pointer;transition:all .15s}
+.upload-zone{border:1px dashed #bdc8c0;border-radius:var(--radius);padding:46px 20px;text-align:center;cursor:pointer;transition:all .15s;background:#f8f8f3}
 .upload-zone:hover{border-color:var(--primary);background:var(--primary-bg)}
 .upload-zone.has-image{padding:0;border-style:solid;border-color:var(--border)}
 .upload-zone img{max-width:100%;max-height:300px;border-radius:var(--radius);display:block;margin:0 auto}
@@ -103,7 +104,7 @@ textarea.input{resize:vertical;min-height:60px}
 
 /* === Generation Progress === */
 .gen-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
-.gen-item{border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--bg)}
+.gen-item{border:1px solid var(--border);border-radius:13px;overflow:hidden;background:#fff;box-shadow:0 5px 20px rgba(30,48,37,.04)}
 .gen-item-img{width:100%;aspect-ratio:1;background:var(--bg);position:relative;display:flex;align-items:center;justify-content:center}
 .gen-item-img img{width:100%;height:100%;object-fit:cover}
 .gen-item-img.vertical img{object-fit:contain}
@@ -121,7 +122,7 @@ textarea.input{resize:vertical;min-height:60px}
 .tag-default{background:#f0f1f3;color:var(--sub)}
 
 .progress-bar{height:4px;background:var(--bg);border-radius:2px;overflow:hidden;margin-top:4px}
-.progress-fill{height:100%;background:var(--primary);border-radius:2px;transition:width .3s}
+.progress-fill{height:100%;background:var(--primary);border-radius:2px;transition:width .3s}.phase-box{background:#edf5ef;border:1px solid #cee1d4;border-radius:12px;padding:13px 14px;margin-bottom:14px}.phase-box strong{display:block;font-size:12px}.phase-box p{font-size:10px;color:#718078;margin-top:3px}
 
 /* === Modal === */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto}
@@ -175,7 +176,7 @@ textarea.input{resize:vertical;min-height:60px}
   <aside class="sidebar" id="sidebar">
     <div class="logo">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.7l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.7l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
-      AI图片工作台
+      <div>造图台<small>AI PRODUCT STUDIO</small></div>
     </div>
     <div class="project-list" id="project-list"></div>
     <div class="sidebar-footer">
@@ -199,6 +200,7 @@ textarea.input{resize:vertical;min-height:60px}
       </button>
       <h1 id="page-title">AI商品图片工作台</h1>
       <div class="spacer"></div>
+      <span class="engine-pill">OpenAI优先 · 豆包备用 · 自动质检</span>
       <div class="api-status" id="api-status">未配置API</div>
       <button class="settings-btn" onclick="showSettings()">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
@@ -216,14 +218,15 @@ textarea.input{resize:vertical;min-height:60px}
 <!-- Toast -->
 <div class="toast-container" id="toast-container"></div>
 
+<script src="/vendor/jszip.min.js"></script>
 <script>
 /* ============ STATE ============ */
 const STORAGE_KEY = 'ai_img_workbench';
 const MAX_PROJECTS = 6;
-let state = { projects:[], currentProject:null, settings:{arkKey:'',openaiKey:''} };
+let state = { projects:[], currentProject:null, settings:{arkKey:'',openaiKey:'',visionModel:'',imageModel:'',openaiImageModel:''} };
 
 function loadState(){
-  try{ const raw=localStorage.getItem(STORAGE_KEY); if(raw){ const s=JSON.parse(raw); state.settings=s.settings||{}; } }catch(e){}
+  try{ const raw=localStorage.getItem(STORAGE_KEY); if(raw){ const s=JSON.parse(raw); state.settings={...state.settings,...(s.settings||{})}; } }catch(e){}
 }
 function saveSettings(){
   localStorage.setItem(STORAGE_KEY, JSON.stringify({settings:state.settings}));
@@ -241,7 +244,7 @@ function openIDB(){
     req.onerror=()=>resolve(null);
   });
 }
-async function idbAdd(rec){ const db=await openIDB(); if(!db)return; return new Promise(r=>{ const tx=db.transaction('records','readwrite'); tx.objectStore('records').add(rec); tx.oncomplete=()=>r(); tx.onerror=()=>r(); }); }
+async function idbAdd(rec){ const db=await openIDB(); if(!db)return; return new Promise(r=>{ const tx=db.transaction('records','readwrite'); tx.objectStore('records').put(rec); tx.oncomplete=()=>r(); tx.onerror=()=>r(); }); }
 async function idbAll(){ const db=await openIDB(); if(!db)return []; return new Promise(r=>{ const tx=db.transaction('records','readonly'); const req=tx.objectStore('records').getAll(); req.onsuccess=()=>r(req.result||[]); req.onerror=()=>r([]); }); }
 async function idbDel(id){ const db=await openIDB(); if(!db)return; return new Promise(r=>{ const tx=db.transaction('records','readwrite'); tx.objectStore('records').delete(id); tx.oncomplete=()=>r(); tx.onerror=()=>r(); }); }
 
@@ -270,7 +273,7 @@ function formatTime(t){ const d=new Date(t); return d.getMonth()+1+'/'+d.getDate
 /* ============ PROJECTS ============ */
 function newProject(){
   if(state.projects.length>=MAX_PROJECTS){ toast('最多'+MAX_PROJECTS+'个项目同时运行','warn'); return; }
-  const p={id:uid(),name:'商品项目'+(state.projects.length+1),image:'',platform:'taobao',suiteType:'square',direction:'standard',userNote:'',status:'idle',analysis:null,whiteImage:'',series:[],qcResults:[],createdAt:Date.now()};
+  const p={id:uid(),name:'商品项目 '+String(state.projects.length+1).padStart(2,'0'),image:'',platform:'taobao',suiteType:'square',direction:'standard',userNote:'',status:'idle',phase:'等待上传商品图',analysis:null,whiteImage:'',series:[],qcResults:[],createdAt:Date.now()};
   state.projects.push(p); state.currentProject=p.id;
   renderProjectList(); renderMain();
 }
@@ -290,13 +293,14 @@ function renderProjectList(){
     const doneCount=p.series.filter(s=>s.image).length;
     const totalCount=p.series.length;
     const stClass=p.status==='running'?'running':p.status==='done'?'done':p.status==='error'?'error':'idle';
-    const stText=p.status==='running'?'生成中':p.status==='done'?'已完成':p.status==='error'?'出错':'待开始';
+    const stText=p.status==='running'?'生成中':p.status==='done'?'已完成':p.status==='error'?'部分失败':'待开始';
     return `<div class="project-item ${p.id===state.currentProject?'active':''}" onclick="selectProject('${p.id}')">
       ${p.image?`<img class="project-thumb" src="${p.image}">`:`<div class="project-thumb" style="display:flex;align-items:center;justify-content:center;color:var(--light)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>`}
       <div class="project-info">
         <div class="project-name">${esc(p.name)}</div>
         <div class="project-status"><span class="status-dot ${stClass}"></span>${stText} ${totalCount>0?doneCount+'/'+totalCount:''}</div>
       </div>
+      <button class="project-delete" title="删除项目" onclick="event.stopPropagation();deleteProject('${p.id}')">×</button>
     </div>`;
   }).join('');
 }
@@ -319,6 +323,10 @@ function renderMain(){
   const dirLabels={standard:'标准转化',scene:'生活场景',detail:'材质细节',procurement:'采购展示'};
 
   el.innerHTML=`
+    <section class="hero">
+      <div><h2>一张商品图，一整个项目，一整套图</h2><p>上传实拍图，自动完成平台策划、保真白底、系列生成、逐张质检与下载。</p></div>
+      <div class="flow-strip"><span>商品理解</span><span>白底基准</span><span>双引擎生成</span><span>自动质检</span></div>
+    </section>
     <!-- Upload -->
     <div class="card">
       <div class="card-title">
@@ -379,6 +387,7 @@ function renderMain(){
         !p.image?`<div class="empty" style="padding:20px">请先上传商品实拍图</div>`:
         `<button class="btn btn-primary" style="width:100%;font-size:15px;padding:12px;margin-bottom:16px" ${p.status==='running'?'disabled':''} onclick="startGeneration()">${p.status==='running'?'生成中...':'🚀 开始生成'}</button>`
       }
+      ${p.status==='running'?`<div class="phase-box"><strong>${esc(p.phase||'正在生成')}</strong><p>可以切换到其他商品项目，本项目任务会继续运行。</p></div>`:''}
       ${p.analysis?`<div style="background:var(--bg);border-radius:8px;padding:12px;margin-bottom:12px"><div style="font-size:12px;font-weight:600;margin-bottom:4px">商品识别</div><div style="font-size:12px;color:var(--sub)">${esc(p.analysis.product_summary||'')}</div></div>`:''}
       ${p.whiteImage?`<div style="margin-bottom:12px"><div style="font-size:12px;font-weight:600;margin-bottom:6px">白底基准图</div><img src="${p.whiteImage}" style="max-width:200px;border-radius:8px;border:1px solid var(--border)"></div>`:''}
       ${p.series.length>0?renderSeries(p):''}
@@ -400,9 +409,10 @@ function renderSeries(p){
         <div class="gen-item-info">
           <div class="gen-item-label">${i+1}. ${esc(s.label||items[i])}</div>
           <div class="gen-item-meta">
-            ${s.model?`<span class="tag tag-info">${s.model==='openai'?'OpenAI':'豆包'}</span>`:''}
-            ${qc?qc.pass?`<span class="tag tag-success">✓ ${qc.score}分</span>`:qc.score>=60?`<span class="tag tag-warn">重做 ${qc.score}分</span>`:`<span class="tag tag-danger">✗ ${qc.score}分</span>`:''}
+            ${s.model?`<span class="tag tag-info">${s.model.includes('openai')?'OpenAI':s.model.includes('base')?'豆包白底':'豆包'}</span>`:''}
+            ${qc?qc.pass?`<span class="tag tag-success">${qc.redone?'↻ 重做通过':'✓ 质检通过'} ${qc.score}分</span>`:`<span class="tag tag-danger">! 建议复核 ${qc.score}分</span>`:''}
           </div>
+          ${qc?.summary?`<div style="font-size:10px;color:var(--light);margin-top:5px;line-height:1.45">${esc(qc.summary)}</div>`:''}
           ${s.image?`<div class="gen-item-actions">
             <button class="btn btn-sm" onclick="downloadSingle(${i})">下载</button>
             ${s.status!=='running'?`<button class="btn btn-sm" onclick="regenSingle(${i})">重做</button>`:''}
@@ -428,6 +438,7 @@ async function handleUpload(e){
   try{
     const b64=await fileToBase64(file);
     p.image=b64; p.name=file.name.replace(/\.[^.]+$/,'').slice(0,20)||p.name;
+    p.analysis=null; p.whiteImage=''; p.series=[]; p.qcResults=[]; p.status='idle'; p.phase='商品图已上传，等待选择生成方向';
     renderProjectList(); renderMain();
     toast('图片上传成功','success');
   }catch(err){ toast('图片读取失败','error'); }
@@ -435,91 +446,110 @@ async function handleUpload(e){
 
 /* ============ API CALLS ============ */
 async function apiCall(path,data,extraHeaders){
-  const headers={'Content-Type':'application/json',...(extraHeaders||{})};
+  const headers={'Content-Type':'application/json','X-Request-Id':uid(),...(extraHeaders||{})};
   if(state.settings.arkKey) headers['X-Ark-Key']=state.settings.arkKey;
   if(state.settings.openaiKey) headers['X-OpenAI-Key']=state.settings.openaiKey;
   const resp=await fetch(getApiBase()+path,{method:'POST',headers,body:JSON.stringify(data)});
-  const json=await resp.json();
-  if(!resp.ok) throw new Error(json.error||json.detail||'请求失败');
+  const raw=await resp.text();
+  let json={};
+  try{ json=raw?JSON.parse(raw):{}; }catch(e){ throw new Error('服务器返回格式异常（HTTP '+resp.status+'）'); }
+  if(!resp.ok) throw new Error(json.error||'请求失败（HTTP '+resp.status+'）');
   return json;
 }
 
 /* ============ GENERATION FLOW ============ */
+const OUTPUT_LABELS={square:['白底商品主图','核心卖点场景','材质做工细节','尺寸使用感知','转化留白构图'],vertical:['首屏卖点概览','核心结构功能','材质工艺证明','尺寸适配说明','使用场景收尾'],full:['白底商品主图','核心卖点场景','材质做工细节','尺寸使用感知','转化留白构图','首屏卖点概览','核心结构功能','材质工艺证明','尺寸适配说明','使用场景收尾']};
+function modelOptions(){ return {visionModel:state.settings.visionModel||undefined,imageModel:state.settings.imageModel||undefined,openaiImageModel:state.settings.openaiImageModel||undefined}; }
+function outputAspect(p,index){ return p.suiteType==='vertical'||(p.suiteType==='full'&&index>=5)?'vertical':'square'; }
+
+async function generateOneTask(p,task,index){
+  const item=p.series[index];
+  item.prompt=task.prompt; item.status='running';
+  p.phase='正在生成第 '+(index+1)+' 张：'+item.label;
+  renderMain(); renderProjectList();
+  try{
+    const aspect=outputAspect(p,index);
+    const imgResp=await apiCall('/api/series-image',{prompt:task.prompt,whiteImageBase64:p.whiteImage,aspect,...modelOptions()});
+    item.image=imgResp.image; item.model=imgResp.model; item.status='done';
+    if(imgResp.fallback) toast('图'+(index+1)+'已自动切换豆包完成','warn');
+    p.phase='正在质检第 '+(index+1)+' 张：'+item.label;
+    renderMain();
+    try{
+      let qc=await apiCall('/api/qc',{whiteImageBase64:p.whiteImage,generatedImageBase64:item.image,taskLabel:item.label,platform:p.platform,visionModel:state.settings.visionModel||undefined});
+      p.qcResults[index]=qc;
+      if(!qc.pass){
+        toast('图'+(index+1)+'未通过质检，正在自动修正重做','warn');
+        p.phase='第 '+(index+1)+' 张质检未通过，正在自动重做'; renderMain();
+        const correction=(qc.correction||qc.summary||'恢复商品真实外观并移除错误元素').slice(0,300);
+        const redoResp=await apiCall('/api/series-image',{prompt:task.prompt+'\n质检修正要求：'+correction,whiteImageBase64:p.whiteImage,aspect,...modelOptions()});
+        item.image=redoResp.image; item.model=redoResp.model+'-redo';
+        const qc2=await apiCall('/api/qc',{whiteImageBase64:p.whiteImage,generatedImageBase64:item.image,taskLabel:item.label,platform:p.platform,visionModel:state.settings.visionModel||undefined});
+        qc2.redone=true; p.qcResults[index]=qc2;
+      }
+    }catch(qcError){
+      p.qcResults[index]={pass:false,score:0,summary:'自动质检暂时未完成，建议人工复核',correction:''};
+      toast('图'+(index+1)+'质检暂未完成','warn');
+    }
+  }catch(error){
+    item.status='error';
+    toast('图'+(index+1)+'生成失败：'+error.message,'error');
+  }
+  renderMain(); renderProjectList();
+}
+
+async function runPool(tasks,limit){
+  let cursor=0;
+  async function worker(){ while(cursor<tasks.length){ const task=tasks[cursor++]; await task(); } }
+  await Promise.all(Array.from({length:Math.min(limit,tasks.length)},worker));
+}
+
 async function startGeneration(){
   const p=getCurrentProject(); if(!p||!p.image) return;
-  if(!state.settings.arkKey){ toast('请先配置API Key','warn'); showSettings(); return; }
-
-  const labels={square:['白底商品主图','核心卖点场景','材质做工细节','尺寸使用感知','转化留白构图'],vertical:['首屏卖点概览','核心结构功能','材质工艺证明','尺寸适配说明','使用场景收尾'],full:['白底商品主图','核心卖点场景','材质做工细节','尺寸使用感知','转化留白构图','首屏卖点概览','核心结构功能','材质工艺证明','尺寸适配说明','使用场景收尾']};
-  const count=p.suiteType==='full'?10:5;
-  p.series=labels[p.suiteType].map((l,i)=>({id:i,label:l,prompt:'',image:'',status:'pending',model:''}));
-  p.qcResults=[]; p.status='running'; p.whiteImage='';
+  if(!state.settings.arkKey){ toast('请先配置火山方舟API Key','warn'); showSettings(); return; }
+  const labels=OUTPUT_LABELS[p.suiteType];
+  p.series=labels.map((label,index)=>({id:index,label,prompt:'',image:'',status:'pending',model:''}));
+  p.qcResults=[]; p.status='running'; p.phase='正在识别商品并规划整套图片'; p.whiteImage=''; p.analysis=null;
   renderMain(); renderProjectList();
-
   try{
-    // Phase 1: Analyze
-    toast('正在分析商品图片...','');
-    const analysis=await apiCall('/api/analyze',{imageBase64:p.image,platform:p.platform,suiteType:p.suiteType,direction:p.direction,userNote:p.userNote});
-    p.analysis=analysis; renderMain();
+    toast('正在识别商品并制定平台提示词...','');
+    const analysis=await apiCall('/api/analyze',{imageBase64:p.image,platform:p.platform,suiteType:p.suiteType,direction:p.direction,userNote:p.userNote,visionModel:state.settings.visionModel||undefined});
+    p.analysis=analysis; p.phase='正在制作保真白底基准图'; renderMain();
 
-    // Phase 2: White image
-    toast('正在生成白底基准图...','');
-    const whiteResp=await apiCall('/api/white-image',{prompt:analysis.white_prompt||'纯白背景商品主图，商品居中完整，轻微自然接触阴影，不生成额外文字水印',imageBase64:p.image});
-    p.whiteImage=whiteResp.image; renderMain();
-
-    // Phase 3: Series images
-    const series=analysis.series||[];
-    for(let i=0;i<count;i++){
-      const task=series[i]||{label:labels[p.suiteType][i],prompt:analysis.white_prompt||''};
-      p.series[i].prompt=task.prompt; p.series[i].status='running'; renderMain();
-      try{
-        const imgResp=await apiCall('/api/series-image',{prompt:task.prompt,whiteImageBase64:p.whiteImage});
-        p.series[i].image=imgResp.image; p.series[i].model=imgResp.model; p.series[i].status='done';
-
-        // Phase 4: QC
-        try{
-          const qcResp=await apiCall('/api/qc',{whiteImageBase64:p.whiteImage,generatedImageBase64:imgResp.image,taskLabel:task.label,platform:p.platform});
-          p.qcResults[i]=qcResp;
-          if(!qcResp.pass&&qcResp.score<80&&qcResp.correction){
-            // Auto redo once
-            toast('图'+(i+1)+'质检未通过，自动重做...','warn');
-            const redoResp=await apiCall('/api/series-image',{prompt:task.prompt+' '+qcResp.correction,whiteImageBase64:p.whiteImage});
-            p.series[i].image=redoResp.image; p.series[i].model=redoResp.model+' (redo)';
-            const qc2=await apiCall('/api/qc',{whiteImageBase64:p.whiteImage,generatedImageBase64:redoResp.image,taskLabel:task.label,platform:p.platform});
-            p.qcResults[i]=qc2;
-          }
-        }catch(qcErr){ toast('图'+(i+1)+'质检暂时无法完成','warn'); }
-        renderMain(); renderProjectList();
-      }catch(err){
-        p.series[i].status='error'; toast('图'+(i+1)+'生成失败：'+err.message,'error'); renderMain();
-      }
+    const whiteResp=await apiCall('/api/white-image',{prompt:analysis.white_prompt,imageBase64:p.image,imageModel:state.settings.imageModel||undefined});
+    p.whiteImage=whiteResp.image;
+    const hasWhiteOutput=p.suiteType!=='vertical';
+    if(hasWhiteOutput){
+      p.series[0]={...p.series[0],prompt:analysis.white_prompt,image:whiteResp.image,status:'done',model:'doubao-base'};
+      p.qcResults[0]={pass:true,score:100,summary:'白底基准图',correction:''};
     }
-    p.status='done'; renderProjectList();
+    renderMain(); renderProjectList();
 
-    // Save to history
-    const doneCount=p.series.filter(s=>s.image).length;
-    if(doneCount>0){
-      await idbAdd({id:p.id,name:p.name,platform:p.platform,suiteType:p.suiteType,direction:p.direction,whiteImage:p.whiteImage,series:p.series.map(s=>({label:s.label,image:s.image,model:s.model})),qcResults:p.qcResults,createdAt:Date.now()});
-      toast('生成完成！'+doneCount+'张图片已保存到历史记录','success');
+    const plans=analysis.series||[];
+    const offset=hasWhiteOutput?1:0;
+    const jobs=plans.map((task,i)=>()=>generateOneTask(p,{label:labels[i+offset],prompt:task.prompt},i+offset));
+    await runPool(jobs,2);
+
+    const doneCount=p.series.filter(item=>item.image).length;
+    p.status=doneCount===labels.length?'done':'error';
+    p.phase=doneCount===labels.length?'整套图片已生成并完成质检':'部分图片未完成，可单张重做';
+    renderMain(); renderProjectList();
+    if(doneCount){
+      await idbAdd({id:p.id,name:p.name,platform:p.platform,suiteType:p.suiteType,direction:p.direction,whiteImage:p.whiteImage,series:p.series.map(item=>({label:item.label,image:item.image,model:item.model,prompt:item.prompt})),qcResults:p.qcResults,createdAt:Date.now()});
+      toast((doneCount===labels.length?'整套生成完成！':'生成完成，部分图片需要重做。')+' 已保存到历史记录',doneCount===labels.length?'success':'warn');
     }
-  }catch(err){
-    p.status='error'; renderProjectList();
-    toast('生成失败：'+err.message,'error');
+  }catch(error){
+    p.status='error'; p.phase='任务中断'; renderMain(); renderProjectList();
+    toast('生成失败：'+error.message,'error');
   }
 }
 
 async function regenSingle(idx){
-  const p=getCurrentProject(); if(!p) return;
-  const s=p.series[idx]; if(!s||!s.image) return;
-  s.status='running'; s.image=''; renderMain();
-  try{
-    const imgResp=await apiCall('/api/series-image',{prompt:s.prompt,whiteImageBase64:p.whiteImage});
-    s.image=imgResp.image; s.model=imgResp.model; s.status='done';
-    try{
-      const qc=await apiCall('/api/qc',{whiteImageBase64:p.whiteImage,generatedImageBase64:imgResp.image,taskLabel:s.label,platform:p.platform});
-      p.qcResults[idx]=qc;
-    }catch(e){}
-    renderMain(); toast('图'+(idx+1)+'重新生成完成','success');
-  }catch(err){ s.status='error'; renderMain(); toast('重新生成失败','error'); }
+  const p=getCurrentProject(); if(!p||!p.whiteImage) return;
+  const item=p.series[idx]; if(!item||!item.prompt) return;
+  if(item.model==='doubao-base'){ toast('白底主图需要重新运行整套任务','warn'); return; }
+  item.status='running'; item.image=''; p.qcResults[idx]=null; renderMain();
+  await generateOneTask(p,{label:item.label,prompt:item.prompt},idx);
+  toast(item.image?'图'+(idx+1)+'重新生成完成':'图'+(idx+1)+'重新生成失败',item.image?'success':'error');
 }
 
 /* ============ DOWNLOAD ============ */
@@ -560,7 +590,15 @@ function showSettings(){
       <input class="input" type="password" id="set-openai" value="${esc(state.settings.openaiKey)}" placeholder="sk-xxx...">
       <div style="font-size:11px;color:var(--light);margin-top:4px">填写后优先使用OpenAI编辑图片，失败自动切豆包</div>
     </div>
+    <details style="margin-top:10px;border:1px solid var(--border);border-radius:10px;padding:10px 12px">
+      <summary style="cursor:pointer;font-size:12px;font-weight:600">高级模型设置（通常无需填写）</summary>
+      <div class="form-group" style="margin-top:12px"><label class="label">豆包视觉理解模型</label><input class="input" id="set-vision-model" value="${esc(state.settings.visionModel||'')}" placeholder="留空使用服务器默认模型"></div>
+      <div class="form-group"><label class="label">豆包 Seedream 图片模型</label><input class="input" id="set-image-model" value="${esc(state.settings.imageModel||'')}" placeholder="留空使用服务器默认模型"></div>
+      <div class="form-group"><label class="label">OpenAI 图片模型</label><input class="input" id="set-openai-model" value="${esc(state.settings.openaiImageModel||'')}" placeholder="留空使用服务器默认模型"></div>
+    </details>
+    <div style="font-size:11px;color:var(--light);line-height:1.6;margin-top:12px">密钥只保存在当前浏览器，通过HTTPS临时发送给本站服务端，不写入源码或数据库。公共电脑使用后请清除。</div>
     <div class="modal-actions">
+      <button class="btn" style="margin-right:auto;color:var(--danger)" onclick="clearApiSettings()">清除密钥</button>
       <button class="btn" onclick="closeModal()">取消</button>
       <button class="btn btn-primary" onclick="saveApiSettings()">保存</button>
     </div>
@@ -569,8 +607,15 @@ function showSettings(){
 function saveApiSettings(){
   state.settings.arkKey=document.getElementById('set-ark').value.trim();
   state.settings.openaiKey=document.getElementById('set-openai').value.trim();
+  state.settings.visionModel=document.getElementById('set-vision-model').value.trim();
+  state.settings.imageModel=document.getElementById('set-image-model').value.trim();
+  state.settings.openaiImageModel=document.getElementById('set-openai-model').value.trim();
   saveSettings(); closeModal(); updateApiStatus(); renderMain();
   toast('设置已保存','success');
+}
+function clearApiSettings(){
+  state.settings={arkKey:'',openaiKey:'',visionModel:'',imageModel:'',openaiImageModel:''};
+  saveSettings(); closeModal(); updateApiStatus(); renderMain(); toast('本机保存的密钥已清除','success');
 }
 function updateApiStatus(){
   const el=document.getElementById('api-status');
@@ -645,7 +690,7 @@ function closeModal(){ document.getElementById('modal-overlay').classList.remove
 function toggleSidebar(open){ document.getElementById('sidebar').classList.toggle('open',open); document.getElementById('backdrop').classList.toggle('show',open); }
 
 /* ============ INIT ============ */
-loadState(); updateApiStatus(); renderProjectList(); renderMain();
+loadState(); updateApiStatus(); if(!state.projects.length)newProject(); else{renderProjectList();renderMain();}
 </script>
 </body>
 </html>

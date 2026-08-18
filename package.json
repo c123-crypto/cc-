@@ -1,12 +1,16 @@
 {
   "name": "ai-image-workbench",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "AI商品图片工作台 - 面向中国大陆电商卖家",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "check": "node --check server.js"
+  },
+  "engines": {
+    "node": ">=18.18"
   },
   "dependencies": {
-    "form-data": "^4.0.0"
+    "jszip": "^3.10.1"
   }
 }
