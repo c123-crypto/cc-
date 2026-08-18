@@ -41,6 +41,8 @@ input,textarea,select{font-family:inherit;font-size:14px;outline:none}
 .sidebar-footer{padding:14px;border-top:1px solid rgba(255,255,255,.12)}
 .new-project-btn{width:100%;padding:11px;background:#efc57f;color:#173c2c;border-radius:10px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px}
 .new-project-btn:hover{background:#f6d89e}
+.new-project-btn:disabled{opacity:.55;cursor:not-allowed;background:#d8c49f}
+.project-counter{margin-left:auto;font-size:10px;font-weight:600;opacity:.72}
 .history-btn{width:100%;padding:9px;margin-top:6px;font-size:12px;color:#b8cbbf;display:flex;align-items:center;justify-content:center;gap:6px}
 .history-btn:hover{color:#fff}
 
@@ -180,9 +182,9 @@ textarea.input{resize:vertical;min-height:60px}
     </div>
     <div class="project-list" id="project-list"></div>
     <div class="sidebar-footer">
-      <button class="new-project-btn" onclick="newProject()">
+      <button class="new-project-btn" id="new-project-btn" onclick="newProject()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        新建项目
+        新建项目 <span class="project-counter" id="project-counter">0/20</span>
       </button>
       <button class="history-btn" onclick="showHistory()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -222,7 +224,7 @@ textarea.input{resize:vertical;min-height:60px}
 <script>
 /* ============ STATE ============ */
 const STORAGE_KEY = 'ai_img_workbench';
-const MAX_PROJECTS = 6;
+const MAX_PROJECTS = 20;
 let state = { projects:[], currentProject:null, settings:{arkKey:'',openaiKey:'',visionModel:'',imageModel:'',openaiImageModel:''} };
 
 function loadState(){
@@ -288,6 +290,10 @@ function getCurrentProject(){ return state.projects.find(p=>p.id===state.current
 
 function renderProjectList(){
   const el=document.getElementById('project-list');
+  const counter=document.getElementById('project-counter');
+  const addBtn=document.getElementById('new-project-btn');
+  if(counter) counter.textContent=state.projects.length+'/'+MAX_PROJECTS;
+  if(addBtn) addBtn.disabled=state.projects.length>=MAX_PROJECTS;
   if(state.projects.length===0){ el.innerHTML='<div class="empty" style="padding:20px 10px">点击下方新建项目</div>'; return; }
   el.innerHTML=state.projects.map(p=>{
     const doneCount=p.series.filter(s=>s.image).length;
