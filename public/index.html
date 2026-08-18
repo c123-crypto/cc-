@@ -24,6 +24,7 @@ input,textarea,select{font-family:inherit;font-size:14px;outline:none}
 .sidebar{width:250px;flex-shrink:0;background:#143f2d;color:#f4f0df;border-right:0;display:flex;flex-direction:column;height:100vh;overflow-y:auto;z-index:100}
 .logo{padding:24px 20px;font-size:17px;font-weight:700;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,.12)}
 .logo svg{flex-shrink:0;color:#efc57f}.logo small{display:block;font-size:9px;font-weight:400;color:#a9c1b3;letter-spacing:.08em}
+.catalog-nav{padding:10px 10px 0}.catalog-btn{width:100%;display:flex;align-items:center;gap:9px;padding:10px 12px;border-radius:9px;color:#c9dbd0;font-size:13px;text-align:left}.catalog-btn:hover,.catalog-btn.active{background:rgba(255,255,255,.12);color:#fff}
 .project-list{flex:1;padding:10px;overflow-y:auto}
 .project-item{display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;cursor:pointer;margin-bottom:4px;transition:all .15s}
 .project-item:hover{background:rgba(255,255,255,.08)}
@@ -153,6 +154,11 @@ textarea.input{resize:vertical;min-height:60px}
 .empty{text-align:center;padding:40px 20px;color:var(--light);font-size:13px}
 .section-desc{font-size:12px;color:var(--sub);margin-bottom:14px}
 
+/* === Creative tool center === */
+.catalog-hero{padding:28px;border-radius:24px;background:linear-gradient(135deg,#123f2c 0%,#1c6a49 58%,#dcb66f 160%);color:#fff;margin-bottom:20px;position:relative;overflow:hidden}.catalog-hero:after{content:"";position:absolute;width:260px;height:260px;border-radius:50%;right:-80px;top:-130px;background:rgba(255,255,255,.09)}.catalog-hero h2{font-family:Georgia,"Songti SC",serif;font-size:30px;font-weight:500}.catalog-hero p{margin-top:7px;color:#cfe0d6;max-width:620px;font-size:13px}.catalog-tabs{display:flex;gap:5px;overflow-x:auto;padding:2px 0 12px;margin-bottom:8px}.catalog-tab{flex:0 0 auto;padding:8px 14px;border-radius:99px;border:1px solid var(--border);background:rgba(255,255,255,.62);font-size:13px;color:var(--sub)}.catalog-tab:hover{border-color:#9eb7a7;color:var(--primary)}.catalog-tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.tool-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.tool-card{min-height:190px;border-radius:18px;border:1px solid var(--border);background:var(--card);overflow:hidden;cursor:pointer;box-shadow:var(--shadow);transition:transform .18s,box-shadow .18s,border-color .18s}.tool-card:hover{transform:translateY(-3px);box-shadow:0 16px 38px rgba(22,44,31,.12);border-color:#aec2b5}.tool-art{height:108px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;background:linear-gradient(135deg,#eaf2ed,#dbe8df)}.tool-art:before,.tool-art:after{content:"";position:absolute;border-radius:50%;background:rgba(255,255,255,.55)}.tool-art:before{width:120px;height:120px;right:-20px;top:-45px}.tool-art:after{width:70px;height:70px;left:-16px;bottom:-25px}.tool-art span{font-size:48px;filter:drop-shadow(0 8px 12px rgba(24,60,42,.16));z-index:1}.tool-card:nth-child(4n+2) .tool-art{background:linear-gradient(135deg,#e9eef9,#d8e5f3)}.tool-card:nth-child(4n+3) .tool-art{background:linear-gradient(135deg,#f5ecf5,#e7ddf0)}.tool-card:nth-child(4n+4) .tool-art{background:linear-gradient(135deg,#f7eee2,#edddc7)}.tool-copy{padding:14px 16px 16px}.tool-copy h3{font-size:15px}.tool-copy p{font-size:11px;color:var(--sub);line-height:1.55;margin-top:4px}.tool-badge{display:inline-flex;margin-top:9px;padding:2px 7px;border-radius:99px;font-size:9px;background:var(--primary-bg);color:var(--primary)}
+.tool-head{display:flex;align-items:center;gap:14px;margin-bottom:18px}.tool-back{width:38px;height:38px;border-radius:10px;border:1px solid var(--border);background:var(--card);font-size:20px}.tool-head h2{font-size:24px}.tool-head p{font-size:12px;color:var(--sub)}.tool-layout{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(300px,.95fr);gap:16px}.tool-panel{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;box-shadow:var(--shadow)}.tool-upload{min-height:190px;border:1px dashed #adc0b4;border-radius:13px;background:#f7f8f4;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;cursor:pointer}.tool-upload:hover{border-color:var(--primary);background:var(--primary-bg)}.tool-preview-grid,.tool-result-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.tool-preview,.tool-result{position:relative;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--bg)}.tool-preview img,.tool-result img{width:100%;aspect-ratio:1;display:block;object-fit:cover}.tool-preview button{position:absolute;right:6px;top:6px;width:26px;height:26px;border-radius:50%;background:rgba(20,31,24,.72);color:#fff}.tool-result .result-actions{padding:8px}.tool-text-result{white-space:pre-wrap;word-break:break-word;background:#f8f8f4;border:1px solid var(--border);border-radius:12px;padding:16px;min-height:230px;font-size:13px;line-height:1.8}.tool-empty{min-height:230px;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--light);font-size:12px;border:1px dashed var(--border);border-radius:12px}.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.tool-run{width:100%;justify-content:center;padding:12px;margin-top:14px;font-size:14px}
+
 /* === Mobile === */
 .menu-btn{display:none;width:36px;height:36px;border-radius:8px;background:var(--bg);align-items:center;justify-content:center}
 .mobile-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:99}
@@ -166,9 +172,11 @@ textarea.input{resize:vertical;min-height:60px}
   .direction-grid{grid-template-columns:1fr}
   .gen-list{grid-template-columns:1fr 1fr}
   .topbar h1{font-size:14px}
+  .tool-grid{grid-template-columns:1fr 1fr}.tool-layout{grid-template-columns:1fr}.catalog-hero{padding:22px}.catalog-hero h2{font-size:25px}
 }
 @media(max-width:480px){
   .platform-grid,.suite-grid,.gen-list{grid-template-columns:1fr}
+  .tool-grid,.tool-preview-grid,.tool-result-grid,.field-row{grid-template-columns:1fr}
 }
 </style>
 </head>
@@ -180,6 +188,7 @@ textarea.input{resize:vertical;min-height:60px}
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.7l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.7l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
       <div>造图台<small>AI PRODUCT STUDIO</small></div>
     </div>
+    <div class="catalog-nav"><button class="catalog-btn" id="catalog-btn" onclick="openCatalog()"><span>✦</span> AI 功能中心</button></div>
     <div class="project-list" id="project-list"></div>
     <div class="sidebar-footer">
       <button class="new-project-btn" id="new-project-btn" onclick="newProject()">
@@ -226,6 +235,66 @@ textarea.input{resize:vertical;min-height:60px}
 const STORAGE_KEY = 'ai_img_workbench';
 const MAX_PROJECTS = 20;
 let state = { projects:[], currentProject:null, settings:{arkKey:'',openaiKey:'',visionModel:'',imageModel:'',openaiImageModel:''} };
+let appView='catalog';
+let activeCategory='product';
+let activeTool='';
+let toolSession={files:[],results:[],text:'',note:'',aspect:'square',running:false};
+
+const TOOL_CATEGORIES=[
+  {id:'product',label:'商品图'},
+  {id:'video',label:'商品视频'},
+  {id:'social',label:'自媒体创作'},
+  {id:'wear',label:'穿戴图'},
+  {id:'edit',label:'图像处理'},
+  {id:'smart',label:'智能工具'},
+];
+const TOOLS=[
+  {id:'product-suite',cat:'product',name:'AI商品套图',desc:'从一张实拍图生成完整电商套图并自动质检。',icon:'🛋️',action:'project',badge:'完整流水线'},
+  {id:'taobao-suite',cat:'product',name:'淘宝电商套图',desc:'淘宝风格的真实商品场景与转化视觉。',icon:'🛍️',mode:'image',requiresImage:true,multi:true},
+  {id:'aplus-page',cat:'product',name:'商品A+图/详情页',desc:'生成高转化详情页视觉与卖点分区。',icon:'📐',mode:'image',requiresImage:true,aspect:'vertical'},
+  {id:'viral-remake',cat:'product',name:'爆款主图复刻',desc:'复刻爆款构图语言，不复制第三方品牌。',icon:'🔥',mode:'image',requiresImage:true},
+  {id:'detail-remake',cat:'product',name:'爆款详情页复刻',desc:'重建详情页节奏、构图与信息层级。',icon:'🧩',mode:'image',requiresImage:true,aspect:'vertical'},
+  {id:'batch-suite',cat:'product',name:'批量套图',desc:'多商品统一视觉批量生成。',icon:'🗂️',mode:'image',requiresImage:true,multi:true},
+  {id:'product-shot',cat:'product',name:'AI商品图',desc:'专业棚拍、场景图与商业主视觉。',icon:'📦',mode:'image',requiresImage:true},
+  {id:'product-retouch',cat:'product',name:'AI商品精修',desc:'去瑕疵、校色并提升商品清晰度。',icon:'✨',mode:'image',requiresImage:true},
+  {id:'background-swap',cat:'product',name:'批量｜换背景',desc:'保留商品主体，统一替换商业场景。',icon:'🏞️',mode:'image',requiresImage:true,multi:true},
+  {id:'subject-replace',cat:'product',name:'批量｜替换商品主体',desc:'保留场景构图，替换为新商品主体。',icon:'🔁',mode:'image',requiresImage:true,multi:true},
+  {id:'product-recolor',cat:'product',name:'批量｜商品批量改色',desc:'保持材质与结构，批量生成指定配色。',icon:'🎨',mode:'image',requiresImage:true,multi:true},
+  {id:'image-text-edit',cat:'product',name:'图片改字',desc:'保持原排版与字体气质，替换指定文字。',icon:'🔤',mode:'image',requiresImage:true},
+  {id:'amazon-suite',cat:'product',name:'亚马逊电商套图',desc:'适配亚马逊商品页的专业套图。',icon:'📦',mode:'image',requiresImage:true,multi:true},
+  {id:'asin-listing',cat:'product',name:'指定ASIN，优化Listing',desc:'生成合规标题、五点描述和搜索词建议。',icon:'A+',mode:'text'},
+  {id:'amazon-aplus',cat:'product',name:'亚马逊A+详情页',desc:'品牌故事、功能分区与场景化视觉。',icon:'🟧',mode:'image',requiresImage:true,aspect:'vertical'},
+  {id:'product-video-script',cat:'video',name:'AI商品视频脚本',desc:'生成15—30秒分镜、旁白、字幕与转场。',icon:'🎬',mode:'text'},
+  {id:'image-video-prompt',cat:'video',name:'图生视频提示词',desc:'生成可直接用于视频模型的运动与镜头提示词。',icon:'🎞️',mode:'text',acceptImage:true},
+  {id:'sales-video-copy',cat:'video',name:'带货口播方案',desc:'合规口播、画面提示与字幕节奏。',icon:'🎙️',mode:'text',acceptImage:true},
+  {id:'social-design',cat:'social',name:'AI图文设计',desc:'封面主题、版式、配色与生成提示词。',icon:'📝',mode:'text',acceptImage:true},
+  {id:'ai-copy',cat:'social',name:'AI文案',desc:'标题、正文、卖点、行动引导与标签。',icon:'✍️',mode:'text',acceptImage:true},
+  {id:'ai-poster',cat:'social',name:'AI海报',desc:'输出完整商业海报设计方案与提示词。',icon:'🪧',mode:'text',acceptImage:true},
+  {id:'wearing-suite',cat:'wear',name:'AI穿戴套图',desc:'统一风格的穿戴展示与场景套图。',icon:'👗',mode:'image',requiresImage:true,multi:true},
+  {id:'ai-model',cat:'wear',name:'AI模特',desc:'将服装或配饰自然展示在商业模特身上。',icon:'🧍',mode:'image',requiresImage:true,aspect:'vertical'},
+  {id:'virtual-tryon',cat:'wear',name:'AI试衣',desc:'自然试穿合成，保持版型、纹理和颜色。',icon:'👚',mode:'image',requiresImage:true,aspect:'vertical'},
+  {id:'portrait-background',cat:'wear',name:'人像换背景',desc:'保留人物身份与服装，替换人像场景。',icon:'🌆',mode:'image',requiresImage:true,aspect:'vertical'},
+  {id:'dewrinkle',cat:'wear',name:'服装去皱',desc:'恢复平整面料质感，不改变剪裁细节。',icon:'🧺',mode:'image',requiresImage:true},
+  {id:'recolor',cat:'wear',name:'AI服装换色',desc:'只改变指定服装颜色，保留材质光影。',icon:'🪄',mode:'image',requiresImage:true},
+  {id:'shoe-tryon',cat:'wear',name:'AI试鞋',desc:'保持鞋型配色，完成自然脚部合成。',icon:'👟',mode:'image',requiresImage:true,aspect:'vertical'},
+  {id:'face-swap',cat:'wear',name:'批量｜模特换脸',desc:'仅限获授权素材，批量完成自然人脸替换。',icon:'🙂',mode:'image',requiresImage:true,multi:true,restricted:true},
+  {id:'image-edit',cat:'edit',name:'图片编辑',desc:'按描述完成专业局部或整体编辑。',icon:'🖌️',mode:'image',requiresImage:true},
+  {id:'cutout',cat:'edit',name:'智能抠图',desc:'精准保留毛发和半透明材质边缘。',icon:'✂️',mode:'image',requiresImage:true},
+  {id:'erase',cat:'edit',name:'AI消除',desc:'移除指定元素并自然补全背景。',icon:'🧽',mode:'image',requiresImage:true},
+  {id:'enhance',cat:'edit',name:'变清晰',desc:'智能降噪、锐化并恢复细节层次。',icon:'🔍',mode:'image',requiresImage:true},
+  {id:'translate-image',cat:'edit',name:'批量｜图片翻译',desc:'保留原排版，将图片文字替换为目标语言。',icon:'🌐',mode:'image',requiresImage:true,multi:true},
+  {id:'batch-process',cat:'edit',name:'图片批处理',desc:'批量应用统一编辑要求并逐张下载。',icon:'🗃️',mode:'image',requiresImage:true,multi:true},
+  {id:'resize',cat:'edit',name:'无损改尺寸',desc:'智能扩展背景，适配目标比例而不裁主体。',icon:'↔️',mode:'image',requiresImage:true},
+  {id:'collage',cat:'edit',name:'拼图',desc:'整理为结构清晰、留白均衡的商业拼图。',icon:'🧱',mode:'image',requiresImage:true},
+  {id:'outpaint',cat:'edit',name:'AI扩图',desc:'自然延续场景光线、透视与纹理。',icon:'🖼️',mode:'image',requiresImage:true},
+  {id:'watermark-remove',cat:'edit',name:'去水印',desc:'仅限自有或已获授权素材。',icon:'💧',mode:'image',requiresImage:true,restricted:true},
+  {id:'logo-swap',cat:'edit',name:'批量｜换Logo',desc:'仅限自有品牌素材，保持透视与材质自然。',icon:'🏷️',mode:'image',requiresImage:true,multi:true,restricted:true},
+  {id:'seal-extract',cat:'edit',name:'印章提取',desc:'仅提取有权处理的自有印章，不仿造内容。',icon:'🔴',mode:'image',requiresImage:true,restricted:true},
+  {id:'poster-text-replace',cat:'edit',name:'海报文字替换',desc:'保留版式与视觉层级，精准替换海报文字。',icon:'📰',mode:'image',requiresImage:true},
+  {id:'live-ppt',cat:'smart',name:'LivePPT',desc:'生成逐页大纲、视觉建议与演讲备注。',icon:'📊',mode:'text'},
+  {id:'id-photo',cat:'smart',name:'证件照',desc:'生成自然规范的证件照效果。',icon:'🪪',mode:'image',requiresImage:true,aspect:'vertical'},
+  {id:'ai-logo',cat:'smart',name:'AI Logo',desc:'生成原创、简洁、可识别的品牌标志概念。',icon:'◈',mode:'image'},
+];
 
 function loadState(){
   try{ const raw=localStorage.getItem(STORAGE_KEY); if(raw){ const s=JSON.parse(raw); state.settings={...state.settings,...(s.settings||{})}; } }catch(e){}
@@ -276,10 +345,10 @@ function formatTime(t){ const d=new Date(t); return d.getMonth()+1+'/'+d.getDate
 function newProject(){
   if(state.projects.length>=MAX_PROJECTS){ toast('最多'+MAX_PROJECTS+'个项目同时运行','warn'); return; }
   const p={id:uid(),name:'商品项目 '+String(state.projects.length+1).padStart(2,'0'),image:'',platform:'taobao',suiteType:'square',direction:'standard',userNote:'',status:'idle',phase:'等待上传商品图',analysis:null,whiteImage:'',series:[],qcResults:[],createdAt:Date.now()};
-  state.projects.push(p); state.currentProject=p.id;
+  state.projects.push(p); state.currentProject=p.id; appView='project';
   renderProjectList(); renderMain();
 }
-function selectProject(id){ state.currentProject=id; renderProjectList(); renderMain(); }
+function selectProject(id){ state.currentProject=id; appView='project'; renderProjectList(); renderMain(); }
 function deleteProject(id){
   if(!confirm('删除该项目？')) return;
   state.projects=state.projects.filter(p=>p.id!==id);
@@ -292,6 +361,8 @@ function renderProjectList(){
   const el=document.getElementById('project-list');
   const counter=document.getElementById('project-counter');
   const addBtn=document.getElementById('new-project-btn');
+  const catalogBtn=document.getElementById('catalog-btn');
+  if(catalogBtn) catalogBtn.classList.toggle('active',appView==='catalog'||appView==='tool');
   if(counter) counter.textContent=state.projects.length+'/'+MAX_PROJECTS;
   if(addBtn) addBtn.disabled=state.projects.length>=MAX_PROJECTS;
   if(state.projects.length===0){ el.innerHTML='<div class="empty" style="padding:20px 10px">点击下方新建项目</div>'; return; }
@@ -311,8 +382,56 @@ function renderProjectList(){
   }).join('');
 }
 
+function openCatalog(){ appView='catalog'; activeTool=''; toolSession={files:[],results:[],text:'',note:'',aspect:'square',running:false}; renderProjectList(); renderMain(); toggleSidebar(false); }
+function setCategory(id){ activeCategory=id; renderMain(); }
+function openTool(id){
+  const tool=TOOLS.find(item=>item.id===id); if(!tool) return;
+  if(tool.action==='project'){
+    if(state.currentProject){ appView='project'; renderProjectList(); renderMain(); }
+    else newProject();
+    return;
+  }
+  activeTool=id; appView='tool'; toolSession={files:[],results:[],text:'',note:'',aspect:tool.aspect||'square',running:false}; renderProjectList(); renderMain();
+}
+
+function renderCatalog(){
+  document.getElementById('page-title').textContent='AI 创作工具中心';
+  const el=document.getElementById('content');
+  const tools=TOOLS.filter(tool=>tool.cat===activeCategory);
+  el.innerHTML=`
+    <section class="catalog-hero"><h2>从一张素材，开始完整创作</h2><p>商品图、视频策划、穿戴展示、图片处理与智能文案集中在同一个工作台。选择功能，上传素材并直接生成。</p></section>
+    <nav class="catalog-tabs" aria-label="功能分类">${TOOL_CATEGORIES.map(cat=>`<button class="catalog-tab ${cat.id===activeCategory?'active':''}" onclick="setCategory('${cat.id}')">${cat.label}</button>`).join('')}</nav>
+    <div class="tool-grid">${tools.map(tool=>`<article class="tool-card" tabindex="0" role="button" onclick="openTool('${tool.id}')" onkeydown="if(event.key==='Enter')openTool('${tool.id}')">
+      <div class="tool-art"><span>${tool.icon}</span></div><div class="tool-copy"><h3>${esc(tool.name)}</h3><p>${esc(tool.desc)}</p><span class="tool-badge">${tool.restricted?'授权素材限定':tool.badge||(tool.mode==='text'?'AI策划':'AI图片处理')}</span></div>
+    </article>`).join('')}</div>`;
+}
+
+function renderToolWorkspace(){
+  const tool=TOOLS.find(item=>item.id===activeTool); if(!tool){ openCatalog(); return; }
+  document.getElementById('page-title').textContent=tool.name;
+  const imageAllowed=tool.mode==='image'||tool.acceptImage;
+  const uploadCopy=tool.multi?'上传最多6张图片':'上传一张参考图片';
+  const needsCopy=tool.requiresImage?'必填':'选填';
+  const notePlaceholder=tool.mode==='text'?'填写商品信息、主题、受众、平台、风格、时长或其他要求':'说明要修改的内容、目标风格、颜色、背景、文字或尺寸';
+  const previews=toolSession.files.length?`<div class="tool-preview-grid">${toolSession.files.map((src,i)=>`<div class="tool-preview"><img src="${src}" alt="参考素材 ${i+1}"><button onclick="removeToolFile(${i})" title="移除">×</button></div>`).join('')}</div>`:`<div><div style="font-size:34px;margin-bottom:8px">${tool.icon}</div><strong>${uploadCopy}</strong><div class="upload-hint">${needsCopy} · JPG / PNG / WebP · 单张不超过8MB</div></div>`;
+  const output=tool.mode==='text'
+    ?(toolSession.text?`<div class="tool-text-result">${esc(toolSession.text)}</div><button class="btn btn-sm" style="margin-top:10px" onclick="copyToolText()">复制结果</button>`:`<div class="tool-empty">生成的策划、文案或提示词会显示在这里</div>`)
+    :(toolSession.results.length?`<div class="tool-result-grid">${toolSession.results.map((src,i)=>`<div class="tool-result"><img src="${src}" alt="生成结果 ${i+1}"><div class="result-actions"><button class="btn btn-sm" onclick="downloadToolResult(${i})">下载</button></div></div>`).join('')}</div>`:`<div class="tool-empty">处理后的图片会显示在这里<br>批量任务将逐张返回结果</div>`);
+  document.getElementById('content').innerHTML=`
+    <div class="tool-head"><button class="tool-back" onclick="openCatalog()" aria-label="返回">‹</button><div><h2>${esc(tool.name)}</h2><p>${esc(tool.desc)}</p></div></div>
+    ${tool.restricted?'<div class="phase-box"><strong>授权素材限定</strong><p>请只处理您拥有或已取得明确授权的素材；不得用于冒充身份、伪造文件或移除他人版权归属。</p></div>':''}
+    <div class="tool-layout"><section class="tool-panel"><div class="card-title">任务设置</div>
+      ${imageAllowed?`<div class="tool-upload" onclick="document.getElementById('tool-file-input').click()">${previews}</div><input id="tool-file-input" type="file" accept="image/jpeg,image/png,image/webp" ${tool.multi?'multiple':''} style="display:none" onchange="handleToolUpload(event)">`:''}
+      <div class="form-group" style="margin-top:14px"><label class="label">具体要求</label><textarea class="input" rows="6" maxlength="6000" placeholder="${notePlaceholder}" oninput="toolSession.note=this.value">${esc(toolSession.note)}</textarea></div>
+      ${tool.mode==='image'?`<div class="form-group"><label class="label">输出比例</label><select class="input" onchange="toolSession.aspect=this.value"><option value="square" ${toolSession.aspect==='square'?'selected':''}>1:1 正方形</option><option value="vertical" ${toolSession.aspect==='vertical'?'selected':''}>2:3 竖版</option><option value="wide" ${toolSession.aspect==='wide'?'selected':''}>16:9 横版</option></select></div>`:''}
+      <button class="btn btn-primary tool-run" ${toolSession.running?'disabled':''} onclick="runTool()">${toolSession.running?'正在处理…':tool.mode==='text'?'生成方案':'开始处理'}</button>
+    </section><section class="tool-panel"><div class="card-title">输出结果 ${toolSession.results.length||toolSession.text?'<span class="tag tag-success">已生成</span>':''}</div>${output}</section></div>`;
+}
+
 /* ============ MAIN RENDER ============ */
 function renderMain(){
+  if(appView==='catalog'){ renderCatalog(); return; }
+  if(appView==='tool'){ renderToolWorkspace(); return; }
   const p=getCurrentProject();
   const el=document.getElementById('content');
   if(!p){
@@ -461,6 +580,54 @@ async function apiCall(path,data,extraHeaders){
   try{ json=raw?JSON.parse(raw):{}; }catch(e){ throw new Error('服务器返回格式异常（HTTP '+resp.status+'）'); }
   if(!resp.ok) throw new Error(json.error||'请求失败（HTTP '+resp.status+'）');
   return json;
+}
+
+/* ============ CREATIVE TOOLS ============ */
+async function handleToolUpload(event){
+  const tool=TOOLS.find(item=>item.id===activeTool); if(!tool) return;
+  const incoming=Array.from(event.target.files||[]);
+  const limit=tool.multi?6:1;
+  const selected=incoming.slice(0,limit);
+  const valid=[];
+  for(const file of selected){
+    if(!['image/jpeg','image/png','image/webp'].includes(file.type)){ toast(file.name+' 格式不支持','error'); continue; }
+    if(file.size>8*1024*1024){ toast(file.name+' 超过8MB','error'); continue; }
+    try{ valid.push(await fileToBase64(file)); }catch(error){ toast(file.name+' 读取失败','error'); }
+  }
+  toolSession.files=tool.multi?valid:valid.slice(0,1);
+  toolSession.results=[]; toolSession.text=''; renderToolWorkspace();
+}
+function removeToolFile(index){ toolSession.files.splice(index,1); toolSession.results=[]; renderToolWorkspace(); }
+async function runTool(){
+  const tool=TOOLS.find(item=>item.id===activeTool); if(!tool||toolSession.running) return;
+  if(tool.requiresImage&&!toolSession.files.length){ toast('请先上传参考图片','warn'); return; }
+  if(!toolSession.note.trim()&&!toolSession.files.length){ toast('请填写任务信息或上传参考图','warn'); return; }
+  if(!state.settings.arkKey){ toast('请先配置火山方舟 API Key','warn'); showSettings(); return; }
+  toolSession.running=true; toolSession.results=[]; toolSession.text=''; renderToolWorkspace();
+  try{
+    if(tool.mode==='text'){
+      const data=await apiCall('/api/tool-text',{toolId:tool.id,note:toolSession.note,imageBase64:toolSession.files[0]||'',visionModel:state.settings.visionModel||undefined});
+      toolSession.text=data.text||'';
+    }else{
+      const sources=toolSession.files.length?(tool.multi?toolSession.files.slice(0,6):[toolSession.files[0]]):[''];
+      for(let i=0;i<sources.length;i++){
+        const data=await apiCall('/api/tool-image',{toolId:tool.id,note:toolSession.note,imageBase64:sources[i],aspect:toolSession.aspect,imageModel:state.settings.imageModel||undefined});
+        if(data.image) toolSession.results.push(data.image);
+        renderToolWorkspace();
+      }
+    }
+    toast('任务处理完成','success');
+  }catch(error){ toast('处理失败：'+error.message,'error'); }
+  finally{ toolSession.running=false; renderToolWorkspace(); }
+}
+function downloadToolResult(index){
+  const src=toolSession.results[index]; const tool=TOOLS.find(item=>item.id===activeTool); if(!src||!tool) return;
+  downloadBlob(base64ToBlob(src),`${tool.name}_${index+1}.jpg`);
+}
+async function copyToolText(){
+  if(!toolSession.text) return;
+  try{ await navigator.clipboard.writeText(toolSession.text); toast('结果已复制','success'); }
+  catch(error){ toast('复制失败，请手动选择文本','warn'); }
 }
 
 /* ============ GENERATION FLOW ============ */
@@ -696,7 +863,7 @@ function closeModal(){ document.getElementById('modal-overlay').classList.remove
 function toggleSidebar(open){ document.getElementById('sidebar').classList.toggle('open',open); document.getElementById('backdrop').classList.toggle('show',open); }
 
 /* ============ INIT ============ */
-loadState(); updateApiStatus(); if(!state.projects.length)newProject(); else{renderProjectList();renderMain();}
+loadState(); updateApiStatus(); renderProjectList(); renderMain();
 </script>
 </body>
 </html>
