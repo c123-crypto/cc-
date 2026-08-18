@@ -9,6 +9,7 @@
   --bg:#f4f2eb;--card:#fffefa;--border:#dedfd7;--text:#1d2922;--sub:#68736c;--light:#929a94;
   --primary:#176b45;--primary-bg:#e9f3ed;--success:#168451;--success-bg:#e7f5ed;
   --warn:#d97706;--warn-bg:#fef3e6;--danger:#dc2626;--danger-bg:#fce8e8;
+  --sidebar:#143f2d;--accent:#efc57f;
   --taobao:#ff6a00;--pdd:#e02e24;--a1688:#ff7a00;
   --radius:16px;--shadow:0 8px 28px rgba(29,50,38,.055);--shadow-lg:0 18px 50px rgba(22,44,31,.16);
 }
@@ -21,26 +22,26 @@ input,textarea,select{font-family:inherit;font-size:14px;outline:none}
 .app{display:flex;height:100vh;overflow:hidden}
 
 /* === Sidebar === */
-.sidebar{width:250px;flex-shrink:0;background:#143f2d;color:#f4f0df;border-right:0;display:flex;flex-direction:column;height:100vh;overflow-y:auto;z-index:100}
+.sidebar{width:250px;flex-shrink:0;background:var(--sidebar);color:#f4f0df;border-right:0;display:flex;flex-direction:column;height:100vh;overflow-y:auto;z-index:100;transition:background .3s ease}
 .logo{padding:24px 20px;font-size:17px;font-weight:700;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,.12)}
-.logo svg{flex-shrink:0;color:#efc57f}.logo small{display:block;font-size:9px;font-weight:400;color:#a9c1b3;letter-spacing:.08em}
-.catalog-nav{padding:10px 10px 0}.catalog-btn{width:100%;display:flex;align-items:center;gap:9px;padding:10px 12px;border-radius:9px;color:#c9dbd0;font-size:13px;text-align:left}.catalog-btn:hover,.catalog-btn.active{background:rgba(255,255,255,.12);color:#fff}
-.project-list{flex:1;padding:10px;overflow-y:auto}
+.logo svg{flex-shrink:0;color:var(--accent)}.logo small{display:block;font-size:9px;font-weight:400;color:#c0d0c7;letter-spacing:.08em}
+.catalog-nav{padding:10px}.catalog-btn{width:100%;display:flex;align-items:center;gap:9px;padding:10px 12px;border-radius:9px;color:#d2dfd7;font-size:13px;text-align:left}.catalog-btn:hover,.catalog-btn.active{background:rgba(255,255,255,.12);color:#fff}.nav-section-label{padding:12px 12px 6px;color:rgba(255,255,255,.52);font-size:9px;font-weight:700;letter-spacing:.12em}.category-list{display:flex;flex-direction:column;gap:3px}.category-btn{width:100%;display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:8px;color:rgba(255,255,255,.76);font-size:12px;text-align:left;transition:all .15s}.category-btn:hover{background:rgba(255,255,255,.07);color:#fff}.category-btn.active{background:var(--accent);color:var(--sidebar);font-weight:700}.category-icon{width:19px;text-align:center;font-size:14px}.category-count{margin-left:auto;font-size:9px;opacity:.7}.project-section-label{padding:5px 22px 2px;color:rgba(255,255,255,.52);font-size:9px;font-weight:700;letter-spacing:.12em;border-top:1px solid rgba(255,255,255,.1);padding-top:12px}
+.project-list{flex:1;padding:8px 10px 10px;overflow-y:auto}
 .project-item{display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;cursor:pointer;margin-bottom:4px;transition:all .15s}
 .project-item:hover{background:rgba(255,255,255,.08)}
 .project-item.active{background:rgba(255,255,255,.13)}
-.project-thumb{width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid rgba(239,197,127,.65);flex-shrink:0;background:#285943}
+.project-thumb{width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid color-mix(in srgb,var(--accent) 72%,transparent);flex-shrink:0;background:rgba(255,255,255,.1)}
 .project-info{flex:1;min-width:0}
 .project-name{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .project-status{font-size:10px;color:#a7bdb0}.project-delete{opacity:0;color:#b9cabf;padding:5px;font-size:16px;line-height:1}.project-item:hover .project-delete{opacity:1}.project-delete:hover{color:#fff}
 .status-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:3px}
 .status-dot.idle{background:var(--light)}
-.status-dot.running{background:var(--warn);animation:pulse 1.5s infinite}
-.status-dot.done{background:var(--success)}
-.status-dot.error{background:var(--danger)}
+.status-dot.running{background:var(--primary);box-shadow:0 0 0 2px rgba(255,255,255,.28);animation:pulse 1.5s infinite}
+.status-dot.done{background:#ef233c;box-shadow:0 0 0 2px rgba(239,35,60,.18)}
+.status-dot.error{background:#f59e0b;box-shadow:0 0 0 2px rgba(245,158,11,.18)}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 .sidebar-footer{padding:14px;border-top:1px solid rgba(255,255,255,.12)}
-.new-project-btn{width:100%;padding:11px;background:#efc57f;color:#173c2c;border-radius:10px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px}
+.new-project-btn{width:100%;padding:11px;background:var(--accent);color:var(--sidebar);border-radius:10px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px}
 .new-project-btn:hover{background:#f6d89e}
 .new-project-btn:disabled{opacity:.55;cursor:not-allowed;background:#d8c49f}
 .project-counter{margin-left:auto;font-size:10px;font-weight:600;opacity:.72}
@@ -155,7 +156,7 @@ textarea.input{resize:vertical;min-height:60px}
 .section-desc{font-size:12px;color:var(--sub);margin-bottom:14px}
 
 /* === Creative tool center === */
-.catalog-hero{padding:28px;border-radius:24px;background:linear-gradient(135deg,#123f2c 0%,#1c6a49 58%,#dcb66f 160%);color:#fff;margin-bottom:20px;position:relative;overflow:hidden}.catalog-hero:after{content:"";position:absolute;width:260px;height:260px;border-radius:50%;right:-80px;top:-130px;background:rgba(255,255,255,.09)}.catalog-hero h2{font-family:Georgia,"Songti SC",serif;font-size:30px;font-weight:500}.catalog-hero p{margin-top:7px;color:#cfe0d6;max-width:620px;font-size:13px}.catalog-tabs{display:flex;gap:5px;overflow-x:auto;padding:2px 0 12px;margin-bottom:8px}.catalog-tab{flex:0 0 auto;padding:8px 14px;border-radius:99px;border:1px solid var(--border);background:rgba(255,255,255,.62);font-size:13px;color:var(--sub)}.catalog-tab:hover{border-color:#9eb7a7;color:var(--primary)}.catalog-tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.catalog-hero{padding:28px;border-radius:24px;background:linear-gradient(135deg,var(--sidebar) 0%,var(--primary) 62%,var(--accent) 170%);color:#fff;margin-bottom:20px;position:relative;overflow:hidden;transition:background .3s ease}.catalog-hero:after{content:"";position:absolute;width:260px;height:260px;border-radius:50%;right:-80px;top:-130px;background:rgba(255,255,255,.09)}.catalog-hero h2{font-family:Georgia,"Songti SC",serif;font-size:30px;font-weight:500}.catalog-hero p{margin-top:7px;color:rgba(255,255,255,.78);max-width:620px;font-size:13px}.catalog-tabs{display:flex;gap:5px;overflow-x:auto;padding:2px 0 12px;margin-bottom:8px}.catalog-tab{flex:0 0 auto;padding:8px 14px;border-radius:99px;border:1px solid var(--border);background:rgba(255,255,255,.62);font-size:13px;color:var(--sub)}.catalog-tab:hover{border-color:#9eb7a7;color:var(--primary)}.catalog-tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
 .tool-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.tool-card{min-height:190px;border-radius:18px;border:1px solid var(--border);background:var(--card);overflow:hidden;cursor:pointer;box-shadow:var(--shadow);transition:transform .18s,box-shadow .18s,border-color .18s}.tool-card:hover{transform:translateY(-3px);box-shadow:0 16px 38px rgba(22,44,31,.12);border-color:#aec2b5}.tool-art{height:108px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;background:linear-gradient(135deg,#eaf2ed,#dbe8df)}.tool-art:before,.tool-art:after{content:"";position:absolute;border-radius:50%;background:rgba(255,255,255,.55)}.tool-art:before{width:120px;height:120px;right:-20px;top:-45px}.tool-art:after{width:70px;height:70px;left:-16px;bottom:-25px}.tool-art span{font-size:48px;filter:drop-shadow(0 8px 12px rgba(24,60,42,.16));z-index:1}.tool-card:nth-child(4n+2) .tool-art{background:linear-gradient(135deg,#e9eef9,#d8e5f3)}.tool-card:nth-child(4n+3) .tool-art{background:linear-gradient(135deg,#f5ecf5,#e7ddf0)}.tool-card:nth-child(4n+4) .tool-art{background:linear-gradient(135deg,#f7eee2,#edddc7)}.tool-copy{padding:14px 16px 16px}.tool-copy h3{font-size:15px}.tool-copy p{font-size:11px;color:var(--sub);line-height:1.55;margin-top:4px}.tool-badge{display:inline-flex;margin-top:9px;padding:2px 7px;border-radius:99px;font-size:9px;background:var(--primary-bg);color:var(--primary)}
 .tool-head{display:flex;align-items:center;gap:14px;margin-bottom:18px}.tool-back{width:38px;height:38px;border-radius:10px;border:1px solid var(--border);background:var(--card);font-size:20px}.tool-head h2{font-size:24px}.tool-head p{font-size:12px;color:var(--sub)}.tool-layout{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(300px,.95fr);gap:16px}.tool-panel{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;box-shadow:var(--shadow)}.tool-upload{min-height:190px;border:1px dashed #adc0b4;border-radius:13px;background:#f7f8f4;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;cursor:pointer}.tool-upload:hover{border-color:var(--primary);background:var(--primary-bg)}.tool-preview-grid,.tool-result-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.tool-preview,.tool-result{position:relative;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--bg)}.tool-preview img,.tool-result img{width:100%;aspect-ratio:1;display:block;object-fit:cover}.tool-preview button{position:absolute;right:6px;top:6px;width:26px;height:26px;border-radius:50%;background:rgba(20,31,24,.72);color:#fff}.tool-result .result-actions{padding:8px}.tool-text-result{white-space:pre-wrap;word-break:break-word;background:#f8f8f4;border:1px solid var(--border);border-radius:12px;padding:16px;min-height:230px;font-size:13px;line-height:1.8}.tool-empty{min-height:230px;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--light);font-size:12px;border:1px dashed var(--border);border-radius:12px}.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.tool-run{width:100%;justify-content:center;padding:12px;margin-top:14px;font-size:14px}
 
@@ -188,7 +189,12 @@ textarea.input{resize:vertical;min-height:60px}
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.7l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.7l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
       <div>造图台<small>AI PRODUCT STUDIO</small></div>
     </div>
-    <div class="catalog-nav"><button class="catalog-btn" id="catalog-btn" onclick="openCatalog()"><span>✦</span> AI 功能中心</button></div>
+    <div class="catalog-nav">
+      <button class="catalog-btn" id="catalog-btn" onclick="openCatalog()"><span>✦</span> AI 功能中心</button>
+      <div class="nav-section-label">功能分类</div>
+      <nav class="category-list" id="category-list" aria-label="功能分类"></nav>
+    </div>
+    <div class="project-section-label">商品套图项目</div>
     <div class="project-list" id="project-list"></div>
     <div class="sidebar-footer">
       <button class="new-project-btn" id="new-project-btn" onclick="newProject()">
@@ -241,13 +247,31 @@ let activeTool='';
 let toolSession={files:[],results:[],text:'',note:'',aspect:'square',running:false};
 
 const TOOL_CATEGORIES=[
-  {id:'product',label:'商品图'},
-  {id:'video',label:'商品视频'},
-  {id:'social',label:'自媒体创作'},
-  {id:'wear',label:'穿戴图'},
-  {id:'edit',label:'图像处理'},
-  {id:'smart',label:'智能工具'},
+  {id:'product',label:'商品图',icon:'▣'},
+  {id:'video',label:'商品视频',icon:'▶'},
+  {id:'social',label:'自媒体创作',icon:'✎'},
+  {id:'wear',label:'穿戴图',icon:'♧'},
+  {id:'edit',label:'图像处理',icon:'◇'},
+  {id:'smart',label:'智能工具',icon:'✦'},
 ];
+const DAILY_THEMES=[
+  {name:'森林金',bg:'#f4f2eb',card:'#fffefa',border:'#dedfd7',primary:'#176b45',primaryBg:'#e9f3ed',sidebar:'#143f2d',accent:'#efc57f'},
+  {name:'海盐蓝',bg:'#f2f6fb',card:'#ffffff',border:'#d8e1ec',primary:'#285b9a',primaryBg:'#e8f0fb',sidebar:'#17375e',accent:'#9fc7f2'},
+  {name:'梅子粉',bg:'#f8f2f7',card:'#fffafd',border:'#e7d8e4',primary:'#7a416f',primaryBg:'#f4e7f1',sidebar:'#46233f',accent:'#e4acd5'},
+  {name:'陶土橙',bg:'#f8f3ee',card:'#fffdfa',border:'#eadbd0',primary:'#a84f35',primaryBg:'#f8e9e2',sidebar:'#5a2d22',accent:'#f3b48c'},
+  {name:'鸢尾紫',bg:'#f3f3fa',card:'#fdfdff',border:'#dcddef',primary:'#4f55a5',primaryBg:'#e9eafb',sidebar:'#2c315f',accent:'#b8b9f0'},
+  {name:'湖水青',bg:'#eef7f5',card:'#fbfffe',border:'#d2e5e0',primary:'#14796f',primaryBg:'#e0f2ef',sidebar:'#0f4845',accent:'#8bd5cc'},
+  {name:'樱桃红',bg:'#faf1f4',card:'#fffafb',border:'#ead7de',primary:'#a93656',primaryBg:'#f8e3e9',sidebar:'#5c2134',accent:'#f2a8ba'},
+];
+function applyDailyTheme(date){
+  const now=date||new Date();
+  const day=Math.floor((Date.UTC(now.getFullYear(),now.getMonth(),now.getDate())-Date.UTC(now.getFullYear(),0,0))/86400000);
+  const theme=DAILY_THEMES[((day%DAILY_THEMES.length)+DAILY_THEMES.length)%DAILY_THEMES.length];
+  const root=document.documentElement;
+  ['bg','card','border','primary','primaryBg','sidebar','accent'].forEach(key=>root.style.setProperty('--'+key.replace(/[A-Z]/g,m=>'-'+m.toLowerCase()),theme[key]));
+  root.dataset.dailyTheme=theme.name;
+  return theme.name;
+}
 const TOOLS=[
   {id:'product-suite',cat:'product',name:'AI商品套图',desc:'从一张实拍图生成完整电商套图并自动质检。',icon:'🛋️',action:'project',badge:'完整流水线'},
   {id:'taobao-suite',cat:'product',name:'淘宝电商套图',desc:'淘宝风格的真实商品场景与转化视觉。',icon:'🛍️',mode:'image',requiresImage:true,multi:true},
@@ -363,6 +387,7 @@ function renderProjectList(){
   const addBtn=document.getElementById('new-project-btn');
   const catalogBtn=document.getElementById('catalog-btn');
   if(catalogBtn) catalogBtn.classList.toggle('active',appView==='catalog'||appView==='tool');
+  renderCategoryNav();
   if(counter) counter.textContent=state.projects.length+'/'+MAX_PROJECTS;
   if(addBtn) addBtn.disabled=state.projects.length>=MAX_PROJECTS;
   if(state.projects.length===0){ el.innerHTML='<div class="empty" style="padding:20px 10px">点击下方新建项目</div>'; return; }
@@ -382,8 +407,17 @@ function renderProjectList(){
   }).join('');
 }
 
+function renderCategoryNav(){
+  const el=document.getElementById('category-list'); if(!el) return;
+  el.innerHTML=TOOL_CATEGORIES.map(cat=>{
+    const count=TOOLS.filter(tool=>tool.cat===cat.id).length;
+    const active=(appView==='catalog'||appView==='tool')&&activeCategory===cat.id;
+    return `<button class="category-btn ${active?'active':''}" onclick="setCategory('${cat.id}')"><span class="category-icon">${cat.icon}</span><span>${cat.label}</span><span class="category-count">${count}</span></button>`;
+  }).join('');
+}
+
 function openCatalog(){ appView='catalog'; activeTool=''; toolSession={files:[],results:[],text:'',note:'',aspect:'square',running:false}; renderProjectList(); renderMain(); toggleSidebar(false); }
-function setCategory(id){ activeCategory=id; renderMain(); }
+function setCategory(id){ activeCategory=id; activeTool=''; appView='catalog'; toolSession={files:[],results:[],text:'',note:'',aspect:'square',running:false}; renderProjectList(); renderMain(); toggleSidebar(false); }
 function openTool(id){
   const tool=TOOLS.find(item=>item.id===id); if(!tool) return;
   if(tool.action==='project'){
@@ -400,7 +434,7 @@ function renderCatalog(){
   const tools=TOOLS.filter(tool=>tool.cat===activeCategory);
   el.innerHTML=`
     <section class="catalog-hero"><h2>从一张素材，开始完整创作</h2><p>商品图、视频策划、穿戴展示、图片处理与智能文案集中在同一个工作台。选择功能，上传素材并直接生成。</p></section>
-    <nav class="catalog-tabs" aria-label="功能分类">${TOOL_CATEGORIES.map(cat=>`<button class="catalog-tab ${cat.id===activeCategory?'active':''}" onclick="setCategory('${cat.id}')">${cat.label}</button>`).join('')}</nav>
+    <div style="display:flex;align-items:end;justify-content:space-between;gap:16px;margin:0 2px 14px"><div><div style="font-size:11px;color:var(--light)">当前分类</div><h2 style="font-size:22px">${esc(TOOL_CATEGORIES.find(cat=>cat.id===activeCategory)?.label||'商品图')}</h2></div><div style="font-size:11px;color:var(--sub)">请从左侧切换六大分类</div></div>
     <div class="tool-grid">${tools.map(tool=>`<article class="tool-card" tabindex="0" role="button" onclick="openTool('${tool.id}')" onkeydown="if(event.key==='Enter')openTool('${tool.id}')">
       <div class="tool-art"><span>${tool.icon}</span></div><div class="tool-copy"><h3>${esc(tool.name)}</h3><p>${esc(tool.desc)}</p><span class="tool-badge">${tool.restricted?'授权素材限定':tool.badge||(tool.mode==='text'?'AI策划':'AI图片处理')}</span></div>
     </article>`).join('')}</div>`;
@@ -863,7 +897,7 @@ function closeModal(){ document.getElementById('modal-overlay').classList.remove
 function toggleSidebar(open){ document.getElementById('sidebar').classList.toggle('open',open); document.getElementById('backdrop').classList.toggle('show',open); }
 
 /* ============ INIT ============ */
-loadState(); updateApiStatus(); renderProjectList(); renderMain();
+applyDailyTheme(); loadState(); updateApiStatus(); renderProjectList(); renderMain();
 </script>
 </body>
 </html>
