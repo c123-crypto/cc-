@@ -2,13 +2,15 @@
 
 面向中国大陆淘宝、拼多多和 1688 卖家的商品套图生成工具。上传一张普通商品实拍图，系统会完成商品理解、平台提示词规划、白底基准图、系列图生成、逐张质检、不合格自动重做和整套 ZIP 下载。
 
-## V2 核心流程
+## 核心流程
 
 1. 豆包视觉模型识别真实商品，并按目标平台生成结构化提示词。
 2. 豆包 Seedream 制作保真白底基准图。
 3. 系列图优先使用 OpenAI 图片编辑；失败时自动改用豆包 Seedream。
 4. 豆包视觉模型逐张对照白底图质检，低于 80 分或存在商品失真时自动重做一次。
 5. 五图或十图完成后，自动保存到浏览器历史并支持整套 ZIP 下载。
+
+所有独立图片工具采用统一的两阶段流程：先由 Gemini 3.7 Flash 或豆包 Seed 理解素材并生成结构化提示词；用户检查、修改提示词后，再选择 Seedream 5.0、GPT Image 2 或 Nano Banana 2 生图。不会再把简单描述直接发送给图片模型。
 
 ## 套图数量
 
@@ -26,35 +28,38 @@
 - 支持单张重做、单张下载、整套 ZIP 下载和 IndexedDB 历史记录。
 - API Key 仅保存在当前浏览器 `localStorage`，服务端只在单次请求中临时接收。
 - PC 与手机响应式界面。
+- 8 个左侧分类、53 个工具入口；新增文字 AI（文案、标题、翻译、改写、脚本）与多模型生图。
+- 每个图片工具都有独立的最少/最多素材数、素材顺序和输出数量规则；拼图支持 2—10 张素材。
+- Gemini API 可用于免费额度优先的文字规划和 Nano Banana 生图，实际免费额度以 Google 账户为准。
 
 ## 技术栈
 
-- Node.js 18.18+ 原生 HTTP 服务
+- Cloudflare Workers + Vinext / Wrangler
 - 原生 HTML / CSS / JavaScript 单页应用
 - 浏览器 IndexedDB + localStorage
 - 火山方舟 Chat Completions、Seedream Images Generations
 - OpenAI Images Edits（`multipart/form-data`）
+- Google Gemini Interactions API（文字与 Nano Banana 图片）
 - JSZip（随 npm 依赖本地提供，不依赖外部 CDN）
 
 ## 本地运行
 
 ```bash
-unzip ai-image-workbench.zip
-cd ai-image-workbench
 npm install
-npm start
+npm run dev
 ```
 
-浏览器打开：`http://localhost:3000`
+按终端显示的本地地址打开应用。
 
-健康检查：`http://localhost:3000/health`
+本地 Cloudflare Worker 调试可运行 `npm run cf:dev`，生产部署运行 `npm run cf:deploy`。
 
 ## API 设置
 
 进入网页后点击右上角设置：
 
-- **火山方舟 API Key（必填）**：商品理解、Seedream 白底图、备用图片生成和自动质检。
-- **OpenAI API Key（选填）**：填写后优先使用 OpenAI 生成系列图。
+- **Gemini API Key（推荐、选填）**：免费额度优先的文字生成、图片提示词规划和 Nano Banana 生图。
+- **火山方舟 API Key（选填）**：豆包文字理解、Seedream 生图；原商品套图流水线仍使用它完成白底和质检。
+- **OpenAI API Key（选填）**：GPT Image 2 图片生成与编辑。
 - **高级模型名称（选填）**：当账号开通的模型名称不同，可直接在设置中覆盖服务器默认值。
 
 不要把真实密钥写入源码、README、环境文件或部署平台的公开变量。
@@ -81,6 +86,9 @@ OPENAI_IMAGE_MODEL=gpt-image-2
 | `/api/white-image` | POST | Seedream 白底基准图 |
 | `/api/series-image` | POST | OpenAI 优先、Seedream 备用的单张系列图 |
 | `/api/qc` | POST | 对照白底基准图进行自动质检 |
+| `/api/tool-prompt` | POST | 先理解素材并生成可编辑的结构化图片提示词 |
+| `/api/tool-image` | POST | 使用选定的 Seedream、GPT Image 或 Nano Banana 生图 |
+| `/api/tool-text` | POST | 使用 Gemini 或豆包运行文字工具 |
 | `/health` | GET | 服务健康检查 |
 
 请求密钥头：
@@ -88,27 +96,24 @@ OPENAI_IMAGE_MODEL=gpt-image-2
 ```text
 X-Ark-Key: 火山方舟 API Key
 X-OpenAI-Key: OpenAI API Key（选填）
+X-Gemini-Key: Gemini API Key（选填）
 ```
 
 ## 部署建议
 
-用户没有 ICP 备案时，可部署到香港、新加坡、日本或其他海外 Node.js 主机，并绑定自己的域名和 HTTPS。中国大陆用户使用时，不建议把 `chatgpt.site` 或必须嵌入其他平台的页面作为正式入口。
+项目已按 Cloudflare Workers 配置。部署前先用 `npm run check` 做语法检查，再用 `npm run cf:deploy` 发布；随后在 Workers 的“域名”页面绑定自定义域名。
 
-部署平台必须支持：
-
-- Node.js 18.18+
-- 长请求超时至少 4 分钟
-- 单个请求体至少 40 MB
-- 出站访问 `ark.cn-beijing.volces.com` 与 `api.openai.com`
+运行环境需要允许单个请求体最多 40 MB，并能出站访问火山方舟、OpenAI 与 Google Gemini API。API Key 由用户浏览器随单次请求发送，不要写入公开的 Worker 变量或仓库。
 
 ## 文件结构
 
 ```text
 ai-image-workbench/
-├── server.js
+├── app/api/[endpoint]/route.js
+├── lib/api.js
+├── public/index.html
+├── worker.js
+├── wrangler.jsonc
 ├── package.json
-├── package-lock.json
-├── README.md
-└── public/
-    └── index.html
+└── README.md
 ```
