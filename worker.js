@@ -3,7 +3,7 @@ import { handleApiRequest } from './lib/api.js';
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, X-Ark-Key, X-OpenAI-Key, X-Request-Id',
+  'Access-Control-Allow-Headers': 'Content-Type, X-Ark-Key, X-OpenAI-Key, X-Gemini-Key, X-Request-Id',
   'Access-Control-Max-Age': '86400',
 };
 
