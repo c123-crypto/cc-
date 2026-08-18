@@ -158,6 +158,7 @@ textarea.input{resize:vertical;min-height:60px}
 /* === Creative tool center === */
 .catalog-hero{padding:28px;border-radius:24px;background:linear-gradient(135deg,var(--sidebar) 0%,var(--primary) 62%,var(--accent) 170%);color:#fff;margin-bottom:20px;position:relative;overflow:hidden;transition:background .3s ease}.catalog-hero:after{content:"";position:absolute;width:260px;height:260px;border-radius:50%;right:-80px;top:-130px;background:rgba(255,255,255,.09)}.catalog-hero h2{font-family:Georgia,"Songti SC",serif;font-size:30px;font-weight:500}.catalog-hero p{margin-top:7px;color:rgba(255,255,255,.78);max-width:620px;font-size:13px}.catalog-tabs{display:flex;gap:5px;overflow-x:auto;padding:2px 0 12px;margin-bottom:8px}.catalog-tab{flex:0 0 auto;padding:8px 14px;border-radius:99px;border:1px solid var(--border);background:rgba(255,255,255,.62);font-size:13px;color:var(--sub)}.catalog-tab:hover{border-color:#9eb7a7;color:var(--primary)}.catalog-tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
 .tool-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.tool-card{min-height:190px;border-radius:18px;border:1px solid var(--border);background:var(--card);overflow:hidden;cursor:pointer;box-shadow:var(--shadow);transition:transform .18s,box-shadow .18s,border-color .18s}.tool-card:hover{transform:translateY(-3px);box-shadow:0 16px 38px rgba(22,44,31,.12);border-color:#aec2b5}.tool-art{height:108px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;background:linear-gradient(135deg,#eaf2ed,#dbe8df)}.tool-art:before,.tool-art:after{content:"";position:absolute;border-radius:50%;background:rgba(255,255,255,.55)}.tool-art:before{width:120px;height:120px;right:-20px;top:-45px}.tool-art:after{width:70px;height:70px;left:-16px;bottom:-25px}.tool-art span{font-size:48px;filter:drop-shadow(0 8px 12px rgba(24,60,42,.16));z-index:1}.tool-card:nth-child(4n+2) .tool-art{background:linear-gradient(135deg,#e9eef9,#d8e5f3)}.tool-card:nth-child(4n+3) .tool-art{background:linear-gradient(135deg,#f5ecf5,#e7ddf0)}.tool-card:nth-child(4n+4) .tool-art{background:linear-gradient(135deg,#f7eee2,#edddc7)}.tool-copy{padding:14px 16px 16px}.tool-copy h3{font-size:15px}.tool-copy p{font-size:11px;color:var(--sub);line-height:1.55;margin-top:4px}.tool-badge{display:inline-flex;margin-top:9px;padding:2px 7px;border-radius:99px;font-size:9px;background:var(--primary-bg);color:var(--primary)}
+.catalog-quick-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 24px}.quick-category{min-height:44px;border:1px solid var(--border);border-radius:10px;background:var(--card);padding:9px 12px;display:flex;align-items:center;gap:8px;text-align:left;color:var(--sub);box-shadow:0 3px 12px rgba(22,44,31,.035);transition:all .15s}.quick-category:hover{border-color:var(--primary);color:var(--primary)}.quick-category.active{background:var(--primary-bg);border-color:var(--primary);color:var(--primary);font-weight:700}.quick-category .quick-icon{width:20px;text-align:center}.quick-category .quick-count{margin-left:auto;font-size:10px;opacity:.65}.catalog-section{scroll-margin-top:82px;margin:0 0 34px}.catalog-section-head{display:flex;align-items:end;justify-content:space-between;gap:12px;margin:0 2px 13px;padding-bottom:9px;border-bottom:1px solid var(--border)}.catalog-section-head h2{font-size:22px}.catalog-section-head p{font-size:11px;color:var(--light)}
 .tool-head{display:flex;align-items:center;gap:14px;margin-bottom:18px}.tool-back{width:38px;height:38px;border-radius:10px;border:1px solid var(--border);background:var(--card);font-size:20px}.tool-head h2{font-size:24px}.tool-head p{font-size:12px;color:var(--sub)}.tool-layout{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(300px,.95fr);gap:16px}.tool-panel{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;box-shadow:var(--shadow)}.tool-upload{min-height:190px;border:1px dashed #adc0b4;border-radius:13px;background:#f7f8f4;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;cursor:pointer}.tool-upload:hover{border-color:var(--primary);background:var(--primary-bg)}.tool-preview-grid,.tool-result-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.tool-preview,.tool-result{position:relative;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--bg)}.tool-preview img,.tool-result img{width:100%;aspect-ratio:1;display:block;object-fit:cover}.tool-preview button{position:absolute;right:6px;top:6px;width:26px;height:26px;border-radius:50%;background:rgba(20,31,24,.72);color:#fff}.tool-result .result-actions{padding:8px}.tool-text-result{white-space:pre-wrap;word-break:break-word;background:#f8f8f4;border:1px solid var(--border);border-radius:12px;padding:16px;min-height:230px;font-size:13px;line-height:1.8}.tool-empty{min-height:230px;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--light);font-size:12px;border:1px dashed var(--border);border-radius:12px}.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.tool-run{width:100%;justify-content:center;padding:12px;margin-top:14px;font-size:14px}
 
 /* === Mobile === */
@@ -174,10 +175,12 @@ textarea.input{resize:vertical;min-height:60px}
   .gen-list{grid-template-columns:1fr 1fr}
   .topbar h1{font-size:14px}
   .tool-grid{grid-template-columns:1fr 1fr}.tool-layout{grid-template-columns:1fr}.catalog-hero{padding:22px}.catalog-hero h2{font-size:25px}
+  .catalog-quick-list{grid-template-columns:1fr 1fr}
 }
 @media(max-width:480px){
   .platform-grid,.suite-grid,.gen-list{grid-template-columns:1fr}
   .tool-grid,.tool-preview-grid,.tool-result-grid,.field-row{grid-template-columns:1fr}
+  .catalog-quick-list{grid-template-columns:1fr}
 }
 </style>
 </head>
@@ -245,6 +248,7 @@ let appView='catalog';
 let activeCategory='product';
 let activeTool='';
 let toolSession={files:[],results:[],text:'',note:'',aspect:'square',running:false};
+let categoryObserver=null;
 
 const TOOL_CATEGORIES=[
   {id:'product',label:'商品图',icon:'▣'},
@@ -416,10 +420,27 @@ function renderCategoryNav(){
   }).join('');
 }
 
-function openCatalog(){ appView='catalog'; activeTool=''; toolSession={files:[],results:[],text:'',note:'',aspect:'square',running:false}; renderProjectList(); renderMain(); toggleSidebar(false); }
-function setCategory(id){ activeCategory=id; activeTool=''; appView='catalog'; toolSession={files:[],results:[],text:'',note:'',aspect:'square',running:false}; renderProjectList(); renderMain(); toggleSidebar(false); }
+function syncCategoryNav(){
+  renderCategoryNav();
+  document.querySelectorAll('.quick-category').forEach(button=>button.classList.toggle('active',button.dataset.category===activeCategory));
+}
+function scrollToCategory(id,behavior){
+  const target=document.getElementById('category-'+id); if(!target) return;
+  target.scrollIntoView({behavior:behavior||'smooth',block:'start'});
+}
+function openCatalog(toTop){
+  appView='catalog'; activeTool=''; toolSession={files:[],results:[],text:'',note:'',aspect:'square',running:false}; renderProjectList(); renderMain(); toggleSidebar(false);
+  requestAnimationFrame(()=>{ if(toTop===false) scrollToCategory(activeCategory,'auto'); else document.querySelector('.main')?.scrollTo({top:0,behavior:'smooth'}); });
+}
+function setCategory(id){
+  activeCategory=id; activeTool=''; toolSession={files:[],results:[],text:'',note:'',aspect:'square',running:false};
+  const needsRender=appView!=='catalog'; appView='catalog';
+  if(needsRender) renderMain(); else syncCategoryNav();
+  renderProjectList(); toggleSidebar(false); requestAnimationFrame(()=>scrollToCategory(id,'smooth'));
+}
 function openTool(id){
   const tool=TOOLS.find(item=>item.id===id); if(!tool) return;
+  activeCategory=tool.cat;
   if(tool.action==='project'){
     if(state.currentProject){ appView='project'; renderProjectList(); renderMain(); }
     else newProject();
@@ -431,13 +452,26 @@ function openTool(id){
 function renderCatalog(){
   document.getElementById('page-title').textContent='AI 创作工具中心';
   const el=document.getElementById('content');
-  const tools=TOOLS.filter(tool=>tool.cat===activeCategory);
   el.innerHTML=`
     <section class="catalog-hero"><h2>从一张素材，开始完整创作</h2><p>商品图、视频策划、穿戴展示、图片处理与智能文案集中在同一个工作台。选择功能，上传素材并直接生成。</p></section>
-    <div style="display:flex;align-items:end;justify-content:space-between;gap:16px;margin:0 2px 14px"><div><div style="font-size:11px;color:var(--light)">当前分类</div><h2 style="font-size:22px">${esc(TOOL_CATEGORIES.find(cat=>cat.id===activeCategory)?.label||'商品图')}</h2></div><div style="font-size:11px;color:var(--sub)">请从左侧切换六大分类</div></div>
-    <div class="tool-grid">${tools.map(tool=>`<article class="tool-card" tabindex="0" role="button" onclick="openTool('${tool.id}')" onkeydown="if(event.key==='Enter')openTool('${tool.id}')">
-      <div class="tool-art"><span>${tool.icon}</span></div><div class="tool-copy"><h3>${esc(tool.name)}</h3><p>${esc(tool.desc)}</p><span class="tool-badge">${tool.restricted?'授权素材限定':tool.badge||(tool.mode==='text'?'AI策划':'AI图片处理')}</span></div>
-    </article>`).join('')}</div>`;
+    <div class="catalog-quick-list" aria-label="快速跳转">${TOOL_CATEGORIES.map(cat=>`<button class="quick-category ${cat.id===activeCategory?'active':''}" data-category="${cat.id}" onclick="setCategory('${cat.id}')"><span class="quick-icon">${cat.icon}</span><span>${cat.label}</span><span class="quick-count">${TOOLS.filter(tool=>tool.cat===cat.id).length}</span></button>`).join('')}</div>
+    ${TOOL_CATEGORIES.map(cat=>{
+      const tools=TOOLS.filter(tool=>tool.cat===cat.id);
+      return `<section class="catalog-section" id="category-${cat.id}" data-category="${cat.id}"><div class="catalog-section-head"><div><div style="font-size:10px;color:var(--light)">功能分类</div><h2>${cat.icon} ${cat.label}</h2></div><p>${tools.length} 个工具</p></div><div class="tool-grid">${tools.map(tool=>`<article class="tool-card" tabindex="0" role="button" onclick="openTool('${tool.id}')" onkeydown="if(event.key==='Enter')openTool('${tool.id}')"><div class="tool-art"><span>${tool.icon}</span></div><div class="tool-copy"><h3>${esc(tool.name)}</h3><p>${esc(tool.desc)}</p><span class="tool-badge">${tool.restricted?'授权素材限定':tool.badge||(tool.mode==='text'?'AI策划':'AI图片处理')}</span></div></article>`).join('')}</div></section>`;
+    }).join('')}`;
+  requestAnimationFrame(setupCategoryObserver);
+}
+
+function setupCategoryObserver(){
+  if(categoryObserver) categoryObserver.disconnect();
+  const root=document.querySelector('.main');
+  categoryObserver=new IntersectionObserver(entries=>{
+    const visible=entries.filter(entry=>entry.isIntersecting).sort((a,b)=>a.boundingClientRect.top-b.boundingClientRect.top);
+    if(!visible.length) return;
+    const id=visible[0].target.dataset.category;
+    if(id&&id!==activeCategory){ activeCategory=id; syncCategoryNav(); }
+  },{root,rootMargin:'-18% 0px -70% 0px',threshold:0});
+  document.querySelectorAll('.catalog-section').forEach(section=>categoryObserver.observe(section));
 }
 
 function renderToolWorkspace(){
@@ -452,7 +486,7 @@ function renderToolWorkspace(){
     ?(toolSession.text?`<div class="tool-text-result">${esc(toolSession.text)}</div><button class="btn btn-sm" style="margin-top:10px" onclick="copyToolText()">复制结果</button>`:`<div class="tool-empty">生成的策划、文案或提示词会显示在这里</div>`)
     :(toolSession.results.length?`<div class="tool-result-grid">${toolSession.results.map((src,i)=>`<div class="tool-result"><img src="${src}" alt="生成结果 ${i+1}"><div class="result-actions"><button class="btn btn-sm" onclick="downloadToolResult(${i})">下载</button></div></div>`).join('')}</div>`:`<div class="tool-empty">处理后的图片会显示在这里<br>批量任务将逐张返回结果</div>`);
   document.getElementById('content').innerHTML=`
-    <div class="tool-head"><button class="tool-back" onclick="openCatalog()" aria-label="返回">‹</button><div><h2>${esc(tool.name)}</h2><p>${esc(tool.desc)}</p></div></div>
+    <div class="tool-head"><button class="tool-back" onclick="openCatalog(false)" aria-label="返回">‹</button><div><h2>${esc(tool.name)}</h2><p>${esc(tool.desc)}</p></div></div>
     ${tool.restricted?'<div class="phase-box"><strong>授权素材限定</strong><p>请只处理您拥有或已取得明确授权的素材；不得用于冒充身份、伪造文件或移除他人版权归属。</p></div>':''}
     <div class="tool-layout"><section class="tool-panel"><div class="card-title">任务设置</div>
       ${imageAllowed?`<div class="tool-upload" onclick="document.getElementById('tool-file-input').click()">${previews}</div><input id="tool-file-input" type="file" accept="image/jpeg,image/png,image/webp" ${tool.multi?'multiple':''} style="display:none" onchange="handleToolUpload(event)">`:''}
