@@ -167,6 +167,7 @@ textarea.input{resize:vertical;min-height:60px}
 .project-prompt-card:after{content:"";position:absolute;width:210px;height:210px;border-radius:50%;right:-105px;top:-120px;background:color-mix(in srgb,var(--accent) 22%,transparent);pointer-events:none}
 .prompt-chat-head{display:flex;align-items:flex-start;gap:11px;position:relative;z-index:1}.prompt-chat-avatar{width:38px;height:38px;border-radius:13px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:var(--primary);color:#fff;font-size:18px;box-shadow:0 7px 18px color-mix(in srgb,var(--primary) 24%,transparent)}.prompt-chat-copy{flex:1;min-width:0}.prompt-chat-copy h3{font-size:16px}.prompt-chat-copy p{font-size:11px;color:var(--sub);margin-top:2px}.prompt-scheme{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:14px 0;padding:9px 11px;border:1px solid var(--border);border-radius:10px;background:color-mix(in srgb,var(--card) 78%,transparent);font-size:11px;color:var(--sub);position:relative;z-index:1}.prompt-scheme strong{color:var(--text)}.prompt-scheme .btn{margin-left:auto}.prompt-bubble{position:relative;margin:12px 0 10px 49px;padding:12px 14px;border-radius:5px 14px 14px 14px;background:var(--primary-bg);color:var(--text);font-size:12px;line-height:1.7}.prompt-bubble:before{content:"";position:absolute;left:-7px;top:0;border-top:8px solid var(--primary-bg);border-left:8px solid transparent}.prompt-composer{position:relative;z-index:1;margin-left:49px;border:1px solid var(--border);border-radius:13px;background:var(--card);padding:11px;box-shadow:0 7px 20px rgba(77,49,32,.05)}.prompt-composer textarea.input{min-height:92px;border:0;padding:4px 5px;background:transparent;box-shadow:none;line-height:1.65}.prompt-composer-footer{display:flex;align-items:center;gap:9px;border-top:1px solid var(--border);padding-top:10px;margin-top:6px}.prompt-composer-hint{flex:1;font-size:10px;color:var(--light)}.prompt-key-notice{display:flex;align-items:center;gap:8px;margin:10px 0 0 49px;padding:9px 11px;border-radius:10px;background:var(--warn-bg);color:var(--warn);font-size:11px}.prompt-key-notice .btn{margin-left:auto}.prompt-dialog-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:12px 0 0 49px}.prompt-dialog-actions .btn{justify-content:center;padding:11px}.prompt-analysis{margin:12px 0 0 49px;padding:11px 13px;border-left:3px solid var(--accent);border-radius:0 10px 10px 0;background:color-mix(in srgb,var(--bg) 74%,var(--card));font-size:11px;color:var(--sub)}.project-prompt-card .prompt-editor{margin-left:49px}.project-results-empty{padding:32px 18px;border:1px dashed var(--border);border-radius:12px;text-align:center;color:var(--light);font-size:12px;background:color-mix(in srgb,var(--bg) 64%,var(--card))}
 
+.project-provider-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:0 0 11px}.project-provider-grid label{display:block;font-size:10px;color:var(--sub);margin-bottom:4px}.project-provider-grid .input{padding:8px 10px;font-size:11px}
 .prompt-phase{margin:12px 0 0 49px}
 /* === Mobile === */
 .menu-btn{display:none;width:36px;height:36px;border-radius:8px;background:var(--bg);align-items:center;justify-content:center}
@@ -190,6 +191,7 @@ textarea.input{resize:vertical;min-height:60px}
   .platform-grid,.suite-grid,.gen-list{grid-template-columns:1fr}
   .tool-grid,.tool-preview-grid,.tool-result-grid,.field-row{grid-template-columns:1fr}
   .catalog-quick-list{grid-template-columns:1fr}
+  .project-provider-grid{grid-template-columns:1fr}
   .prompt-chat-head{align-items:center}.prompt-chat-copy p{display:none}.prompt-scheme{align-items:flex-start}.prompt-scheme .btn{width:100%;justify-content:center;margin-left:0}.prompt-composer-footer{align-items:stretch;flex-direction:column}.prompt-composer-footer .btn{justify-content:center}.prompt-dialog-actions{grid-template-columns:1fr}.prompt-key-notice{align-items:flex-start;flex-wrap:wrap}.prompt-key-notice .btn{margin-left:0}
 }
 </style>
@@ -432,7 +434,7 @@ function formatTime(t){ const d=new Date(t); return d.getMonth()+1+'/'+d.getDate
 /* ============ PROJECTS ============ */
 function newProject(){
   if(state.projects.length>=MAX_PROJECTS){ toast('最多'+MAX_PROJECTS+'个项目同时运行','warn'); return; }
-  const p={id:uid(),name:'商品项目 '+String(state.projects.length+1).padStart(2,'0'),image:'',platform:'taobao',suiteType:'square',direction:'standard',userNote:'',status:'idle',phase:'等待上传商品图',analysis:null,whiteImage:'',series:[],qcResults:[],createdAt:Date.now()};
+  const p={id:uid(),name:'商品项目 '+String(state.projects.length+1).padStart(2,'0'),image:'',platform:'taobao',suiteType:'square',direction:'standard',userNote:'',textProvider:state.settings.geminiKey?'gemini':state.settings.arkKey?'doubao':'gemini',imageProvider:state.settings.geminiKey?'gemini':state.settings.arkKey?'seedream':state.settings.openaiKey?'openai':'gemini',status:'idle',phase:'等待上传商品图',analysis:null,whiteImage:'',series:[],qcResults:[],createdAt:Date.now()};
   state.projects.push(p); state.currentProject=p.id; appView='project';
   renderProjectList(); renderMain();
 }
@@ -589,6 +591,12 @@ function renderToolWorkspace(){
 }
 
 function projectHasWhiteOutput(p){ return p.suiteType!=='vertical'; }
+function projectTextProvider(p){ return p.textProvider||(state.settings.geminiKey?'gemini':state.settings.arkKey?'doubao':'gemini'); }
+function projectImageProvider(p){ return p.imageProvider||(state.settings.geminiKey?'gemini':state.settings.arkKey?'seedream':state.settings.openaiKey?'openai':'gemini'); }
+function hasProjectTextKey(p){ return projectTextProvider(p)==='gemini'?Boolean(state.settings.geminiKey):Boolean(state.settings.arkKey); }
+function hasProjectImageKey(p){ const provider=projectImageProvider(p);return provider==='gemini'?Boolean(state.settings.geminiKey):provider==='openai'?Boolean(state.settings.openaiKey):Boolean(state.settings.arkKey); }
+function setProjectTextProvider(value){ const p=getCurrentProject();if(!projectEditable(p))return;p.textProvider=value;resetProjectPlan(p);renderMain();renderProjectList(); }
+function setProjectImageProvider(value){ const p=getCurrentProject();if(!projectEditable(p))return;p.imageProvider=value;resetProjectPlan(p);renderMain();renderProjectList(); }
 function updateProjectWhitePrompt(value){
   const p=getCurrentProject(); if(!p?.analysis) return;
   p.analysis.white_prompt=value;
@@ -607,15 +615,19 @@ function renderProjectPromptAssistant(p){
   const dirLabels={standard:'标准转化',scene:'生活场景',detail:'材质细节',procurement:'采购展示'};
   const outputCount=p.suiteType==='full'?10:5;
   const running=p.status==='running';
-  const canPlan=Boolean(p.image&&state.settings.arkKey&&!running);
-  const canGenerate=Boolean(p.image&&p.analysis&&state.settings.arkKey&&!running);
+  const textProvider=projectTextProvider(p);
+  const imageProvider=projectImageProvider(p);
+  const textModelLabel=textProvider==='gemini'?'Gemini 3.7 Flash':'豆包 Seed';
+  const imageModelLabel=imageProvider==='gemini'?'Nano Banana 2':imageProvider==='openai'?'GPT Image 2':'Seedream 5.0';
+  const canPlan=Boolean(p.image&&hasProjectTextKey(p)&&!running);
+  const canGenerate=Boolean(p.image&&p.analysis&&hasProjectImageKey(p)&&!running);
   const planLabel=running&&!p.analysis?'正在生成提示词…':!p.image?'先上传商品图':p.analysis?'重新生成整套提示词':'AI 生成整套提示词';
   return `<section class="card project-prompt-card" id="prompt-assistant">
     <div class="prompt-chat-head"><div class="prompt-chat-avatar">✦</div><div class="prompt-chat-copy"><h3>AI 提示词助手</h3><p>先规划、再确认、最后生图；不会跳过提示词直接生成。</p></div><span class="tag ${p.analysis?'tag-success':'tag-info'}" id="project-prompt-state">${p.analysis?'提示词已就绪':'等待需求'}</span></div>
-    <div class="prompt-scheme"><span>当前方案</span><strong>${platformLabels[p.platform]||p.platform} · ${suiteLabels[p.suiteType]||p.suiteType} · ${dirLabels[p.direction]||p.direction}</strong><button class="btn btn-sm" onclick="scrollToProjectSetup()">修改方案</button></div>
+    <div class="prompt-scheme"><span>当前方案</span><strong>${platformLabels[p.platform]||p.platform} · ${suiteLabels[p.suiteType]||p.suiteType} · ${dirLabels[p.direction]||p.direction}</strong><span class="tag tag-info">${textModelLabel} → ${imageModelLabel}</span><button class="btn btn-sm" onclick="scrollToProjectSetup()">修改方案</button></div>
     <div class="prompt-bubble">先上传商品实拍图，再告诉我想要的场景、风格、卖点、文案留白和禁用项。我会先生成 ${outputCount} 张图的完整提示词，等你逐条确认后才开始生图。</div>
-    <div class="prompt-composer"><label class="label" for="user-note">告诉 AI 你想要什么</label><textarea class="input" id="user-note" maxlength="2000" placeholder="例如：卡皮巴拉暖棕色居家场景，突出柔软材质，保留右侧文案留白，不要价格、促销字样和多余道具。" oninput="updateNote()">${esc(p.userNote||'')}</textarea><div class="prompt-composer-footer"><span class="prompt-composer-hint">可写场景、色调、目标人群、核心卖点和不要出现的元素</span><button class="btn btn-primary" ${canPlan?'':'disabled'} onclick="planProjectPrompts()">① ${planLabel}</button></div></div>
-    ${!state.settings.arkKey?`<div class="prompt-key-notice"><span>⚠️ 提示词助手需要先配置火山方舟 API Key</span><button class="btn btn-sm" onclick="showSettings()">配置 API</button></div>`:''}
+    <div class="prompt-composer"><div class="project-provider-grid"><div><label for="project-text-provider">提示词与质检模型</label><select class="input" id="project-text-provider" onchange="setProjectTextProvider(this.value)"><option value="gemini" ${textProvider==='gemini'?'selected':''}>Gemini 3.7 Flash（免费额度优先）</option><option value="doubao" ${textProvider==='doubao'?'selected':''}>豆包 Seed（火山方舟）</option></select></div><div><label for="project-image-provider">图片生成模型</label><select class="input" id="project-image-provider" onchange="setProjectImageProvider(this.value)"><option value="gemini" ${imageProvider==='gemini'?'selected':''}>Nano Banana 2（免费额度优先）</option><option value="seedream" ${imageProvider==='seedream'?'selected':''}>Seedream 5.0</option><option value="openai" ${imageProvider==='openai'?'selected':''}>GPT Image 2</option></select></div></div><label class="label" for="user-note">告诉 AI 你想要什么</label><textarea class="input" id="user-note" maxlength="2000" placeholder="例如：卡皮巴拉暖棕色居家场景，突出柔软材质，保留右侧文案留白，不要价格、促销字样和多余道具。" oninput="updateNote()">${esc(p.userNote||'')}</textarea><div class="prompt-composer-footer"><span class="prompt-composer-hint">可写场景、色调、目标人群、核心卖点和不要出现的元素</span><button class="btn btn-primary" ${canPlan?'':'disabled'} onclick="planProjectPrompts()">① ${planLabel}</button></div></div>
+    ${!hasProjectTextKey(p)||!hasProjectImageKey(p)?`<div class="prompt-key-notice"><span>⚠️ ${!hasProjectTextKey(p)?'所选文字模型':'所选图片模型'}尚未配置 API Key</span><button class="btn btn-sm" onclick="showSettings()">配置 API</button></div>`:''}
     ${running?`<div class="phase-box prompt-phase"><strong>${esc(p.phase||'正在处理')}</strong><p>可以切换到其他商品项目，本项目任务会继续运行。</p></div>`:''}
     ${p.analysis?`<div class="prompt-analysis" id="project-analysis"><strong>AI 商品理解：</strong>${esc(p.analysis.product_summary||'已完成商品理解')}</div>`:''}
     ${renderProjectPromptPlan(p)}
@@ -705,6 +717,7 @@ function renderMain(){
   `;
 }
 
+function imageModelLabel(model){ const value=String(model||'').toLowerCase();return value.includes('gemini')?'Nano Banana':value.includes('openai')||value.includes('gpt-image')?'GPT Image':value.includes('seedream')||value.includes('doubao')?'Seedream':model||'图片模型'; }
 function renderSeries(p){
   const labels={square:['白底商品主图','核心卖点场景','材质做工细节','尺寸使用感知','转化留白构图'],vertical:['首屏卖点概览','核心结构功能','材质工艺证明','尺寸适配说明','使用场景收尾'],full:['白底商品主图','核心卖点场景','材质做工细节','尺寸使用感知','转化留白构图','首屏卖点概览','核心结构功能','材质工艺证明','尺寸适配说明','使用场景收尾']};
   const items=labels[p.suiteType]||labels.square;
@@ -719,7 +732,7 @@ function renderSeries(p){
         <div class="gen-item-info">
           <div class="gen-item-label">${i+1}. ${esc(s.label||items[i])}</div>
           <div class="gen-item-meta">
-            ${s.model?`<span class="tag tag-info">${s.model.includes('openai')?'OpenAI':s.model.includes('base')?'豆包白底':'豆包'}</span>`:''}
+            ${s.model?`<span class="tag tag-info">${esc(imageModelLabel(s.model))}</span>`:''}
             ${qc?qc.pass?`<span class="tag tag-success">${qc.redone?'↻ 重做通过':'✓ 质检通过'} ${qc.score}分</span>`:`<span class="tag tag-danger">! 建议复核 ${qc.score}分</span>`:''}
           </div>
           ${qc?.summary?`<div style="font-size:10px;color:var(--light);margin-top:5px;line-height:1.45">${esc(qc.summary)}</div>`:''}
@@ -847,7 +860,7 @@ async function copyToolText(){
 
 /* ============ GENERATION FLOW ============ */
 const OUTPUT_LABELS={square:['白底商品主图','核心卖点场景','材质做工细节','尺寸使用感知','转化留白构图'],vertical:['首屏卖点概览','核心结构功能','材质工艺证明','尺寸适配说明','使用场景收尾'],full:['白底商品主图','核心卖点场景','材质做工细节','尺寸使用感知','转化留白构图','首屏卖点概览','核心结构功能','材质工艺证明','尺寸适配说明','使用场景收尾']};
-function modelOptions(){ return {visionModel:state.settings.visionModel||undefined,imageModel:state.settings.imageModel||undefined,openaiImageModel:state.settings.openaiImageModel||undefined}; }
+function modelOptions(p){ return {provider:projectImageProvider(p),imageModel:state.settings.imageModel||undefined,openaiImageModel:state.settings.openaiImageModel||undefined,geminiImageModel:state.settings.geminiImageModel||undefined}; }
 function outputAspect(p,index){ return p.suiteType==='vertical'||(p.suiteType==='full'&&index>=5)?'vertical':'square'; }
 
 async function generateOneTask(p,task,index){
@@ -857,21 +870,21 @@ async function generateOneTask(p,task,index){
   renderMain(); renderProjectList();
   try{
     const aspect=outputAspect(p,index);
-    const imgResp=await apiCall('/api/series-image',{prompt:task.prompt,whiteImageBase64:p.whiteImage,aspect,...modelOptions()});
+    const imgResp=await apiCall('/api/series-image',{prompt:task.prompt,whiteImageBase64:p.whiteImage,aspect,...modelOptions(p)});
     item.image=imgResp.image; item.model=imgResp.model; item.status='done';
     if(imgResp.fallback) toast('图'+(index+1)+'已自动切换豆包完成','warn');
     p.phase='正在质检第 '+(index+1)+' 张：'+item.label;
     renderMain();
     try{
-      let qc=await apiCall('/api/qc',{whiteImageBase64:p.whiteImage,generatedImageBase64:item.image,taskLabel:item.label,platform:p.platform,visionModel:state.settings.visionModel||undefined});
+      let qc=await apiCall('/api/qc',{whiteImageBase64:p.whiteImage,generatedImageBase64:item.image,taskLabel:item.label,platform:p.platform,textProvider:projectTextProvider(p),visionModel:state.settings.visionModel||undefined,geminiTextModel:state.settings.geminiTextModel||undefined});
       p.qcResults[index]=qc;
       if(!qc.pass){
         toast('图'+(index+1)+'未通过质检，正在自动修正重做','warn');
         p.phase='第 '+(index+1)+' 张质检未通过，正在自动重做'; renderMain();
         const correction=(qc.correction||qc.summary||'恢复商品真实外观并移除错误元素').slice(0,300);
-        const redoResp=await apiCall('/api/series-image',{prompt:task.prompt+'\n质检修正要求：'+correction,whiteImageBase64:p.whiteImage,aspect,...modelOptions()});
+        const redoResp=await apiCall('/api/series-image',{prompt:task.prompt+'\n质检修正要求：'+correction,whiteImageBase64:p.whiteImage,aspect,...modelOptions(p)});
         item.image=redoResp.image; item.model=redoResp.model+'-redo';
-        const qc2=await apiCall('/api/qc',{whiteImageBase64:p.whiteImage,generatedImageBase64:item.image,taskLabel:item.label,platform:p.platform,visionModel:state.settings.visionModel||undefined});
+        const qc2=await apiCall('/api/qc',{whiteImageBase64:p.whiteImage,generatedImageBase64:item.image,taskLabel:item.label,platform:p.platform,textProvider:projectTextProvider(p),visionModel:state.settings.visionModel||undefined,geminiTextModel:state.settings.geminiTextModel||undefined});
         qc2.redone=true; p.qcResults[index]=qc2;
       }
     }catch(qcError){
@@ -893,14 +906,14 @@ async function runPool(tasks,limit){
 
 async function planProjectPrompts(){
   const p=getCurrentProject(); if(!p||!p.image) return;
-  if(!state.settings.arkKey){ toast('请先配置火山方舟API Key','warn'); showSettings(); return; }
+  if(!hasProjectTextKey(p)){ toast('请先配置所选文字模型的 API Key','warn'); showSettings(); return; }
   const labels=OUTPUT_LABELS[p.suiteType];
   p.series=labels.map((label,index)=>({id:index,label,prompt:'',image:'',status:'pending',model:''}));
   p.qcResults=[]; p.status='running'; p.phase='正在识别商品并规划整套提示词'; p.whiteImage=''; p.analysis=null;
   renderMain(); renderProjectList();
   try{
     toast('正在识别商品并制定平台提示词...','');
-    const analysis=await apiCall('/api/analyze',{imageBase64:p.image,platform:p.platform,suiteType:p.suiteType,direction:p.direction,userNote:p.userNote,visionModel:state.settings.visionModel||undefined});
+    const analysis=await apiCall('/api/analyze',{imageBase64:p.image,platform:p.platform,suiteType:p.suiteType,direction:p.direction,userNote:p.userNote,textProvider:projectTextProvider(p),imageProvider:projectImageProvider(p),visionModel:state.settings.visionModel||undefined,geminiTextModel:state.settings.geminiTextModel||undefined});
     p.analysis=analysis;
     const hasWhiteOutput=p.suiteType!=='vertical';
     const plans=analysis.series||[];
@@ -918,18 +931,18 @@ async function planProjectPrompts(){
 
 async function generateProjectImages(){
   const p=getCurrentProject(); if(!p||!p.image||!p.analysis) return;
-  if(!state.settings.arkKey){ toast('请先配置火山方舟API Key','warn'); showSettings(); return; }
+  if(!hasProjectImageKey(p)){ toast('请先配置所选图片模型的 API Key','warn'); showSettings(); return; }
   if(!p.analysis.white_prompt?.trim()||p.series.some(item=>!item.prompt?.trim())){ toast('请补全所有图片提示词','warn'); return; }
   const labels=OUTPUT_LABELS[p.suiteType];
   p.series.forEach(item=>{ item.image='';item.status='pending';item.model=''; });
   p.qcResults=[]; p.status='running'; p.phase='正在根据已确认提示词制作白底基准图'; p.whiteImage='';
   renderMain(); renderProjectList();
   try{
-    const whiteResp=await apiCall('/api/white-image',{prompt:p.analysis.white_prompt,imageBase64:p.image,imageModel:state.settings.imageModel||undefined});
+    const whiteResp=await apiCall('/api/white-image',{prompt:p.analysis.white_prompt,imageBase64:p.image,...modelOptions(p)});
     p.whiteImage=whiteResp.image;
     const hasWhiteOutput=projectHasWhiteOutput(p);
     if(hasWhiteOutput){
-      p.series[0]={...p.series[0],prompt:p.analysis.white_prompt,image:whiteResp.image,status:'done',model:'doubao-base'};
+      p.series[0]={...p.series[0],prompt:p.analysis.white_prompt,image:whiteResp.image,status:'done',model:whiteResp.model||projectImageProvider(p)};
       p.qcResults[0]={pass:true,score:100,summary:'白底基准图',correction:''};
     }
     renderMain(); renderProjectList();
@@ -954,7 +967,7 @@ async function generateProjectImages(){
 async function regenSingle(idx){
   const p=getCurrentProject(); if(!p||!p.whiteImage) return;
   const item=p.series[idx]; if(!item||!item.prompt) return;
-  if(item.model==='doubao-base'){ toast('白底主图需要重新运行整套任务','warn'); return; }
+  if(projectHasWhiteOutput(p)&&idx===0){ toast('白底主图需要重新运行整套任务','warn'); return; }
   item.status='running'; item.image=''; p.qcResults[idx]=null; renderMain();
   await generateOneTask(p,{label:item.label,prompt:item.prompt},idx);
   toast(item.image?'图'+(idx+1)+'重新生成完成':'图'+(idx+1)+'重新生成失败',item.image?'success':'error');
