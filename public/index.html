@@ -135,6 +135,7 @@ textarea.input{resize:vertical;min-height:60px}
 .modal-title{font-size:18px;font-weight:700;margin-bottom:16px}
 .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}
 .form-group{margin-bottom:14px}
+.connection-results{display:grid;gap:7px;margin-top:10px}.connection-result{display:flex;align-items:center;gap:8px;padding:9px 11px;border:1px solid var(--border);border-radius:9px;background:var(--bg);font-size:11px}.connection-result strong{min-width:72px}.connection-result span:last-child{color:var(--sub);word-break:break-word}.connection-result.ok{border-color:var(--success);background:var(--success-bg)}.connection-result.fail{border-color:var(--danger);background:var(--danger-bg)}
 
 /* === Toast === */
 .toast-container{position:fixed;top:16px;right:16px;z-index:300;display:flex;flex-direction:column;gap:8px}
@@ -262,6 +263,7 @@ let activeTool='';
 let expandedCategory='';
 let toolSession={files:[],results:[],text:'',note:'',aspect:'square',running:false,prompts:[],promptSummary:'',provider:'seedream',textProvider:'gemini'};
 let categoryObserver=null;
+let providerHealth={};
 
 const TOOL_CATEGORIES=[
   {id:'product',label:'商品图',icon:'▣'},
@@ -416,7 +418,7 @@ function toast(msg,type){
   t.className='toast '+(type||'');
   t.textContent=msg;
   c.appendChild(t);
-  setTimeout(()=>{ t.style.opacity='0'; setTimeout(()=>t.remove(),300); }, 4000);
+  setTimeout(()=>{ t.style.opacity='0'; setTimeout(()=>t.remove(),300); }, type==='error'?9000:4000);
 }
 
 /* ============ UTILS ============ */
@@ -779,7 +781,10 @@ async function apiCall(path,data,extraHeaders){
   const raw=await resp.text();
   let json={};
   try{ json=raw?JSON.parse(raw):{}; }catch(e){ throw new Error('服务器返回格式异常（HTTP '+resp.status+'）'); }
-  if(!resp.ok) throw new Error(json.error||'请求失败（HTTP '+resp.status+'）');
+  if(!resp.ok){
+    const detail=[json.error||'请求失败（HTTP '+resp.status+'）',json.code&&`错误码 ${json.code}`,json.requestId&&`追踪号 ${json.requestId}`].filter(Boolean).join(' · ');
+    const error=new Error(detail); error.code=json.code||''; error.requestId=json.requestId||''; error.status=resp.status; throw error;
+  }
   return json;
 }
 
@@ -823,7 +828,8 @@ async function generateToolPrompts(){
   toolSession.running=true; toolSession.prompts=[]; toolSession.results=[]; renderToolWorkspace();
   try{
     const data=await apiCall('/api/tool-prompt',{toolId:tool.id,note:toolSession.note,imageBase64s:toolSession.files,inputHint:tool.inputHint||'',outputCount:desiredOutputCount(tool),aspect:toolSession.aspect,provider:toolSession.provider,textProvider:toolSession.textProvider,visionModel:state.settings.visionModel||undefined,geminiTextModel:state.settings.geminiTextModel||undefined});
-    toolSession.prompts=data.prompts||[]; toolSession.promptSummary=data.summary||''; toast('提示词已生成，请检查后再生图','success');
+    toolSession.prompts=data.prompts||[]; toolSession.promptSummary=data.summary||'';
+    toast(data.fallback?`原模型未通过，已自动改用${data.provider==='gemini'?'Gemini':'豆包'}生成提示词`:'提示词已生成，请检查后再生图',data.fallback?'warn':'success');
   }catch(error){ toast('提示词生成失败：'+error.message,'error'); }
   finally{ toolSession.running=false; renderToolWorkspace(); }
 }
@@ -922,7 +928,7 @@ async function planProjectPrompts(){
     plans.forEach((task,i)=>{ if(p.series[i+offset]) p.series[i+offset].prompt=task.prompt; });
     if(p.series.some(item=>!item.prompt)) throw new Error('提示词数量不完整，请重新规划');
     p.status='idle'; p.phase='整套提示词已生成，等待检查与确认';
-    renderMain(); renderProjectList(); toast('提示词已生成，请逐条检查后再生图','success');
+    renderMain(); renderProjectList(); toast(analysis.fallback?`原文字模型未通过，已自动改用${analysis.provider==='gemini'?'Gemini':'豆包'}完成提示词`:'提示词已生成，请逐条检查后再生图',analysis.fallback?'warn':'success');
   }catch(error){
     p.status='error'; p.phase='提示词规划失败'; p.analysis=null; p.series=[]; renderMain(); renderProjectList();
     toast('提示词生成失败：'+error.message,'error');
@@ -1024,15 +1030,16 @@ function showSettings(){
       <div class="form-group"><label class="label">Gemini 文字模型</label><input class="input" id="set-gemini-text-model" value="${esc(state.settings.geminiTextModel||'')}" placeholder="默认 gemini-3.7-flash"></div>
       <div class="form-group"><label class="label">Gemini 图片模型</label><input class="input" id="set-gemini-image-model" value="${esc(state.settings.geminiImageModel||'')}" placeholder="默认 gemini-3.1-flash-image"></div>
     </details>
-    <div style="font-size:11px;color:var(--light);line-height:1.6;margin-top:12px">密钥只保存在当前浏览器，通过HTTPS临时发送给本站服务端，不写入源码或数据库。公共电脑使用后请清除。</div>
+    <div style="font-size:11px;color:var(--light);line-height:1.6;margin-top:12px">填写密钥不代表已经接通。请点击“保存并检测”；系统会验证文字/提示词模型以及 OpenAI 图片模型权限。Seedream 与 Nano Banana 的实际生图权限会在首次生成时确认。</div>
+    <div class="connection-results" id="connection-results">${connectionResultsHtml()}</div>
     <div class="modal-actions">
       <button class="btn" style="margin-right:auto;color:var(--danger)" onclick="clearApiSettings()">清除密钥</button>
       <button class="btn" onclick="closeModal()">取消</button>
-      <button class="btn btn-primary" onclick="saveApiSettings()">保存</button>
+      <button class="btn btn-primary" id="test-connections-btn" onclick="saveAndTestApiSettings()">保存并检测</button>
     </div>
   `);
 }
-function saveApiSettings(){
+function readApiSettingsForm(){
   state.settings.arkKey=document.getElementById('set-ark').value.trim();
   state.settings.openaiKey=document.getElementById('set-openai').value.trim();
   state.settings.geminiKey=document.getElementById('set-gemini').value.trim();
@@ -1041,18 +1048,47 @@ function saveApiSettings(){
   state.settings.openaiImageModel=document.getElementById('set-openai-model').value.trim();
   state.settings.geminiTextModel=document.getElementById('set-gemini-text-model').value.trim();
   state.settings.geminiImageModel=document.getElementById('set-gemini-image-model').value.trim();
+}
+function saveApiSettings(){
+  readApiSettingsForm();
   saveSettings(); closeModal(); updateApiStatus(); renderMain();
-  toast('设置已保存','success');
+  toast('设置已保存；尚未检测连接','warn');
+}
+function connectionResultsHtml(){
+  const configured=[state.settings.geminiKey&&['gemini','Gemini'],state.settings.arkKey&&['doubao','火山方舟'],state.settings.openaiKey&&['openai','OpenAI']].filter(Boolean);
+  if(!configured.length) return '<div class="connection-result"><strong>尚未填写</strong><span>请至少配置一个模型服务</span></div>';
+  return configured.map(([id,label])=>{const item=providerHealth[id];const cls=item?(item.ok?'ok':'fail'):'';const icon=item?(item.ok?'✅':'❌'):'⚪';return `<div class="connection-result ${cls}"><strong>${icon} ${label}</strong><span>${esc(item?.message||'已填写，等待检测')}</span></div>`;}).join('');
+}
+async function saveAndTestApiSettings(){
+  readApiSettingsForm(); saveSettings(); providerHealth={}; updateApiStatus();
+  const button=document.getElementById('test-connections-btn'); if(button){button.disabled=true;button.textContent='正在检测…';}
+  const configured=[state.settings.geminiKey&&'gemini',state.settings.arkKey&&'doubao',state.settings.openaiKey&&'openai'].filter(Boolean);
+  if(!configured.length){ toast('请至少填写一个 API Key','warn'); if(button){button.disabled=false;button.textContent='保存并检测';} return; }
+  await Promise.all(configured.map(async provider=>{
+    try{
+      const data=await apiCall('/api/connection-test',{provider,visionModel:state.settings.visionModel||undefined,geminiTextModel:state.settings.geminiTextModel||undefined,openaiImageModel:state.settings.openaiImageModel||undefined});
+      providerHealth[provider]={ok:true,message:data.message||'连接正常'};
+    }catch(error){ providerHealth[provider]={ok:false,message:error.message}; }
+    const results=document.getElementById('connection-results'); if(results) results.innerHTML=connectionResultsHtml(); updateApiStatus();
+  }));
+  if(button){button.disabled=false;button.textContent='重新检测';}
+  const failed=configured.filter(provider=>!providerHealth[provider]?.ok);
+  renderMain();
+  toast(failed.length?`${failed.length} 个模型连接未通过，请查看错误码`:'已填写的模型连接全部通过',failed.length?'error':'success');
 }
 function clearApiSettings(){
   state.settings={arkKey:'',openaiKey:'',geminiKey:'',visionModel:'',imageModel:'',openaiImageModel:'',geminiTextModel:'',geminiImageModel:''};
-  saveSettings(); closeModal(); updateApiStatus(); renderMain(); toast('本机保存的密钥已清除','success');
+  providerHealth={}; saveSettings(); closeModal(); updateApiStatus(); renderMain(); toast('本机保存的密钥已清除','success');
 }
 function updateApiStatus(){
   const el=document.getElementById('api-status');
-  const providers=[state.settings.geminiKey&&'Gemini',state.settings.arkKey&&'火山方舟',state.settings.openaiKey&&'OpenAI'].filter(Boolean);
-  if(providers.length) el.textContent='✅ '+providers.join(' + ');
-  else el.textContent='❌ 未配置API';
+  const providers=[state.settings.geminiKey&&['gemini','Gemini'],state.settings.arkKey&&['doubao','火山方舟'],state.settings.openaiKey&&['openai','OpenAI']].filter(Boolean);
+  if(!providers.length){el.textContent='❌ 未配置API';return;}
+  const checked=providers.filter(([id])=>providerHealth[id]);
+  const failed=checked.filter(([id])=>!providerHealth[id].ok);
+  if(failed.length) el.textContent='⚠️ '+failed.map(([,label])=>label).join('、')+'连接失败';
+  else if(checked.length===providers.length) el.textContent='✅ '+providers.map(([,label])=>label).join(' + ')+' 已连接';
+  else el.textContent='⚪ 已填写API，等待检测';
 }
 
 /* ============ HISTORY ============ */
