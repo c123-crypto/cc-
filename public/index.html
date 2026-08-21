@@ -1099,16 +1099,20 @@ function showSettings(){
     </div>
   `);
 }
+function cleanModelId(value){
+  return String(value||'').trim().split(/\s+/)[0].replace(/[，。；;,]+$/g,'');
+}
 function readApiSettingsForm(){
   state.settings.arkKey=document.getElementById('set-ark').value.trim();
-  state.settings.arkTextModel=document.getElementById('set-ark-text-model').value.trim();
+  state.settings.arkTextModel=cleanModelId(document.getElementById('set-ark-text-model').value);
   state.settings.openaiKey=document.getElementById('set-openai').value.trim();
   state.settings.geminiKey=document.getElementById('set-gemini').value.trim();
-  state.settings.visionModel=document.getElementById('set-vision-model').value.trim();
-  state.settings.imageModel=document.getElementById('set-image-model').value.trim();
-  state.settings.openaiImageModel=document.getElementById('set-openai-model').value.trim();
-  state.settings.geminiTextModel=document.getElementById('set-gemini-text-model').value.trim();
-  state.settings.geminiImageModel=document.getElementById('set-gemini-image-model').value.trim();
+  state.settings.visionModel=cleanModelId(document.getElementById('set-vision-model').value);
+  state.settings.imageModel=cleanModelId(document.getElementById('set-image-model').value);
+  state.settings.openaiImageModel=cleanModelId(document.getElementById('set-openai-model').value);
+  state.settings.geminiTextModel=cleanModelId(document.getElementById('set-gemini-text-model').value);
+  state.settings.geminiImageModel=cleanModelId(document.getElementById('set-gemini-image-model').value);
+  document.getElementById('set-ark-text-model').value=state.settings.arkTextModel;
   state.settings.imageFallback=document.getElementById('set-image-fallback').checked;
 }
 function saveApiSettings(){

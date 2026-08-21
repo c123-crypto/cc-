@@ -222,7 +222,7 @@ test('DeepSeek can be selected as the Ark text model', async (t) => {
 
   const response = await worker.fetch(apiRequest('connection-test', {
     provider: 'doubao',
-    arkTextModel: 'deepseek-v4-pro-ga-260813',
+    arkTextModel: 'deepseek-v4-pro-ga-260813 4.',
   }, { 'x-ark-key': 'test-ark-key' }), env);
   const body = await response.json();
 
