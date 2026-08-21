@@ -208,3 +208,47 @@ test('unparseable Ark responses return a useful configuration error', async (t) 
   assert.equal(body.code, 'ARK_CHAT_FORMAT');
   assert.match(body.error, /模型名称、Endpoint和代理配置/);
 });
+
+test('DeepSeek can be selected as the Ark text model', async (t) => {
+  const originalFetch = globalThis.fetch;
+  let sentBody;
+  globalThis.fetch = async (_url, options) => {
+    sentBody = JSON.parse(options.body);
+    return Response.json({ choices: [{ message: { content: '通过' } }] });
+  };
+  t.after(() => { globalThis.fetch = originalFetch; });
+
+  const response = await worker.fetch(apiRequest('connection-test', {
+    provider: 'doubao',
+    arkTextModel: 'deepseek-v4-pro-ga-260813',
+  }, { 'x-ark-key': 'test-ark-key' }), env);
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(sentBody.model, 'deepseek-v4-pro-ga-260813');
+  assert.equal(body.model, 'deepseek-v4-pro-ga-260813');
+  assert.match(body.message, /DeepSeek/);
+});
+
+test('image-backed text tools use the multimodal model instead of DeepSeek', async (t) => {
+  const originalFetch = globalThis.fetch;
+  let sentBody;
+  globalThis.fetch = async (_url, options) => {
+    sentBody = JSON.parse(options.body);
+    return Response.json({ choices: [{ message: { content: '已识别商品' } }] });
+  };
+  t.after(() => { globalThis.fetch = originalFetch; });
+
+  const response = await worker.fetch(apiRequest('tool-text', {
+    toolId: 'text-copywriter',
+    note: '生成卖点文案',
+    imageBase64s: ['data:image/png;base64,AA=='],
+    textProvider: 'doubao',
+    arkTextModel: 'deepseek-v4-pro-ga-260813',
+    visionModel: 'doubao-seed-2-1-pro-test',
+  }, { 'x-ark-key': 'test-ark-key' }), env);
+
+  assert.equal(response.status, 200);
+  assert.equal(sentBody.model, 'doubao-seed-2-1-pro-test');
+  assert.equal(sentBody.messages[0].content[1].type, 'image_url');
+});

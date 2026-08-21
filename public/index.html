@@ -257,7 +257,7 @@ textarea.input{resize:vertical;min-height:60px}
 /* ============ STATE ============ */
 const STORAGE_KEY = 'ai_img_workbench';
 const MAX_PROJECTS = 20;
-let state = { projects:[], currentProject:null, settings:{arkKey:'',openaiKey:'',geminiKey:'',visionModel:'',imageModel:'',openaiImageModel:'',geminiTextModel:'',geminiImageModel:'',imageFallback:true} };
+let state = { projects:[], currentProject:null, settings:{arkKey:'',arkTextModel:'',openaiKey:'',geminiKey:'',visionModel:'',imageModel:'',openaiImageModel:'',geminiTextModel:'',geminiImageModel:'',imageFallback:true} };
 let appView='catalog';
 let activeCategory='product';
 let activeTool='';
@@ -856,7 +856,7 @@ async function runTextTool(){
   if(!hasSelectedTextKey()){ toast('所选文字模型尚未配置API Key','warn'); showSettings(); return; }
   toolSession.running=true; toolSession.text=''; renderToolWorkspace();
   try{
-    const data=await apiCall('/api/tool-text',{toolId:tool.id,note:toolSession.note,imageBase64s:toolFiles(tool),textProvider:toolSession.textProvider,visionModel:state.settings.visionModel||undefined,geminiTextModel:state.settings.geminiTextModel||undefined});
+    const data=await apiCall('/api/tool-text',{toolId:tool.id,note:toolSession.note,imageBase64s:toolFiles(tool),textProvider:toolSession.textProvider,arkTextModel:state.settings.arkTextModel||undefined,visionModel:state.settings.visionModel||undefined,geminiTextModel:state.settings.geminiTextModel||undefined});
     toolSession.text=data.text||''; toast('文字生成完成','success');
   }catch(error){ toast('处理失败：'+error.message,'error'); }
   finally{ toolSession.running=false; renderToolWorkspace(); }
@@ -1061,7 +1061,12 @@ function showSettings(){
     <div class="form-group">
       <label class="label">火山方舟 API Key（选填）</label>
       <input class="input" type="password" id="set-ark" value="${esc(state.settings.arkKey)}" placeholder="volc-xxx...">
-      <div style="font-size:11px;color:var(--light);margin-top:4px">用于豆包文字理解、Seedream生图及原商品套图的白底与质检流程</div>
+      <div style="font-size:11px;color:var(--light);margin-top:4px">同一个 Key 可调用账户已开通的 DeepSeek、豆包视觉和 Seedream；每类模型需填写自己的完整 Model ID。</div>
+    </div>
+    <div class="form-group">
+      <label class="label">火山文字模型 ID（DeepSeek）</label>
+      <input class="input" id="set-ark-text-model" value="${esc(state.settings.arkTextModel||'')}" placeholder="例如 deepseek-v4-pro-ga-260813">
+      <div style="font-size:11px;color:var(--light);margin-top:4px">用于纯文字文案、标题、脚本和推理。请填写模型详情页的完整 Model ID，不要只填末尾数字。</div>
     </div>
     <div class="form-group">
       <label class="label">OpenAI API Key（选填）</label>
@@ -1078,14 +1083,14 @@ function showSettings(){
       <span><strong style="display:block;font-size:12px">图片模型失败时自动使用备用模型</strong><span style="display:block;font-size:10px;color:var(--sub);margin-top:3px;line-height:1.5">遇到额度、权限、超时或服务错误时，依次尝试其他已配置模型；内容安全拦截不会绕过。</span></span>
     </label>
     <details style="margin-top:10px;border:1px solid var(--border);border-radius:10px;padding:10px 12px">
-      <summary style="cursor:pointer;font-size:12px;font-weight:600">高级模型设置（通常无需填写）</summary>
-      <div class="form-group" style="margin-top:12px"><label class="label">豆包视觉理解模型</label><input class="input" id="set-vision-model" value="${esc(state.settings.visionModel||'')}" placeholder="留空使用服务器默认模型"></div>
-      <div class="form-group"><label class="label">豆包 Seedream 图片模型</label><input class="input" id="set-image-model" value="${esc(state.settings.imageModel||'')}" placeholder="留空使用服务器默认模型"></div>
+      <summary style="cursor:pointer;font-size:12px;font-weight:600">图片功能模型设置</summary>
+      <div class="form-group" style="margin-top:12px"><label class="label">豆包多模态视觉模型 ID</label><input class="input" id="set-vision-model" value="${esc(state.settings.visionModel||'')}" placeholder="Doubao-Seed-2.1-pro 的完整 Model ID"><div class="model-note">负责看懂商品图。DeepSeek 是文字模型，不能填在这里。</div></div>
+      <div class="form-group"><label class="label">Seedream 图片模型 ID</label><input class="input" id="set-image-model" value="${esc(state.settings.imageModel||'')}" placeholder="Seedream 5.0 Pro / Lite / 4.5 的完整 Model ID"><div class="model-note">负责生成和编辑图片，可随时换成账户已开通的另一个 Seedream 型号。</div></div>
       <div class="form-group"><label class="label">OpenAI 图片模型</label><input class="input" id="set-openai-model" value="${esc(state.settings.openaiImageModel||'')}" placeholder="留空使用服务器默认模型"></div>
       <div class="form-group"><label class="label">Gemini 文字模型</label><input class="input" id="set-gemini-text-model" value="${esc(state.settings.geminiTextModel||'')}" placeholder="默认 gemini-3.7-flash"></div>
       <div class="form-group"><label class="label">Gemini 图片模型</label><input class="input" id="set-gemini-image-model" value="${esc(state.settings.geminiImageModel||'')}" placeholder="默认 gemini-3.1-flash-image"></div>
     </details>
-    <div style="font-size:11px;color:var(--light);line-height:1.6;margin-top:12px">填写密钥不代表已经接通。请点击“保存并检测”；系统会验证文字/提示词模型以及 OpenAI 图片模型权限。Seedream 与 Nano Banana 的实际生图权限会在首次生成时确认。</div>
+    <div style="font-size:11px;color:var(--light);line-height:1.6;margin-top:12px">“保存并检测”会检测 DeepSeek/火山文字模型。豆包视觉与 Seedream 会在图片功能首次调用时分别验证；文字模型通过不代表生图模型也已开通。</div>
     <div class="connection-results" id="connection-results">${connectionResultsHtml()}</div>
     <div class="modal-actions">
       <button class="btn" style="margin-right:auto;color:var(--danger)" onclick="clearApiSettings()">清除密钥</button>
@@ -1096,6 +1101,7 @@ function showSettings(){
 }
 function readApiSettingsForm(){
   state.settings.arkKey=document.getElementById('set-ark').value.trim();
+  state.settings.arkTextModel=document.getElementById('set-ark-text-model').value.trim();
   state.settings.openaiKey=document.getElementById('set-openai').value.trim();
   state.settings.geminiKey=document.getElementById('set-gemini').value.trim();
   state.settings.visionModel=document.getElementById('set-vision-model').value.trim();
@@ -1122,7 +1128,7 @@ async function saveAndTestApiSettings(){
   if(!configured.length){ toast('请至少填写一个 API Key','warn'); if(button){button.disabled=false;button.textContent='保存并检测';} return; }
   await Promise.all(configured.map(async provider=>{
     try{
-      const data=await apiCall('/api/connection-test',{provider,visionModel:state.settings.visionModel||undefined,geminiTextModel:state.settings.geminiTextModel||undefined,openaiImageModel:state.settings.openaiImageModel||undefined});
+      const data=await apiCall('/api/connection-test',{provider,arkTextModel:state.settings.arkTextModel||undefined,visionModel:state.settings.visionModel||undefined,geminiTextModel:state.settings.geminiTextModel||undefined,openaiImageModel:state.settings.openaiImageModel||undefined});
       providerHealth[provider]={ok:true,message:data.message||'连接正常'};
     }catch(error){ providerHealth[provider]={ok:false,message:error.message}; }
     const results=document.getElementById('connection-results'); if(results) results.innerHTML=connectionResultsHtml(); updateApiStatus();
@@ -1133,7 +1139,7 @@ async function saveAndTestApiSettings(){
   toast(failed.length?`${failed.length} 个模型连接未通过，请查看错误码`:'已填写的模型连接全部通过',failed.length?'error':'success');
 }
 function clearApiSettings(){
-  state.settings={arkKey:'',openaiKey:'',geminiKey:'',visionModel:'',imageModel:'',openaiImageModel:'',geminiTextModel:'',geminiImageModel:'',imageFallback:true};
+  state.settings={arkKey:'',arkTextModel:'',openaiKey:'',geminiKey:'',visionModel:'',imageModel:'',openaiImageModel:'',geminiTextModel:'',geminiImageModel:'',imageFallback:true};
   providerHealth={}; saveSettings(); closeModal(); updateApiStatus(); renderMain(); toast('本机保存的密钥已清除','success');
 }
 function updateApiStatus(){
