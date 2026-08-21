@@ -68,3 +68,12 @@ test('queued image jobs use product-operation-sequence names', () => {
   assert.match(html, /String\(sequence\)\.padStart\(2,'0'\)/);
   assert.match(html, /`\$\{product\}-\$\{operation\}-\$\{String\(sequence\)/);
 });
+
+test('completed tool images are cached for one day and downloadable as a named ZIP', () => {
+  assert.match(html, /const HISTORY_TTL=24\*60\*60\*1000/);
+  assert.match(html, /expiresAt:Date\.now\(\)\+HISTORY_TTL/);
+  assert.match(html, /async function pruneHistory\(\)/);
+  assert.match(html, /async function downloadToolZip\(\)/);
+  assert.match(html, /`\$\{name\}\.zip`/);
+  assert.match(html, /下载任务 ZIP/);
+});

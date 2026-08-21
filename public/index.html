@@ -401,6 +401,7 @@ function getApiBase(){ return window.location.origin; }
 
 /* ============ IndexedDB ============ */
 let idb=null;
+const HISTORY_TTL=24*60*60*1000;
 function openIDB(){
   return new Promise((resolve)=>{
     if(idb) return resolve(idb);
@@ -413,6 +414,7 @@ function openIDB(){
 async function idbAdd(rec){ const db=await openIDB(); if(!db)return; return new Promise(r=>{ const tx=db.transaction('records','readwrite'); tx.objectStore('records').put(rec); tx.oncomplete=()=>r(); tx.onerror=()=>r(); }); }
 async function idbAll(){ const db=await openIDB(); if(!db)return []; return new Promise(r=>{ const tx=db.transaction('records','readonly'); const req=tx.objectStore('records').getAll(); req.onsuccess=()=>r(req.result||[]); req.onerror=()=>r([]); }); }
 async function idbDel(id){ const db=await openIDB(); if(!db)return; return new Promise(r=>{ const tx=db.transaction('records','readwrite'); tx.objectStore('records').delete(id); tx.oncomplete=()=>r(); tx.onerror=()=>r(); }); }
+async function pruneHistory(){const records=await idbAll();const cutoff=Date.now()-HISTORY_TTL;await Promise.all(records.filter(rec=>(rec.expiresAt||rec.createdAt+HISTORY_TTL)<=Date.now()||rec.createdAt<cutoff).map(rec=>idbDel(rec.id)));}
 
 /* ============ TOAST ============ */
 function toast(msg,type){
@@ -434,6 +436,8 @@ function base64ToBlob(b64){
   return new Blob([arr],{type:mime});
 }
 function downloadBlob(blob,name){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); }
+async function imageSourceBlob(src){if(String(src).startsWith('data:'))return base64ToBlob(src);const response=await fetch(src);if(!response.ok)throw new Error('图片下载地址已失效');return response.blob();}
+async function cacheImageSource(src){if(String(src).startsWith('data:'))return src;try{const blob=await imageSourceBlob(src);return await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(blob);});}catch(error){return src;}}
 function formatTime(t){ const d=new Date(t); return d.getMonth()+1+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
 
 /* ============ PROJECTS ============ */
@@ -609,7 +613,7 @@ function renderToolWorkspace(){
   const previews=allFiles.length?`<div style="width:100%"><div class="tool-preview-grid">${allFiles.map((src,i)=>`<div class="tool-preview"><img src="${src}" alt="参考素材 ${i+1}"><span style="position:absolute;left:6px;top:6px;background:rgba(20,31,24,.7);color:#fff;padding:2px 6px;border-radius:99px;font-size:9px">${i+1}</span><button onclick="event.stopPropagation();removeToolFile(${i})" title="移除">×</button></div>`).join('')}</div>${allFiles.length<tool.maxFiles?'<div class="upload-hint">点击空白处可继续添加</div>':''}</div>`:`<div><div style="font-size:34px;margin-bottom:8px">${tool.icon}</div><strong>${uploadCopy}</strong><div class="upload-hint">${needsCopy} · JPG / PNG / WebP · 单张不超过${fileLimit}MB</div></div>`;
   const output=tool.mode==='text'
     ?(toolSession.text?`<div class="tool-text-result">${esc(toolSession.text)}</div><button class="btn btn-sm" style="margin-top:10px" onclick="copyToolText()">复制结果</button>`:`<div class="tool-empty">AI生成的文字会显示在这里</div>`)
-    :(toolSession.results.length?`<div class="tool-result-grid">${toolSession.results.map((src,i)=>{const meta=toolSession.resultMeta[i]||{};return `<div class="tool-result"><img src="${src}" alt="生成结果 ${i+1}"><div class="result-actions"><div class="result-meta"><strong>${esc(meta.model||imageProviderLabel(meta.provider)||'图片模型')}</strong>${meta.fallback?`<span class="fallback">已从 ${esc(meta.fallbackFrom||'首选模型')} 自动切换</span>`:'<span>首选模型完成</span>'}</div><button class="btn btn-sm" onclick="downloadToolResult(${i})">下载</button></div></div>`;}).join('')}</div>`:`<div class="tool-empty">先生成并确认提示词，再生成图片<br>批量任务会按素材逐张返回</div>`);
+    :(toolSession.results.length?`<div class="tool-result-grid">${toolSession.results.map((src,i)=>{const meta=toolSession.resultMeta[i]||{};return `<div class="tool-result"><img src="${src}" alt="生成结果 ${i+1}"><div class="result-actions"><div class="result-meta"><strong>${esc(meta.model||imageProviderLabel(meta.provider)||'图片模型')}</strong>${meta.fallback?`<span class="fallback">已从 ${esc(meta.fallbackFrom||'首选模型')} 自动切换</span>`:'<span>首选模型完成</span>'}</div><button class="btn btn-sm" onclick="downloadToolResult(${i})">下载</button></div></div>`;}).join('')}</div><button class="btn btn-primary" style="margin-top:12px" onclick="downloadToolZip()">下载任务 ZIP</button>`:`<div class="tool-empty">先生成并确认提示词，再生成图片<br>批量任务会按素材逐张返回</div>`);
   const textProvider=`<div class="form-group"><label class="label">文字与素材理解模型</label><select class="input" onchange="setToolTextProvider(this.value)"><option value="gemini" ${toolSession.textProvider==='gemini'?'selected':''}>Gemini（免费额度优先）</option><option value="doubao" ${toolSession.textProvider==='doubao'?'selected':''}>火山方舟（自动分配 DeepSeek / 豆包视觉）</option></select><div class="model-note">纯文字任务使用 DeepSeek；含图片任务自动使用豆包多模态视觉模型</div></div>`;
   const imageProvider=tool.mode==='image'?`<div class="form-group"><label class="label">图片生成模型</label><select class="input" onchange="setToolProvider(this.value)"><option value="gemini" ${toolSession.provider==='gemini'?'selected':''}>Nano Banana 2（免费额度优先）</option><option value="seedream" ${toolSession.provider==='seedream'?'selected':''}>Seedream 5.0</option><option value="openai" ${toolSession.provider==='openai'?'selected':''}>GPT Image 2</option></select><div class="model-note">切换模型后会重新优化提示词</div></div>`:'';
   const promptEditor=tool.mode==='image'?`<div class="workflow-steps"><div class="workflow-step ${toolSession.prompts.length?'ready':''}">① AI生成提示词</div><div class="workflow-step ${toolSession.results.length?'ready':''}">② 确认后生图</div></div>${toolSession.prompts.length?`<div class="prompt-editor" id="prompt-editor"><div class="prompt-editor-head"><strong>图片提示词（可修改）</strong><span class="tag tag-success">${toolSession.prompts.length} 条</span></div><div class="prompt-summary">${esc(toolSession.promptSummary)}</div>${toolSession.prompts.map((item,i)=>`<div class="prompt-item"><label><span>${i+1}. ${esc(item.label)}</span><span>可编辑</span></label><textarea class="input" maxlength="12000" oninput="setToolPrompt(${i},this.value)">${esc(item.prompt)}</textarea></div>`).join('')}</div>`:''}`:'';
@@ -970,13 +974,22 @@ async function generateToolImages(){
       }
       renderToolWorkspace();
     }
-    updateToolJob(tool,'done',`已完成 ${toolSession.results.length}/${toolSession.prompts.length}`); toast('图片生成完成','success');
+    const job=updateToolJob(tool,'done',`已完成 ${toolSession.results.length}/${toolSession.prompts.length}`);
+    const cachedImages=await Promise.all(toolSession.results.map(cacheImageSource));
+    await idbAdd({id:'tool-'+job.id,kind:'tool',name:job.name,toolId:tool.id,platform:'图片工具',series:cachedImages.map((image,index)=>({label:toolSession.prompts[index]?.label||`结果 ${index+1}`,image,model:toolSession.resultMeta[index]?.model||'',provider:toolSession.resultMeta[index]?.provider||''})),createdAt:Date.now(),expiresAt:Date.now()+HISTORY_TTL});
+    toast('图片生成完成，已缓存到历史记录 24 小时','success');
   }catch(error){ updateToolJob(tool,'error','生成失败，可进入任务重试'); toast('图片生成失败：'+error.message,'error'); }
   finally{ toolSession.running=false; renderToolWorkspace(); renderProjectList(); }
 }
-function downloadToolResult(index){
+async function downloadToolResult(index){
   const src=toolSession.results[index]; const tool=TOOLS.find(item=>item.id===activeTool); if(!src||!tool) return;
-  downloadBlob(base64ToBlob(src),`${tool.name}_${index+1}.jpg`);
+  try{downloadBlob(await imageSourceBlob(src),`${state.toolJobs.find(item=>item.id===state.currentToolJob)?.name||tool.name}_${index+1}.png`);}catch(error){toast('下载失败：'+error.message,'error');}
+}
+async function downloadToolZip(){
+  const tool=TOOLS.find(item=>item.id===activeTool);if(!tool||!toolSession.results.length)return;
+  const name=state.toolJobs.find(item=>item.id===state.currentToolJob)?.name||tool.name;
+  toast('正在打包 ZIP...','');
+  try{if(typeof JSZip==='undefined')await loadScript('https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js');const zip=new JSZip();for(let i=0;i<toolSession.results.length;i++)zip.file(`${name}_${String(i+1).padStart(2,'0')}.png`,await imageSourceBlob(toolSession.results[i]));downloadBlob(await zip.generateAsync({type:'blob'}),`${name}.zip`);toast('ZIP 下载完成','success');}catch(error){toast('ZIP 打包失败：'+error.message,'error');}
 }
 async function copyToolText(){
   if(!toolSession.text) return;
@@ -1102,11 +1115,10 @@ async function regenSingle(idx){
 }
 
 /* ============ DOWNLOAD ============ */
-function downloadSingle(idx){
+async function downloadSingle(idx){
   const p=getCurrentProject(); if(!p) return;
   const s=p.series[idx]; if(!s||!s.image) return;
-  const blob=base64ToBlob(s.image);
-  downloadBlob(blob,`${p.name}_${idx+1}_${s.label}.png`);
+  try{downloadBlob(await imageSourceBlob(s.image),`${p.name}_${idx+1}_${s.label}.png`);}catch(error){toast('下载失败：'+error.message,'error');}
 }
 async function downloadAll(){
   const p=getCurrentProject(); if(!p) return;
@@ -1117,7 +1129,7 @@ async function downloadAll(){
   try{
     if(typeof JSZip==='undefined'){ await loadScript('https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js'); }
     const zip=new JSZip();
-    imgs.forEach((s,i)=>{ const blob=base64ToBlob(s.image); zip.file(`${p.name}_${String(i+1).padStart(2,'0')}_${s.label}.png`,blob); });
+    for(let i=0;i<imgs.length;i++) zip.file(`${p.name}_${String(i+1).padStart(2,'0')}_${imgs[i].label}.png`,await imageSourceBlob(imgs[i].image));
     const content=await zip.generateAsync({type:'blob'});
     downloadBlob(content,`${p.name}_套图.zip`);
     toast('ZIP下载完成','success');
@@ -1258,6 +1270,7 @@ function updateApiStatus(){
 
 /* ============ HISTORY ============ */
 async function showHistory(){
+  await pruneHistory();
   const records=await idbAll();
   records.sort((a,b)=>b.createdAt-a.createdAt);
   showModal(`
@@ -1265,10 +1278,10 @@ async function showHistory(){
     <div style="max-height:60vh;overflow-y:auto">
       ${records.length?records.map(r=>`
         <div class="history-item" onclick="viewHistoryDetail('${r.id}')">
-          ${r.whiteImage?`<img class="history-thumb" src="${r.whiteImage}">`:`<div class="history-thumb" style="background:var(--bg)"></div>`}
+          ${r.whiteImage||r.series?.[0]?.image?`<img class="history-thumb" src="${r.whiteImage||r.series[0].image}">`:`<div class="history-thumb" style="background:var(--bg)"></div>`}
           <div class="history-info">
             <div class="history-title">${esc(r.name)}</div>
-            <div class="history-meta">${{taobao:'淘宝',pdd:'拼多多','1688':'1688'}[r.platform]||r.platform} · ${r.series.length}张 · ${formatTime(r.createdAt)}</div>
+            <div class="history-meta">${{taobao:'淘宝',pdd:'拼多多','1688':'1688'}[r.platform]||r.platform||'图片工具'} · ${r.series.length}张 · ${formatTime(r.createdAt)}${r.kind==='tool'?' · 24小时缓存':''}</div>
           </div>
           <button class="btn btn-sm" onclick="event.stopPropagation();deleteHistory('${r.id}')">删除</button>
         </div>
@@ -1282,7 +1295,7 @@ async function viewHistoryDetail(id){
   const r=records.find(x=>x.id===id); if(!r) return;
   showModal(`
     <div class="modal-title">${esc(r.name)} - 详情</div>
-    <div style="font-size:12px;color:var(--sub);margin-bottom:12px">${{taobao:'淘宝',pdd:'拼多多','1688':'1688'}[r.platform]} · ${formatTime(r.createdAt)}</div>
+    <div style="font-size:12px;color:var(--sub);margin-bottom:12px">${{taobao:'淘宝',pdd:'拼多多','1688':'1688'}[r.platform]||r.platform||'图片工具'} · ${formatTime(r.createdAt)}${r.kind==='tool'?' · 保存24小时':''}</div>
     ${r.whiteImage?`<div style="margin-bottom:12px"><div style="font-size:12px;font-weight:600;margin-bottom:6px">白底基准图</div><img src="${r.whiteImage}" style="max-width:150px;border-radius:8px"></div>`:''}
     <div class="gen-list">
       ${r.series.map((s,i)=>`<div class="gen-item">
@@ -1300,7 +1313,7 @@ async function deleteHistory(id){
 async function downloadHistoryImg(id,idx){
   const records=await idbAll(); const r=records.find(x=>x.id===id); if(!r) return;
   const s=r.series[idx]; if(!s||!s.image) return;
-  downloadBlob(base64ToBlob(s.image),`${r.name}_${idx+1}_${s.label}.png`);
+  try{downloadBlob(await imageSourceBlob(s.image),`${r.name}_${idx+1}_${s.label}.png`);}catch(error){toast('下载失败：'+error.message,'error');}
 }
 async function downloadHistoryZip(id){
   const records=await idbAll(); const r=records.find(x=>x.id===id); if(!r) return;
@@ -1309,7 +1322,7 @@ async function downloadHistoryZip(id){
   try{
     if(typeof JSZip==='undefined'){ await loadScript('https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js'); }
     const zip=new JSZip();
-    imgs.forEach((s,i)=>{ zip.file(`${r.name}_${String(i+1).padStart(2,'0')}_${s.label}.png`,base64ToBlob(s.image)); });
+    for(let i=0;i<imgs.length;i++) zip.file(`${r.name}_${String(i+1).padStart(2,'0')}_${imgs[i].label}.png`,await imageSourceBlob(imgs[i].image));
     downloadBlob(await zip.generateAsync({type:'blob'}),`${r.name}_套图.zip`);
     toast('ZIP下载完成','success');
   }catch(err){ toast('ZIP打包失败','error'); }
@@ -1321,7 +1334,7 @@ function closeModal(){ document.getElementById('modal-overlay').classList.remove
 function toggleSidebar(open){ document.getElementById('sidebar').classList.toggle('open',open); document.getElementById('backdrop').classList.toggle('show',open); }
 
 /* ============ INIT ============ */
-applyDailyTheme(); loadState(); updateApiStatus(); renderProjectList(); renderMain();
+applyDailyTheme(); loadState(); pruneHistory(); updateApiStatus(); renderProjectList(); renderMain();
 </script>
 </body>
 </html>
