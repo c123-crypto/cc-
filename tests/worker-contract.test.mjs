@@ -282,6 +282,25 @@ test('Ark Responses API accepts SSE completed and delta events', async (t) => {
   assert.equal((await response.json()).ok, true);
 });
 
+test('Ark Responses API accepts successful non-HTML raw text', async (t) => {
+  const originalFetch = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = async () => {
+    calls += 1;
+    if (calls === 1) return new Response('<html>chat gateway mismatch</html>', { status: 200, headers: { 'content-type': 'text/html' } });
+    return new Response('通过', { status: 200, headers: { 'content-type': 'application/octet-stream' } });
+  };
+  t.after(() => { globalThis.fetch = originalFetch; });
+
+  const response = await worker.fetch(apiRequest('connection-test', {
+    provider: 'doubao',
+    arkTextModel: 'deepseek-v4-pro-test',
+  }, { 'x-ark-key': 'test-ark-key' }), env);
+
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).ok, true);
+});
+
 test('image-backed text tools use the multimodal model instead of DeepSeek', async (t) => {
   const originalFetch = globalThis.fetch;
   let sentBody;
