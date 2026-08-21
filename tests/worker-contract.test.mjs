@@ -212,9 +212,11 @@ test('unparseable Ark responses return a useful configuration error', async (t) 
 test('DeepSeek can be selected as the Ark text model', async (t) => {
   const originalFetch = globalThis.fetch;
   let sentBody;
-  globalThis.fetch = async (_url, options) => {
+  let requestedUrl;
+  globalThis.fetch = async (url, options) => {
+    requestedUrl = String(url);
     sentBody = JSON.parse(options.body);
-    return Response.json({ choices: [{ message: { content: '通过' } }] });
+    return Response.json({ output: [{ type: 'message', content: [{ type: 'output_text', text: '通过' }] }] });
   };
   t.after(() => { globalThis.fetch = originalFetch; });
 
@@ -225,9 +227,26 @@ test('DeepSeek can be selected as the Ark text model', async (t) => {
   const body = await response.json();
 
   assert.equal(response.status, 200);
+  assert.match(requestedUrl, /\/api\/v3\/responses$/);
   assert.equal(sentBody.model, 'deepseek-v4-pro-ga-260813');
+  assert.equal(sentBody.input, '只回复两个字：通过');
   assert.equal(body.model, 'deepseek-v4-pro-ga-260813');
   assert.match(body.message, /DeepSeek/);
+});
+
+test('Ark Responses API accepts the output_text shortcut', async (t) => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => Response.json({ output_text: '通过' });
+  t.after(() => { globalThis.fetch = originalFetch; });
+
+  const response = await worker.fetch(apiRequest('connection-test', {
+    provider: 'doubao',
+    arkTextModel: 'deepseek-v4-flash-test',
+  }, { 'x-ark-key': 'test-ark-key' }), env);
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(body.ok, true);
 });
 
 test('image-backed text tools use the multimodal model instead of DeepSeek', async (t) => {
