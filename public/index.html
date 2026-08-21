@@ -1125,6 +1125,25 @@ function connectionResultsHtml(){
   if(!configured.length) return '<div class="connection-result"><strong>尚未填写</strong><span>请至少配置一个模型服务</span></div>';
   return configured.map(([id,label])=>{const item=providerHealth[id];const cls=item?(item.ok?'ok':'fail'):'';const icon=item?(item.ok?'✅':'❌'):'⚪';return `<div class="connection-result ${cls}"><strong>${icon} ${label}</strong><span>${esc(item?.message||'已填写，等待检测')}</span></div>`;}).join('');
 }
+async function directArkConnectionTest(){
+  const model=cleanModelId(state.settings.arkTextModel||state.settings.visionModel);
+  if(!model) throw new Error('请先填写火山文字模型 ID');
+  const resp=await fetch('https://ark.cn-beijing.volces.com/api/v3/chat/completions',{
+    method:'POST',
+    headers:{'Content-Type':'application/json',Authorization:'Bearer '+state.settings.arkKey},
+    body:JSON.stringify({model,messages:[{role:'user',content:'只回复两个字：通过'}],max_tokens:256,stream:false})
+  });
+  const raw=await resp.text(); let data={};
+  try{data=raw?JSON.parse(raw):{};}catch(e){}
+  if(!resp.ok){
+    const detail=data?.error?.message||data?.message||`浏览器直连火山失败（HTTP ${resp.status}）`;
+    throw new Error(detail);
+  }
+  const message=data?.choices?.[0]?.message||{};
+  const text=typeof message.content==='string'?message.content:(typeof message.reasoning_content==='string'?message.reasoning_content:'');
+  if(!text.trim()) throw new Error('浏览器已连接火山，但模型没有返回文字；请确认该 Model ID 已开通 Chat API');
+  return {ok:true,provider:'doubao',model,message:'DeepSeek 浏览器直连正常（已绕开 Cloudflare 525）'};
+}
 async function saveAndTestApiSettings(){
   readApiSettingsForm(); saveSettings(); providerHealth={}; updateApiStatus();
   const button=document.getElementById('test-connections-btn'); if(button){button.disabled=true;button.textContent='正在检测…';}
@@ -1134,7 +1153,14 @@ async function saveAndTestApiSettings(){
     try{
       const data=await apiCall('/api/connection-test',{provider,arkTextModel:state.settings.arkTextModel||undefined,visionModel:state.settings.visionModel||undefined,geminiTextModel:state.settings.geminiTextModel||undefined,openaiImageModel:state.settings.openaiImageModel||undefined});
       providerHealth[provider]={ok:true,message:data.message||'连接正常'};
-    }catch(error){ providerHealth[provider]={ok:false,message:error.message}; }
+    }catch(error){
+      if(provider==='doubao'&&String(error.message||'').includes('HTTP 525')){
+        try{
+          const data=await directArkConnectionTest();
+          providerHealth[provider]={ok:true,message:data.message};
+        }catch(directError){providerHealth[provider]={ok:false,message:'Cloudflare线路525；'+directError.message};}
+      }else providerHealth[provider]={ok:false,message:error.message};
+    }
     const results=document.getElementById('connection-results'); if(results) results.innerHTML=connectionResultsHtml(); updateApiStatus();
   }));
   if(button){button.disabled=false;button.textContent='重新检测';}

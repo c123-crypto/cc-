@@ -33,3 +33,10 @@ test('reference guidance prohibits copying third-party brand assets', () => {
   assert.match(html, /不复制参考图中的品牌、Logo、文字或受保护元素/);
   assert.match(html, /不复制参考图中的品牌、Logo、文案或受保护元素/);
 });
+
+test('Ark connection testing falls back to the official browser API after Cloudflare 525', () => {
+  assert.match(html, /async function directArkConnectionTest\(\)/);
+  assert.match(html, /ark\.cn-beijing\.volces\.com\/api\/v3\/chat\/completions/);
+  assert.match(html, /includes\('HTTP 525'\)/);
+  assert.match(html, /已绕开 Cloudflare 525/);
+});
