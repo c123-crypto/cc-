@@ -470,6 +470,18 @@ async function chooseDownloadFolder(){
 }
 async function clearDownloadFolder(){await idbPrefPut('downloadFolder',null);downloadFolderName='';updateDownloadFolderUi();toast('已恢复浏览器默认下载目录','success');}
 function updateDownloadFolderUi(){const label=document.getElementById('download-folder-label');if(label)label.textContent=downloadFolderName?`当前：${downloadFolderName}`:'当前：浏览器默认下载目录';const clear=document.getElementById('clear-download-folder');if(clear)clear.style.display=downloadFolderName?'inline-flex':'none';}
+function bytesToBase64(bytes){let text='';bytes.forEach(byte=>text+=String.fromCharCode(byte));return btoa(text);}
+function base64ToBytes(value){const text=atob(value);return Uint8Array.from(text,char=>char.charCodeAt(0));}
+async function deriveBackupKey(password,salt,usage){const material=await crypto.subtle.importKey('raw',new TextEncoder().encode(password),'PBKDF2',false,['deriveKey']);return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:210000,hash:'SHA-256'},material,{name:'AES-GCM',length:256},false,[usage]);}
+async function exportSettingsBackup(){
+  const password=prompt('请设置备份密码（至少8位）。换电脑导入时需要同一个密码：');if(password===null)return;if(password.length<8){toast('备份密码至少需要8位','warn');return;}
+  try{const salt=crypto.getRandomValues(new Uint8Array(16));const iv=crypto.getRandomValues(new Uint8Array(12));const key=await deriveBackupKey(password,salt,'encrypt');const plain=new TextEncoder().encode(JSON.stringify({version:1,settings:state.settings,createdAt:new Date().toISOString()}));const encrypted=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},key,plain));const payload={format:'zaotutai-settings',version:1,kdf:'PBKDF2-SHA256-210000',cipher:'AES-256-GCM',salt:bytesToBase64(salt),iv:bytesToBase64(iv),data:bytesToBase64(encrypted)};await saveDownloadedFile(new Blob([JSON.stringify(payload)],{type:'application/json'}),`造图台设置备份_${new Date().toISOString().slice(0,10)}.zts-settings`);toast('加密设置备份已导出，请妥善保存密码','success');}catch(error){toast('设置备份失败：'+error.message,'error');}
+}
+async function importSettingsBackup(){
+  const input=document.createElement('input');input.type='file';input.accept='.zts-settings,application/json';input.onchange=async()=>{const file=input.files?.[0];if(!file)return;const password=prompt('请输入该设置备份的密码：');if(password===null)return;
+    try{const payload=JSON.parse(await file.text());if(payload.format!=='zaotutai-settings'||payload.version!==1)throw new Error('不是有效的造图台设置备份');const salt=base64ToBytes(payload.salt),iv=base64ToBytes(payload.iv),encrypted=base64ToBytes(payload.data);const key=await deriveBackupKey(password,salt,'decrypt');const plain=await crypto.subtle.decrypt({name:'AES-GCM',iv},key,encrypted);const backup=JSON.parse(new TextDecoder().decode(plain));if(!backup.settings||typeof backup.settings!=='object')throw new Error('备份内容不完整');const allowed=['arkKey','arkTextModel','openaiKey','geminiKey','visionModel','imageModel','openaiImageModel','geminiTextModel','geminiImageModel','imageFallback'];const restored={};allowed.forEach(name=>{if(Object.hasOwn(backup.settings,name))restored[name]=backup.settings[name];});state.settings={...state.settings,...restored};saveSettings();providerHealth={};closeModal();updateApiStatus();renderMain();toast('设置已恢复，请重新检测模型连接','success');}catch(error){toast(error?.name==='OperationError'?'密码错误或备份文件已损坏':'导入失败：'+error.message,'error');}
+  };input.click();
+}
 async function imageSourceBlob(src){if(String(src).startsWith('data:'))return base64ToBlob(src);const response=await fetch(src);if(!response.ok)throw new Error('图片下载地址已失效');return response.blob();}
 async function cacheImageSource(src){if(String(src).startsWith('data:'))return src;try{const blob=await imageSourceBlob(src);return await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(blob);});}catch(error){return src;}}
 function formatTime(t){ const d=new Date(t); return d.getMonth()+1+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
@@ -1180,6 +1192,12 @@ function showSettings(){
       <div id="download-folder-label" style="font-size:11px;color:var(--sub);margin-bottom:9px">${downloadFolderName?`当前：${esc(downloadFolderName)}`:'当前：浏览器默认下载目录'}</div>
       <div style="display:flex;gap:7px;flex-wrap:wrap"><button class="btn btn-sm" onclick="chooseDownloadFolder()">选择固定文件夹</button><button class="btn btn-sm" id="clear-download-folder" style="${downloadFolderName?'':'display:none'}" onclick="clearDownloadFolder()">恢复默认</button></div>
       <div style="font-size:10px;color:var(--light);margin-top:7px;line-height:1.5">推荐使用最新版 Chrome 或 Edge。网页只保存文件夹授权，不会上传路径；不支持时仍保存到浏览器的“下载”目录。</div>
+    </div>
+    <div class="form-group" style="padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--success-bg)">
+      <label class="label">跨电脑设置备份</label>
+      <div style="font-size:11px;color:var(--sub);margin-bottom:9px;line-height:1.55">用密码加密备份 API Key、模型 ID 和备用模型设置。换电脑后导入即可恢复，备份内容不会发送到服务器。</div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap"><button class="btn btn-sm" onclick="exportSettingsBackup()">导出加密设置</button><button class="btn btn-sm" onclick="importSettingsBackup()">导入设置备份</button></div>
+      <div style="font-size:10px;color:var(--light);margin-top:7px">请牢记备份密码；密码无法找回。固定下载文件夹需在每台电脑单独授权。</div>
     </div>
     <div class="form-group">
       <label class="label">火山方舟 API Key（选填）</label>

@@ -91,3 +91,13 @@ test('the catalog uses a light sunny youth palette', () => {
   assert.match(html, /Sunny youth palette/);
   assert.match(html, /#fff4c9,#dff5ff/);
 });
+
+test('settings can move between computers in a password-encrypted backup', () => {
+  assert.match(html, /async function exportSettingsBackup\(\)/);
+  assert.match(html, /async function importSettingsBackup\(\)/);
+  assert.match(html, /PBKDF2/);
+  assert.match(html, /AES-GCM/);
+  assert.match(html, /iterations:210000/);
+  assert.match(html, /备份内容不会发送到服务器/);
+  assert.match(html, /固定下载文件夹需在每台电脑单独授权/);
+});
