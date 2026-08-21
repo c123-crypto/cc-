@@ -388,7 +388,7 @@ TOOLS.forEach(tool=>{
 });
 function makeToolSession(tool){
   const roleFiles={}; (tool?.roleUploads||[]).forEach(role=>{roleFiles[role.id]=[];});
-  return {files:[],roleFiles,results:[],resultMeta:[],text:'',note:'',aspect:tool?.aspect||'square',running:false,prompts:[],promptSummary:'',provider:tool?.provider||(state.settings.openaiKey?'openai':state.settings.geminiKey?'gemini':'seedream'),textProvider:state.settings.arkKey?'doubao':'gemini',requestedCount:1};
+  return {files:[],roleFiles,results:[],resultMeta:[],text:'',note:'',aspect:tool?.aspect||'square',running:false,prompts:[],promptSummary:'',provider:tool?.provider||(state.settings.arkKey?'seedream':state.settings.openaiKey?'openai':'gemini'),textProvider:state.settings.arkKey?'doubao':'gemini',requestedCount:1};
 }
 
 function loadState(){
@@ -902,6 +902,23 @@ function generationUnits(tool){
   if(tool.referenceFirst) return toolSession.files.slice(1).map(image=>[toolSession.files[0],image]);
   return Array.from({length:desiredOutputCount(tool)},()=>toolSession.files.slice());
 }
+async function directSeedreamImage(images,prompt,aspect){
+  const model=cleanModelId(state.settings.imageModel)||'doubao-seedream-5-0-260128';
+  const ratio=aspect==='vertical'?'2:3竖版':aspect==='horizontal'?'16:9横版':'1:1正方形';
+  const body={model,prompt:`${prompt}\n输出比例：${ratio}。`,size:'2K',response_format:'url',watermark:false};
+  if(images.length===1) body.image=images[0];
+  else if(images.length>1) body.image=images;
+  const resp=await fetch('https://ark.cn-beijing.volces.com/api/v3/images/generations',{
+    method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+state.settings.arkKey},body:JSON.stringify(body)
+  });
+  const raw=await resp.text(); let data={};
+  try{data=raw?JSON.parse(raw):{};}catch(e){}
+  if(!resp.ok) throw new Error(data?.error?.message||data?.message||`Seedream浏览器直连失败（HTTP ${resp.status}）`);
+  const item=data?.data?.[0]||{};
+  const image=item.url||(item.b64_json?`data:image/jpeg;base64,${item.b64_json}`:'');
+  if(!image) throw new Error('Seedream已响应但未返回图片，请检查图片模型 ID 与生图权限');
+  return {image,provider:'seedream',model,fallback:false,direct:true};
+}
 async function generateToolImages(){
   const tool=TOOLS.find(item=>item.id===activeTool); if(!tool||toolSession.running||!validToolInput(tool)) return;
   if(!toolSession.prompts.length||toolSession.prompts.some(item=>!item.prompt.trim())){ toast('请先生成并检查完整提示词','warn'); return; }
@@ -911,7 +928,14 @@ async function generateToolImages(){
   try{
     for(let i=0;i<toolSession.prompts.length;i++){
       const refs=units[i]||units[units.length-1]||[];
-      const data=await apiCall('/api/tool-image',{toolId:tool.id,prompt:toolSession.prompts[i].prompt,imageBase64s:refs,aspect:toolSession.aspect,provider:toolSession.provider,allowFallback:state.settings.imageFallback!==false,imageModel:state.settings.imageModel||undefined,openaiImageModel:state.settings.openaiImageModel||undefined,geminiImageModel:state.settings.geminiImageModel||undefined});
+      let data;
+      if(toolSession.provider==='seedream'&&state.settings.arkKey){
+        try{data=await directSeedreamImage(refs,toolSession.prompts[i].prompt,toolSession.aspect);}
+        catch(directError){
+          if(state.settings.imageFallback===false) throw directError;
+          data=await apiCall('/api/tool-image',{toolId:tool.id,prompt:toolSession.prompts[i].prompt,imageBase64s:refs,aspect:toolSession.aspect,provider:'seedream',allowFallback:true,imageModel:state.settings.imageModel||undefined,openaiImageModel:state.settings.openaiImageModel||undefined,geminiImageModel:state.settings.geminiImageModel||undefined});
+        }
+      }else data=await apiCall('/api/tool-image',{toolId:tool.id,prompt:toolSession.prompts[i].prompt,imageBase64s:refs,aspect:toolSession.aspect,provider:toolSession.provider,allowFallback:state.settings.imageFallback!==false,imageModel:state.settings.imageModel||undefined,openaiImageModel:state.settings.openaiImageModel||undefined,geminiImageModel:state.settings.geminiImageModel||undefined});
       if(data.image){
         toolSession.results.push(data.image);
         toolSession.resultMeta.push({provider:data.provider,model:data.model,fallback:Boolean(data.fallback),fallbackFrom:data.fallbackFrom||'',fallbackCode:data.fallbackCode||''});

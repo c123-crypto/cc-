@@ -46,3 +46,9 @@ test('image tools keep working when online prompt planning is unavailable', () =
   assert.match(html, /在线提示词模型不可用，已使用本地专业模板/);
   assert.match(html, /state\.settings\.openaiKey\?'openai'/);
 });
+
+test('Seedream image generation can bypass Cloudflare and call Ark directly', () => {
+  assert.match(html, /async function directSeedreamImage\(images,prompt,aspect\)/);
+  assert.match(html, /ark\.cn-beijing\.volces\.com\/api\/v3\/images\/generations/);
+  assert.match(html, /state\.settings\.arkKey\?'seedream'/);
+});
