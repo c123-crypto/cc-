@@ -206,7 +206,7 @@ test('unparseable Ark responses return a useful configuration error', async (t) 
 
   assert.equal(response.status, 502);
   assert.equal(body.code, 'ARK_CHAT_FORMAT');
-  assert.match(body.error, /模型名称、Endpoint和代理配置/);
+  assert.match(body.error, /HTTP 200，text\/html，24字节/);
 });
 
 test('DeepSeek can be selected as the Ark text model', async (t) => {
