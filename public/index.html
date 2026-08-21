@@ -388,7 +388,7 @@ TOOLS.forEach(tool=>{
 });
 function makeToolSession(tool){
   const roleFiles={}; (tool?.roleUploads||[]).forEach(role=>{roleFiles[role.id]=[];});
-  return {files:[],roleFiles,results:[],resultMeta:[],text:'',note:'',aspect:tool?.aspect||'square',running:false,prompts:[],promptSummary:'',provider:tool?.provider||(state.settings.arkKey?'seedream':state.settings.openaiKey?'openai':'gemini'),textProvider:state.settings.arkKey?'doubao':'gemini',requestedCount:1};
+  return {files:[],roleFiles,sourceNames:[],results:[],resultMeta:[],text:'',note:'',aspect:tool?.aspect||'square',running:false,prompts:[],promptSummary:'',provider:tool?.provider||(state.settings.arkKey?'seedream':state.settings.openaiKey?'openai':'gemini'),textProvider:state.settings.arkKey?'doubao':'gemini',requestedCount:1};
 }
 
 function loadState(){
@@ -454,7 +454,10 @@ function getCurrentProject(){ return state.projects.find(p=>p.id===state.current
 function ensureToolJob(tool){
   let job=state.toolJobs.find(item=>item.id===state.currentToolJob);
   if(job&&job.toolId===tool.id){job.session=toolSession;return job;}
-  job={id:uid(),toolId:tool.id,name:tool.name,icon:tool.icon,status:'idle',phase:'素材已上传，待生成提示词',createdAt:Date.now(),session:toolSession};
+  const product=String(toolSession.sourceNames?.[0]||'未命名产品').replace(/\.[^.]+$/,'').trim().slice(0,18)||'未命名产品';
+  const operation={'cutout':'抠图','product-shot':'作图','white-image':'白底图','background-swap':'换背景','subject-replace':'换主体','product-retouch':'精修'}[tool.id]||tool.name;
+  const sequence=state.toolJobs.filter(item=>item.product===product&&item.operation===operation).length+1;
+  job={id:uid(),toolId:tool.id,product,operation,name:`${product}-${operation}-${String(sequence).padStart(2,'0')}`,icon:tool.icon,status:'idle',phase:'素材已上传，待生成提示词',createdAt:Date.now(),session:toolSession};
   state.toolJobs.unshift(job); state.currentToolJob=job.id; return job;
 }
 function updateToolJob(tool,status,phase){const job=ensureToolJob(tool);job.status=status;job.phase=phase;job.session=toolSession;renderProjectList();return job;}
@@ -839,6 +842,7 @@ async function handleToolUpload(event){
     try{ valid.push(await fileToBase64(file)); }catch(error){ toast(file.name+' 读取失败','error'); }
   }
   toolSession.files=toolSession.files.concat(valid).slice(0,tool.maxFiles);
+  toolSession.sourceNames=toolSession.sourceNames.concat(selected.slice(0,valid.length).map(file=>file.name)).slice(0,tool.maxFiles);
   toolSession.results=[]; toolSession.resultMeta=[]; toolSession.text=''; toolSession.prompts=[]; toolSession.promptSummary=''; event.target.value='';
   if(valid.length) updateToolJob(tool,'idle','素材已上传，待生成提示词'); renderToolWorkspace();
 }
@@ -853,10 +857,11 @@ async function handleToolRoleUpload(event,roleId){
     try{ valid.push(await fileToBase64(file)); }catch(error){ toast(file.name+' 读取失败','error'); }
   }
   toolSession.roleFiles[roleId]=current.concat(valid).slice(0,role.max);
+  toolSession.sourceNames=toolSession.sourceNames.concat(incoming.slice(0,valid.length).map(file=>file.name));
   toolSession.results=[]; toolSession.resultMeta=[]; toolSession.text=''; toolSession.prompts=[]; toolSession.promptSummary=''; event.target.value='';
   if(valid.length) updateToolJob(tool,'idle','素材已上传，待生成提示词'); renderToolWorkspace();
 }
-function removeToolFile(index){ toolSession.files.splice(index,1); toolSession.results=[]; toolSession.resultMeta=[]; toolSession.prompts=[]; toolSession.promptSummary=''; renderToolWorkspace(); }
+function removeToolFile(index){ toolSession.files.splice(index,1);toolSession.sourceNames?.splice(index,1);toolSession.results=[]; toolSession.resultMeta=[]; toolSession.prompts=[]; toolSession.promptSummary=''; renderToolWorkspace(); }
 function removeToolRoleFile(roleId,index){
   toolSession.roleFiles?.[roleId]?.splice(index,1); toolSession.results=[]; toolSession.resultMeta=[]; toolSession.prompts=[]; toolSession.promptSummary=''; renderToolWorkspace();
 }

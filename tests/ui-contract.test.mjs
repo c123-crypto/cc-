@@ -61,3 +61,10 @@ test('image tools create visible queued jobs with lifecycle states', () => {
   assert.match(html, /生成失败，可进入任务重试/);
   assert.match(html, /function selectToolJob\(id\)/);
 });
+
+test('queued image jobs use product-operation-sequence names', () => {
+  assert.match(html, /sourceNames:\[\]/);
+  assert.match(html, /'cutout':'抠图'/);
+  assert.match(html, /String\(sequence\)\.padStart\(2,'0'\)/);
+  assert.match(html, /`\$\{product\}-\$\{operation\}-\$\{String\(sequence\)/);
+});
