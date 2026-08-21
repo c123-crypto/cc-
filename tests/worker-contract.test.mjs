@@ -301,6 +301,26 @@ test('Ark Responses API accepts successful non-HTML raw text', async (t) => {
   assert.equal((await response.json()).ok, true);
 });
 
+test('Ark TLS 525 responses are retried before parsing', async (t) => {
+  const originalFetch = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = async () => {
+    calls += 1;
+    if (calls < 3) return new Response('SSL handshake', { status: 525, headers: { 'content-type': 'text/plain' } });
+    return Response.json({ choices: [{ message: { content: '通过' } }] });
+  };
+  t.after(() => { globalThis.fetch = originalFetch; });
+
+  const response = await worker.fetch(apiRequest('connection-test', {
+    provider: 'doubao',
+    arkTextModel: 'deepseek-v4-pro-test',
+  }, { 'x-ark-key': 'test-ark-key' }), env);
+
+  assert.equal(response.status, 200);
+  assert.equal(calls, 3);
+  assert.equal((await response.json()).ok, true);
+});
+
 test('image-backed text tools use the multimodal model instead of DeepSeek', async (t) => {
   const originalFetch = globalThis.fetch;
   let sentBody;
