@@ -52,3 +52,12 @@ test('Seedream image generation can bypass Cloudflare and call Ark directly', ()
   assert.match(html, /ark\.cn-beijing\.volces\.com\/api\/v3\/images\/generations/);
   assert.match(html, /state\.settings\.arkKey\?'seedream'/);
 });
+
+test('image tools create visible queued jobs with lifecycle states', () => {
+  assert.match(html, /生成项目与任务/);
+  assert.match(html, /function ensureToolJob\(tool\)/);
+  assert.match(html, /素材已上传，待生成提示词/);
+  assert.match(html, /提示词已生成，待确认生图/);
+  assert.match(html, /生成失败，可进入任务重试/);
+  assert.match(html, /function selectToolJob\(id\)/);
+});

@@ -211,7 +211,7 @@ textarea.input{resize:vertical;min-height:60px}
       <div class="nav-section-label">功能分类</div>
       <nav class="category-list" id="category-list" aria-label="功能分类"></nav>
     </div>
-    <div class="project-section-label">商品套图项目</div>
+    <div class="project-section-label">生成项目与任务</div>
     <div class="project-list" id="project-list"></div>
     <div class="sidebar-footer">
       <button class="new-project-btn" id="new-project-btn" onclick="newProject()">
@@ -257,7 +257,7 @@ textarea.input{resize:vertical;min-height:60px}
 /* ============ STATE ============ */
 const STORAGE_KEY = 'ai_img_workbench';
 const MAX_PROJECTS = 20;
-let state = { projects:[], currentProject:null, settings:{arkKey:'',arkTextModel:'',openaiKey:'',geminiKey:'',visionModel:'',imageModel:'',openaiImageModel:'',geminiTextModel:'',geminiImageModel:'',imageFallback:true} };
+let state = { projects:[], toolJobs:[], currentProject:null, currentToolJob:null, settings:{arkKey:'',arkTextModel:'',openaiKey:'',geminiKey:'',visionModel:'',imageModel:'',openaiImageModel:'',geminiTextModel:'',geminiImageModel:'',imageFallback:true} };
 let appView='catalog';
 let activeCategory='product';
 let activeTool='';
@@ -451,6 +451,15 @@ function deleteProject(id){
   renderProjectList(); renderMain();
 }
 function getCurrentProject(){ return state.projects.find(p=>p.id===state.currentProject); }
+function ensureToolJob(tool){
+  let job=state.toolJobs.find(item=>item.id===state.currentToolJob);
+  if(job&&job.toolId===tool.id){job.session=toolSession;return job;}
+  job={id:uid(),toolId:tool.id,name:tool.name,icon:tool.icon,status:'idle',phase:'素材已上传，待生成提示词',createdAt:Date.now(),session:toolSession};
+  state.toolJobs.unshift(job); state.currentToolJob=job.id; return job;
+}
+function updateToolJob(tool,status,phase){const job=ensureToolJob(tool);job.status=status;job.phase=phase;job.session=toolSession;renderProjectList();return job;}
+function selectToolJob(id){const job=state.toolJobs.find(item=>item.id===id);if(!job)return;const tool=TOOLS.find(item=>item.id===job.toolId);if(!tool)return;state.currentToolJob=id;activeTool=tool.id;activeCategory=tool.cat;expandedCategory=tool.cat;toolSession=job.session;appView='tool';renderProjectList();renderMain();}
+function deleteToolJob(id){if(!confirm('删除该生成任务？'))return;state.toolJobs=state.toolJobs.filter(item=>item.id!==id);if(state.currentToolJob===id)state.currentToolJob=null;renderProjectList();renderMain();}
 
 function renderProjectList(){
   const el=document.getElementById('project-list');
@@ -459,10 +468,11 @@ function renderProjectList(){
   const catalogBtn=document.getElementById('catalog-btn');
   if(catalogBtn) catalogBtn.classList.toggle('active',appView==='catalog'||appView==='tool');
   renderCategoryNav();
-  if(counter) counter.textContent=state.projects.length+'/'+MAX_PROJECTS;
+  const totalJobs=state.projects.length+state.toolJobs.length;
+  if(counter) counter.textContent=totalJobs+'/'+MAX_PROJECTS;
   if(addBtn) addBtn.disabled=state.projects.length>=MAX_PROJECTS;
-  if(state.projects.length===0){ el.innerHTML='<div class="empty" style="padding:20px 10px">点击下方新建项目</div>'; return; }
-  el.innerHTML=state.projects.map(p=>{
+  if(totalJobs===0){ el.innerHTML='<div class="empty" style="padding:20px 10px">上传素材后会自动创建生成任务</div>'; return; }
+  const suiteHtml=state.projects.map(p=>{
     const doneCount=p.series.filter(s=>s.image).length;
     const totalCount=p.series.length;
     const stClass=p.status==='running'?'running':p.status==='done'?'done':p.status==='error'?'error':'idle';
@@ -476,6 +486,13 @@ function renderProjectList(){
       <button class="project-delete" title="删除项目" onclick="event.stopPropagation();deleteProject('${p.id}')">×</button>
     </div>`;
   }).join('');
+  const toolHtml=state.toolJobs.map(job=>{
+    const preview=job.session?.results?.[0]||Object.values(job.session?.roleFiles||{}).flat()[0]||job.session?.files?.[0]||'';
+    const stClass=job.status==='running'?'running':job.status==='done'?'done':job.status==='error'?'error':'idle';
+    const stText=job.status==='running'?'生成中':job.status==='done'?'已完成':job.status==='error'?'生成失败':'待生成';
+    return `<div class="project-item ${job.id===state.currentToolJob&&appView==='tool'?'active':''}" onclick="selectToolJob('${job.id}')">${preview?`<img class="project-thumb" src="${preview}">`:`<div class="project-thumb" style="display:flex;align-items:center;justify-content:center">${job.icon}</div>`}<div class="project-info"><div class="project-name">${esc(job.name)}</div><div class="project-status"><span class="status-dot ${stClass}"></span>${stText} · ${esc(job.phase||'')}</div></div><button class="project-delete" title="删除任务" onclick="event.stopPropagation();deleteToolJob('${job.id}')">×</button></div>`;
+  }).join('');
+  el.innerHTML=toolHtml+suiteHtml;
 }
 
 function renderCategoryNav(){
@@ -523,7 +540,7 @@ function openTool(id){
     toggleSidebar(false);
     return;
   }
-  activeTool=id; appView='tool'; toolSession=makeToolSession(tool); renderProjectList(); renderMain(); toggleSidebar(false);
+  activeTool=id; appView='tool'; state.currentToolJob=null; toolSession=makeToolSession(tool); renderProjectList(); renderMain(); toggleSidebar(false);
 }
 
 function renderCatalog(){
@@ -822,7 +839,8 @@ async function handleToolUpload(event){
     try{ valid.push(await fileToBase64(file)); }catch(error){ toast(file.name+' 读取失败','error'); }
   }
   toolSession.files=toolSession.files.concat(valid).slice(0,tool.maxFiles);
-  toolSession.results=[]; toolSession.resultMeta=[]; toolSession.text=''; toolSession.prompts=[]; toolSession.promptSummary=''; event.target.value=''; renderToolWorkspace();
+  toolSession.results=[]; toolSession.resultMeta=[]; toolSession.text=''; toolSession.prompts=[]; toolSession.promptSummary=''; event.target.value='';
+  if(valid.length) updateToolJob(tool,'idle','素材已上传，待生成提示词'); renderToolWorkspace();
 }
 async function handleToolRoleUpload(event,roleId){
   const tool=TOOLS.find(item=>item.id===activeTool); const role=tool?.roleUploads?.find(item=>item.id===roleId); if(!tool||!role) return;
@@ -835,7 +853,8 @@ async function handleToolRoleUpload(event,roleId){
     try{ valid.push(await fileToBase64(file)); }catch(error){ toast(file.name+' 读取失败','error'); }
   }
   toolSession.roleFiles[roleId]=current.concat(valid).slice(0,role.max);
-  toolSession.results=[]; toolSession.resultMeta=[]; toolSession.text=''; toolSession.prompts=[]; toolSession.promptSummary=''; event.target.value=''; renderToolWorkspace();
+  toolSession.results=[]; toolSession.resultMeta=[]; toolSession.text=''; toolSession.prompts=[]; toolSession.promptSummary=''; event.target.value='';
+  if(valid.length) updateToolJob(tool,'idle','素材已上传，待生成提示词'); renderToolWorkspace();
 }
 function removeToolFile(index){ toolSession.files.splice(index,1); toolSession.results=[]; toolSession.resultMeta=[]; toolSession.prompts=[]; toolSession.promptSummary=''; renderToolWorkspace(); }
 function removeToolRoleFile(roleId,index){
@@ -880,14 +899,16 @@ async function runTextTool(){
 async function generateToolPrompts(){
   const tool=TOOLS.find(item=>item.id===activeTool); if(!tool||toolSession.running||!validToolInput(tool)) return;
   if(!hasSelectedTextKey()){ toast('所选文字模型尚未配置API Key','warn'); showSettings(); return; }
-  toolSession.running=true; toolSession.prompts=[]; toolSession.results=[]; toolSession.resultMeta=[]; renderToolWorkspace();
+  toolSession.running=true; toolSession.prompts=[]; toolSession.results=[]; toolSession.resultMeta=[]; updateToolJob(tool,'running','正在生成提示词'); renderToolWorkspace();
   try{
     const data=await apiCall('/api/tool-prompt',{toolId:tool.id,note:toolSession.note,imageBase64s:toolFiles(tool),inputHint:tool.inputHint||'',outputCount:desiredOutputCount(tool),aspect:toolSession.aspect,provider:toolSession.provider,textProvider:toolSession.textProvider,visionModel:state.settings.visionModel||undefined,geminiTextModel:state.settings.geminiTextModel||undefined});
     toolSession.prompts=data.prompts||[]; toolSession.promptSummary=data.summary||'';
+    updateToolJob(tool,'idle','提示词已生成，待确认生图');
     toast(data.fallback?`原模型未通过，已自动改用${data.provider==='gemini'?'Gemini':'豆包'}生成提示词`:'提示词已生成，请检查后再生图',data.fallback?'warn':'success');
   }catch(error){
     const fallback=localToolPromptPlan(tool);
     toolSession.prompts=fallback.prompts; toolSession.promptSummary=fallback.summary;
+    updateToolJob(tool,'idle','本地提示词已生成，待确认生图');
     toast('在线提示词模型不可用，已使用本地专业模板，可直接检查并生图','warn');
   }
   finally{ toolSession.running=false; renderToolWorkspace(); }
@@ -924,9 +945,10 @@ async function generateToolImages(){
   if(!toolSession.prompts.length||toolSession.prompts.some(item=>!item.prompt.trim())){ toast('请先生成并检查完整提示词','warn'); return; }
   const hasKey=hasImageProviderKey(toolSession.provider)||(state.settings.imageFallback!==false&&hasAnyImageKey());
   if(!hasKey){ toast(state.settings.imageFallback===false?'所选图片模型尚未配置API Key':'请至少配置一个图片模型 API Key','warn'); showSettings(); return; }
-  const units=generationUnits(tool); toolSession.running=true; toolSession.results=[]; toolSession.resultMeta=[]; renderToolWorkspace();
+  const units=generationUnits(tool); toolSession.running=true; toolSession.results=[]; toolSession.resultMeta=[]; updateToolJob(tool,'running',`准备生成 0/${toolSession.prompts.length}`); renderToolWorkspace();
   try{
     for(let i=0;i<toolSession.prompts.length;i++){
+      updateToolJob(tool,'running',`正在生成 ${i+1}/${toolSession.prompts.length}`);
       const refs=units[i]||units[units.length-1]||[];
       let data;
       if(toolSession.provider==='seedream'&&state.settings.arkKey){
@@ -943,9 +965,9 @@ async function generateToolImages(){
       }
       renderToolWorkspace();
     }
-    toast('图片生成完成','success');
-  }catch(error){ toast('图片生成失败：'+error.message,'error'); }
-  finally{ toolSession.running=false; renderToolWorkspace(); }
+    updateToolJob(tool,'done',`已完成 ${toolSession.results.length}/${toolSession.prompts.length}`); toast('图片生成完成','success');
+  }catch(error){ updateToolJob(tool,'error','生成失败，可进入任务重试'); toast('图片生成失败：'+error.message,'error'); }
+  finally{ toolSession.running=false; renderToolWorkspace(); renderProjectList(); }
 }
 function downloadToolResult(index){
   const src=toolSession.results[index]; const tool=TOOLS.find(item=>item.id===activeTool); if(!src||!tool) return;
