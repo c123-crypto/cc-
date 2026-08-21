@@ -388,7 +388,7 @@ TOOLS.forEach(tool=>{
 });
 function makeToolSession(tool){
   const roleFiles={}; (tool?.roleUploads||[]).forEach(role=>{roleFiles[role.id]=[];});
-  return {files:[],roleFiles,results:[],resultMeta:[],text:'',note:'',aspect:tool?.aspect||'square',running:false,prompts:[],promptSummary:'',provider:tool?.provider||(state.settings.geminiKey?'gemini':'seedream'),textProvider:state.settings.geminiKey?'gemini':'doubao',requestedCount:1};
+  return {files:[],roleFiles,results:[],resultMeta:[],text:'',note:'',aspect:tool?.aspect||'square',running:false,prompts:[],promptSummary:'',provider:tool?.provider||(state.settings.openaiKey?'openai':state.settings.geminiKey?'gemini':'seedream'),textProvider:state.settings.arkKey?'doubao':'gemini',requestedCount:1};
 }
 
 function loadState(){
@@ -850,6 +850,22 @@ function validToolInput(tool){
   return true;
 }
 function hasSelectedTextKey(){ return toolSession.textProvider==='gemini'?Boolean(state.settings.geminiKey):Boolean(state.settings.arkKey); }
+function localToolPromptPlan(tool){
+  const count=desiredOutputCount(tool);
+  const aspectLabel={square:'1:1 正方形',vertical:'2:3 竖版',horizontal:'16:9 横版'}[toolSession.aspect]||toolSession.aspect;
+  const note=toolSession.note.trim()||'采用真实、克制、清晰的商业视觉';
+  const roleGuide=tool.inputHint||`共${toolFiles(tool).length}张素材，按上传顺序理解各自用途`;
+  const special={
+    cutout:'移除全部背景并生成干净透明背景，保留毛发、细线、孔洞、玻璃与半透明边缘，不添加阴影、文字或新物体',
+    'background-swap':'只替换背景，商品主体的形状、比例、颜色、材质、包装文字、Logo位置和数量必须完全保持',
+    'subject-replace':'使用产品素材替换参考场景中的原主体，保持参考场景构图、透视、光线和阴影，严禁改变新商品外观',
+    'viral-remake':'仅参考构图、配色、光线和信息节奏，不复制第三方品牌、人物、Logo、文字或受保护的独特设计',
+    'detail-remake':'仅参考详情页的信息层级、版式节奏与视觉语言，不复制第三方品牌资产或原文案',
+    'logo-swap':'仅使用用户自有或已授权Logo，保持放置区域的透视、材质、反光、尺寸和边缘自然'
+  }[tool.id]||tool.desc;
+  const prompts=Array.from({length:count},(_,index)=>({label:count>1?`结果 ${index+1}`:tool.name,prompt:`执行${tool.name}。任务要求：${special}。素材关系：${roleGuide}。用户补充：${note}。输出比例：${aspectLabel}。严格保持未指定区域不变，保留真实商品结构、颜色、材质、数量、包装文字和标识位置；禁止虚构功能、认证、价格、销量，禁止新增无关文字、二维码、水印、边框或第三方品牌元素。只输出一张完整结果图。`}));
+  return {summary:`已根据${tool.name}规则和素材用途生成本地保真提示词；模型线路恢复后仍可重新智能优化。`,prompts};
+}
 async function runTextTool(){
   const tool=TOOLS.find(item=>item.id===activeTool); if(!tool||toolSession.running) return;
   if(!validToolInput(tool)) return;
@@ -869,7 +885,11 @@ async function generateToolPrompts(){
     const data=await apiCall('/api/tool-prompt',{toolId:tool.id,note:toolSession.note,imageBase64s:toolFiles(tool),inputHint:tool.inputHint||'',outputCount:desiredOutputCount(tool),aspect:toolSession.aspect,provider:toolSession.provider,textProvider:toolSession.textProvider,visionModel:state.settings.visionModel||undefined,geminiTextModel:state.settings.geminiTextModel||undefined});
     toolSession.prompts=data.prompts||[]; toolSession.promptSummary=data.summary||'';
     toast(data.fallback?`原模型未通过，已自动改用${data.provider==='gemini'?'Gemini':'豆包'}生成提示词`:'提示词已生成，请检查后再生图',data.fallback?'warn':'success');
-  }catch(error){ toast('提示词生成失败：'+error.message,'error'); }
+  }catch(error){
+    const fallback=localToolPromptPlan(tool);
+    toolSession.prompts=fallback.prompts; toolSession.promptSummary=fallback.summary;
+    toast('在线提示词模型不可用，已使用本地专业模板，可直接检查并生图','warn');
+  }
   finally{ toolSession.running=false; renderToolWorkspace(); }
 }
 function generationUnits(tool){
@@ -1165,6 +1185,8 @@ async function saveAndTestApiSettings(){
   }));
   if(button){button.disabled=false;button.textContent='重新检测';}
   const failed=configured.filter(provider=>!providerHealth[provider]?.ok);
+  if(providerHealth.openai?.ok&&(!providerHealth.gemini?.ok||!providerHealth.doubao?.ok)) toolSession.provider='openai';
+  if(providerHealth.doubao?.ok&&!providerHealth.gemini?.ok) toolSession.textProvider='doubao';
   renderMain();
   toast(failed.length?`${failed.length} 个模型连接未通过，请查看错误码`:'已填写的模型连接全部通过',failed.length?'error':'success');
 }

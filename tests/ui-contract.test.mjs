@@ -40,3 +40,9 @@ test('Ark connection testing falls back to the official browser API after Cloudf
   assert.match(html, /includes\('HTTP 525'\)/);
   assert.match(html, /已绕开 Cloudflare 525/);
 });
+
+test('image tools keep working when online prompt planning is unavailable', () => {
+  assert.match(html, /function localToolPromptPlan\(tool\)/);
+  assert.match(html, /在线提示词模型不可用，已使用本地专业模板/);
+  assert.match(html, /state\.settings\.openaiKey\?'openai'/);
+});
