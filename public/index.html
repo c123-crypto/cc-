@@ -6,10 +6,10 @@
 <title>AI商品图片工作台</title>
 <style>
 :root{
-  --bg:#f6f0e5;--card:#fffaf1;--border:#ddcdb8;--text:#3b2b21;--sub:#796556;--light:#a18b79;
-  --primary:#8a5a3b;--primary-bg:#f1e2cf;--success:#6f7d48;--success-bg:#edf0df;
+  --bg:#f5fbf7;--card:#fffefa;--border:#d8e8df;--text:#294052;--sub:#607989;--light:#91a7b2;
+  --primary:#4f91d4;--primary-bg:#e8f4ff;--success:#55a97b;--success-bg:#e9f8ef;
   --warn:#d97706;--warn-bg:#fef3e6;--danger:#dc2626;--danger-bg:#fce8e8;
-  --sidebar:#4a3125;--accent:#d8aa74;
+  --sidebar:#6fa8dc;--accent:#ffe08a;
   --taobao:#ff6a00;--pdd:#e02e24;--a1688:#ff7a00;
   --radius:16px;--shadow:0 8px 28px rgba(29,50,38,.055);--shadow-lg:0 18px 50px rgba(22,44,31,.16);
 }
@@ -171,6 +171,14 @@ textarea.input{resize:vertical;min-height:60px}
 .project-provider-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:0 0 11px}.project-provider-grid label{display:block;font-size:10px;color:var(--sub);margin-bottom:4px}.project-provider-grid .input{padding:8px 10px;font-size:11px}
 .role-upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.role-upload-card{min-width:0}.role-upload-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:7px}.role-upload-head strong{font-size:12px}.role-upload-head span{font-size:9px;color:var(--light)}.role-upload-card .tool-upload{min-height:170px}.role-upload-note{margin-top:6px;font-size:10px;line-height:1.5;color:var(--sub)}
 .prompt-phase{margin:12px 0 0 49px}
+/* === Sunny youth palette === */
+.main{background:radial-gradient(circle at 92% 4%,rgba(255,226,138,.22),transparent 22%),linear-gradient(155deg,var(--bg),color-mix(in srgb,var(--primary-bg) 30%,var(--bg)))}
+.catalog-hero{background:linear-gradient(135deg,var(--sidebar),var(--primary) 58%,var(--accent) 165%)}
+.tool-card:hover{box-shadow:0 16px 38px color-mix(in srgb,var(--primary) 16%,transparent)}
+.tool-art{background:linear-gradient(135deg,#fff4c9,#dff5ff)}
+.tool-card:nth-child(4n+2) .tool-art{background:linear-gradient(135deg,#ffe7e1,#fff2bb)}
+.tool-card:nth-child(4n+3) .tool-art{background:linear-gradient(135deg,#dff8ed,#dfefff)}
+.tool-card:nth-child(4n+4) .tool-art{background:linear-gradient(135deg,#eee9ff,#fff0c5)}
 /* === Mobile === */
 .menu-btn{display:none;width:36px;height:36px;border-radius:8px;background:var(--bg);align-items:center;justify-content:center}
 .mobile-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:99}
@@ -277,13 +285,13 @@ const TOOL_CATEGORIES=[
   {id:'image-ai',label:'多模型生图',icon:'◉'},
 ];
 const DAILY_THEMES=[
-  {name:'卡皮巴拉·燕麦',bg:'#f6f0e5',card:'#fffaf1',border:'#ddcdb8',primary:'#8a5a3b',primaryBg:'#f1e2cf',sidebar:'#4a3125',accent:'#d8aa74'},
-  {name:'卡皮巴拉·焦糖',bg:'#f5ede1',card:'#fff9f0',border:'#dfc7ad',primary:'#9a6038',primaryBg:'#f3dfc8',sidebar:'#4d3021',accent:'#dfa566'},
-  {name:'卡皮巴拉·栗子',bg:'#f4eee8',card:'#fffaf5',border:'#dbc9bd',primary:'#79503f',primaryBg:'#eadcd2',sidebar:'#432d27',accent:'#c89268'},
-  {name:'卡皮巴拉·奶咖',bg:'#f6f1e8',card:'#fffaf2',border:'#dfd0bb',primary:'#8b6848',primaryBg:'#eee2d0',sidebar:'#4b392b',accent:'#d4ad79'},
-  {name:'卡皮巴拉·可可',bg:'#f2ece7',card:'#fff9f4',border:'#d9c7bd',primary:'#755044',primaryBg:'#eadad3',sidebar:'#3f2c27',accent:'#c89472'},
-  {name:'卡皮巴拉·芦苇',bg:'#f3efe4',card:'#fffaf0',border:'#d9ceb4',primary:'#7b6742',primaryBg:'#eae2cd',sidebar:'#443a29',accent:'#c9ad72'},
-  {name:'卡皮巴拉·蜂蜜',bg:'#f7f0e2',card:'#fffaf0',border:'#e1ceb0',primary:'#91633b',primaryBg:'#f2e2c8',sidebar:'#4c3423',accent:'#dda968'},
+  {name:'晴空·柠檬',bg:'#f5fbf7',card:'#fffefa',border:'#d8e8df',primary:'#4f91d4',primaryBg:'#e8f4ff',sidebar:'#6fa8dc',accent:'#ffe08a'},
+  {name:'晨光·蜜桃',bg:'#fff9f3',card:'#fffefd',border:'#f0dfd5',primary:'#ef8c82',primaryBg:'#fff0ed',sidebar:'#e99b91',accent:'#ffe29a'},
+  {name:'海盐·薄荷',bg:'#f3fbfa',card:'#fffefd',border:'#d4e9e5',primary:'#43a9a0',primaryBg:'#e5f7f4',sidebar:'#69bdb5',accent:'#fff09e'},
+  {name:'晴川·青柠',bg:'#f8fcef',card:'#fffefa',border:'#dfe9d1',primary:'#79a956',primaryBg:'#eef7e5',sidebar:'#8fbd6e',accent:'#ffe18c'},
+  {name:'云朵·丁香',bg:'#f8f6fd',card:'#fffefe',border:'#e2dff0',primary:'#8581c9',primaryBg:'#eeedfb',sidebar:'#9793d5',accent:'#ffe6a5'},
+  {name:'朝霞·樱粉',bg:'#fff7fa',card:'#fffefe',border:'#efdce4',primary:'#df7fa6',primaryBg:'#fcecf3',sidebar:'#e696b7',accent:'#ffeca8'},
+  {name:'日光·湖蓝',bg:'#f4faff',card:'#fffefa',border:'#d7e7f0',primary:'#4f9bc2',primaryBg:'#e7f5fb',sidebar:'#70afd0',accent:'#ffe28e'},
 ];
 function applyDailyTheme(date){
   const now=date||new Date();
@@ -401,12 +409,13 @@ function getApiBase(){ return window.location.origin; }
 
 /* ============ IndexedDB ============ */
 let idb=null;
+let downloadFolderName='';
 const HISTORY_TTL=24*60*60*1000;
 function openIDB(){
   return new Promise((resolve)=>{
     if(idb) return resolve(idb);
-    const req=indexedDB.open('ai_img_history',1);
-    req.onupgradeneeded=e=>{ const db=e.target.result; if(!db.objectStoreNames.contains('records')) db.createObjectStore('records',{keyPath:'id'}); };
+    const req=indexedDB.open('ai_img_history',2);
+    req.onupgradeneeded=e=>{ const db=e.target.result; if(!db.objectStoreNames.contains('records')) db.createObjectStore('records',{keyPath:'id'}); if(!db.objectStoreNames.contains('preferences')) db.createObjectStore('preferences',{keyPath:'key'}); };
     req.onsuccess=e=>{ idb=e.target.result; resolve(idb); };
     req.onerror=()=>resolve(null);
   });
@@ -414,6 +423,9 @@ function openIDB(){
 async function idbAdd(rec){ const db=await openIDB(); if(!db)return; return new Promise(r=>{ const tx=db.transaction('records','readwrite'); tx.objectStore('records').put(rec); tx.oncomplete=()=>r(); tx.onerror=()=>r(); }); }
 async function idbAll(){ const db=await openIDB(); if(!db)return []; return new Promise(r=>{ const tx=db.transaction('records','readonly'); const req=tx.objectStore('records').getAll(); req.onsuccess=()=>r(req.result||[]); req.onerror=()=>r([]); }); }
 async function idbDel(id){ const db=await openIDB(); if(!db)return; return new Promise(r=>{ const tx=db.transaction('records','readwrite'); tx.objectStore('records').delete(id); tx.oncomplete=()=>r(); tx.onerror=()=>r(); }); }
+async function idbPrefGet(key){const db=await openIDB();if(!db||!db.objectStoreNames.contains('preferences'))return null;return new Promise(r=>{const req=db.transaction('preferences','readonly').objectStore('preferences').get(key);req.onsuccess=()=>r(req.result?.value||null);req.onerror=()=>r(null);});}
+async function idbPrefPut(key,value){const db=await openIDB();if(!db||!db.objectStoreNames.contains('preferences'))return;return new Promise(r=>{const tx=db.transaction('preferences','readwrite');tx.objectStore('preferences').put({key,value});tx.oncomplete=()=>r();tx.onerror=()=>r();});}
+async function loadDownloadFolderName(){const handle=await idbPrefGet('downloadFolder');downloadFolderName=handle?.name||'';return downloadFolderName;}
 async function pruneHistory(){const records=await idbAll();const cutoff=Date.now()-HISTORY_TTL;await Promise.all(records.filter(rec=>(rec.expiresAt||rec.createdAt+HISTORY_TTL)<=Date.now()||rec.createdAt<cutoff).map(rec=>idbDel(rec.id)));}
 
 /* ============ TOAST ============ */
@@ -436,6 +448,28 @@ function base64ToBlob(b64){
   return new Blob([arr],{type:mime});
 }
 function downloadBlob(blob,name){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); }
+async function saveDownloadedFile(blob,name){
+  const handle=await idbPrefGet('downloadFolder');
+  if(handle){
+    try{
+      let permission=await handle.queryPermission({mode:'readwrite'});
+      if(permission!=='granted') permission=await handle.requestPermission({mode:'readwrite'});
+      if(permission==='granted'){
+        const safeName=String(name).replace(/[\\/:*?"<>|]/g,'_');
+        const fileHandle=await handle.getFileHandle(safeName,{create:true});
+        const writable=await fileHandle.createWritable(); await writable.write(blob); await writable.close();
+        return {folder:handle.name};
+      }
+    }catch(error){if(error?.name!=='AbortError')toast('固定文件夹暂不可写，已改用浏览器下载','warn');}
+  }
+  downloadBlob(blob,name); return {folder:''};
+}
+async function chooseDownloadFolder(){
+  if(!window.showDirectoryPicker){toast('当前浏览器不支持固定文件夹，请使用最新版 Chrome 或 Edge','warn');return;}
+  try{const handle=await window.showDirectoryPicker({mode:'readwrite',id:'ai-image-downloads'});await idbPrefPut('downloadFolder',handle);downloadFolderName=handle.name;updateDownloadFolderUi();toast(`下载文件夹已设为：${handle.name}`,'success');}catch(error){if(error?.name!=='AbortError')toast('文件夹设置失败：'+error.message,'error');}
+}
+async function clearDownloadFolder(){await idbPrefPut('downloadFolder',null);downloadFolderName='';updateDownloadFolderUi();toast('已恢复浏览器默认下载目录','success');}
+function updateDownloadFolderUi(){const label=document.getElementById('download-folder-label');if(label)label.textContent=downloadFolderName?`当前：${downloadFolderName}`:'当前：浏览器默认下载目录';const clear=document.getElementById('clear-download-folder');if(clear)clear.style.display=downloadFolderName?'inline-flex':'none';}
 async function imageSourceBlob(src){if(String(src).startsWith('data:'))return base64ToBlob(src);const response=await fetch(src);if(!response.ok)throw new Error('图片下载地址已失效');return response.blob();}
 async function cacheImageSource(src){if(String(src).startsWith('data:'))return src;try{const blob=await imageSourceBlob(src);return await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(blob);});}catch(error){return src;}}
 function formatTime(t){ const d=new Date(t); return d.getMonth()+1+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
@@ -983,13 +1017,13 @@ async function generateToolImages(){
 }
 async function downloadToolResult(index){
   const src=toolSession.results[index]; const tool=TOOLS.find(item=>item.id===activeTool); if(!src||!tool) return;
-  try{downloadBlob(await imageSourceBlob(src),`${state.toolJobs.find(item=>item.id===state.currentToolJob)?.name||tool.name}_${index+1}.png`);}catch(error){toast('下载失败：'+error.message,'error');}
+  try{await saveDownloadedFile(await imageSourceBlob(src),`${state.toolJobs.find(item=>item.id===state.currentToolJob)?.name||tool.name}_${index+1}.png`);}catch(error){toast('下载失败：'+error.message,'error');}
 }
 async function downloadToolZip(){
   const tool=TOOLS.find(item=>item.id===activeTool);if(!tool||!toolSession.results.length)return;
   const name=state.toolJobs.find(item=>item.id===state.currentToolJob)?.name||tool.name;
   toast('正在打包 ZIP...','');
-  try{if(typeof JSZip==='undefined')await loadScript('https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js');const zip=new JSZip();for(let i=0;i<toolSession.results.length;i++)zip.file(`${name}_${String(i+1).padStart(2,'0')}.png`,await imageSourceBlob(toolSession.results[i]));downloadBlob(await zip.generateAsync({type:'blob'}),`${name}.zip`);toast('ZIP 下载完成','success');}catch(error){toast('ZIP 打包失败：'+error.message,'error');}
+  try{if(typeof JSZip==='undefined')await loadScript('https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js');const zip=new JSZip();for(let i=0;i<toolSession.results.length;i++)zip.file(`${name}_${String(i+1).padStart(2,'0')}.png`,await imageSourceBlob(toolSession.results[i]));const saved=await saveDownloadedFile(await zip.generateAsync({type:'blob'}),`${name}.zip`);toast(saved.folder?`ZIP 已保存到 ${saved.folder}`:'ZIP 下载完成','success');}catch(error){toast('ZIP 打包失败：'+error.message,'error');}
 }
 async function copyToolText(){
   if(!toolSession.text) return;
@@ -1118,7 +1152,7 @@ async function regenSingle(idx){
 async function downloadSingle(idx){
   const p=getCurrentProject(); if(!p) return;
   const s=p.series[idx]; if(!s||!s.image) return;
-  try{downloadBlob(await imageSourceBlob(s.image),`${p.name}_${idx+1}_${s.label}.png`);}catch(error){toast('下载失败：'+error.message,'error');}
+  try{await saveDownloadedFile(await imageSourceBlob(s.image),`${p.name}_${idx+1}_${s.label}.png`);}catch(error){toast('下载失败：'+error.message,'error');}
 }
 async function downloadAll(){
   const p=getCurrentProject(); if(!p) return;
@@ -1131,7 +1165,7 @@ async function downloadAll(){
     const zip=new JSZip();
     for(let i=0;i<imgs.length;i++) zip.file(`${p.name}_${String(i+1).padStart(2,'0')}_${imgs[i].label}.png`,await imageSourceBlob(imgs[i].image));
     const content=await zip.generateAsync({type:'blob'});
-    downloadBlob(content,`${p.name}_套图.zip`);
+    await saveDownloadedFile(content,`${p.name}_套图.zip`);
     toast('ZIP下载完成','success');
   }catch(err){ toast('ZIP打包失败：'+err.message,'error'); }
 }
@@ -1141,6 +1175,12 @@ function loadScript(src){ return new Promise((resolve,reject)=>{ const s=documen
 function showSettings(){
   showModal(`
     <div class="modal-title">API设置</div>
+    <div class="form-group" style="padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--primary-bg)">
+      <label class="label">生成文件保存位置</label>
+      <div id="download-folder-label" style="font-size:11px;color:var(--sub);margin-bottom:9px">${downloadFolderName?`当前：${esc(downloadFolderName)}`:'当前：浏览器默认下载目录'}</div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap"><button class="btn btn-sm" onclick="chooseDownloadFolder()">选择固定文件夹</button><button class="btn btn-sm" id="clear-download-folder" style="${downloadFolderName?'':'display:none'}" onclick="clearDownloadFolder()">恢复默认</button></div>
+      <div style="font-size:10px;color:var(--light);margin-top:7px;line-height:1.5">推荐使用最新版 Chrome 或 Edge。网页只保存文件夹授权，不会上传路径；不支持时仍保存到浏览器的“下载”目录。</div>
+    </div>
     <div class="form-group">
       <label class="label">火山方舟 API Key（选填）</label>
       <input class="input" type="password" id="set-ark" value="${esc(state.settings.arkKey)}" placeholder="填写 API Key 列中的完整密钥">
@@ -1181,6 +1221,7 @@ function showSettings(){
       <button class="btn btn-primary" id="test-connections-btn" onclick="saveAndTestApiSettings()">保存并检测</button>
     </div>
   `);
+  loadDownloadFolderName().then(updateDownloadFolderUi);
 }
 function cleanModelId(value){
   return String(value||'').trim().split(/\s+/)[0].replace(/[，。；;,]+$/g,'');
@@ -1313,7 +1354,7 @@ async function deleteHistory(id){
 async function downloadHistoryImg(id,idx){
   const records=await idbAll(); const r=records.find(x=>x.id===id); if(!r) return;
   const s=r.series[idx]; if(!s||!s.image) return;
-  try{downloadBlob(await imageSourceBlob(s.image),`${r.name}_${idx+1}_${s.label}.png`);}catch(error){toast('下载失败：'+error.message,'error');}
+  try{await saveDownloadedFile(await imageSourceBlob(s.image),`${r.name}_${idx+1}_${s.label}.png`);}catch(error){toast('下载失败：'+error.message,'error');}
 }
 async function downloadHistoryZip(id){
   const records=await idbAll(); const r=records.find(x=>x.id===id); if(!r) return;
@@ -1323,7 +1364,7 @@ async function downloadHistoryZip(id){
     if(typeof JSZip==='undefined'){ await loadScript('https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js'); }
     const zip=new JSZip();
     for(let i=0;i<imgs.length;i++) zip.file(`${r.name}_${String(i+1).padStart(2,'0')}_${imgs[i].label}.png`,await imageSourceBlob(imgs[i].image));
-    downloadBlob(await zip.generateAsync({type:'blob'}),`${r.name}_套图.zip`);
+    await saveDownloadedFile(await zip.generateAsync({type:'blob'}),`${r.name}_套图.zip`);
     toast('ZIP下载完成','success');
   }catch(err){ toast('ZIP打包失败','error'); }
 }
@@ -1334,7 +1375,7 @@ function closeModal(){ document.getElementById('modal-overlay').classList.remove
 function toggleSidebar(open){ document.getElementById('sidebar').classList.toggle('open',open); document.getElementById('backdrop').classList.toggle('show',open); }
 
 /* ============ INIT ============ */
-applyDailyTheme(); loadState(); pruneHistory(); updateApiStatus(); renderProjectList(); renderMain();
+applyDailyTheme(); loadState(); pruneHistory(); loadDownloadFolderName(); updateApiStatus(); renderProjectList(); renderMain();
 </script>
 </body>
 </html>

@@ -77,3 +77,17 @@ test('completed tool images are cached for one day and downloadable as a named Z
   assert.match(html, /`\$\{name\}\.zip`/);
   assert.match(html, /下载任务 ZIP/);
 });
+
+test('users can select a persistent download folder with a safe browser fallback', () => {
+  assert.match(html, /window\.showDirectoryPicker/);
+  assert.match(html, /idbPrefPut\('downloadFolder',handle\)/);
+  assert.match(html, /async function saveDownloadedFile\(blob,name\)/);
+  assert.match(html, /固定文件夹暂不可写，已改用浏览器下载/);
+  assert.match(html, /选择固定文件夹/);
+});
+
+test('the catalog uses a light sunny youth palette', () => {
+  assert.match(html, /晴空·柠檬/);
+  assert.match(html, /Sunny youth palette/);
+  assert.match(html, /#fff4c9,#dff5ff/);
+});
