@@ -169,6 +169,7 @@ textarea.input{resize:vertical;min-height:60px}
 .prompt-chat-head{display:flex;align-items:flex-start;gap:11px;position:relative;z-index:1}.prompt-chat-avatar{width:38px;height:38px;border-radius:13px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:var(--primary);color:#fff;font-size:18px;box-shadow:0 7px 18px color-mix(in srgb,var(--primary) 24%,transparent)}.prompt-chat-copy{flex:1;min-width:0}.prompt-chat-copy h3{font-size:16px}.prompt-chat-copy p{font-size:11px;color:var(--sub);margin-top:2px}.prompt-scheme{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:14px 0;padding:9px 11px;border:1px solid var(--border);border-radius:10px;background:color-mix(in srgb,var(--card) 78%,transparent);font-size:11px;color:var(--sub);position:relative;z-index:1}.prompt-scheme strong{color:var(--text)}.prompt-scheme .btn{margin-left:auto}.prompt-bubble{position:relative;margin:12px 0 10px 49px;padding:12px 14px;border-radius:5px 14px 14px 14px;background:var(--primary-bg);color:var(--text);font-size:12px;line-height:1.7}.prompt-bubble:before{content:"";position:absolute;left:-7px;top:0;border-top:8px solid var(--primary-bg);border-left:8px solid transparent}.prompt-composer{position:relative;z-index:1;margin-left:49px;border:1px solid var(--border);border-radius:13px;background:var(--card);padding:11px;box-shadow:0 7px 20px rgba(77,49,32,.05)}.prompt-composer textarea.input{min-height:92px;border:0;padding:4px 5px;background:transparent;box-shadow:none;line-height:1.65}.prompt-composer-footer{display:flex;align-items:center;gap:9px;border-top:1px solid var(--border);padding-top:10px;margin-top:6px}.prompt-composer-hint{flex:1;font-size:10px;color:var(--light)}.prompt-key-notice{display:flex;align-items:center;gap:8px;margin:10px 0 0 49px;padding:9px 11px;border-radius:10px;background:var(--warn-bg);color:var(--warn);font-size:11px}.prompt-key-notice .btn{margin-left:auto}.prompt-dialog-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:12px 0 0 49px}.prompt-dialog-actions .btn{justify-content:center;padding:11px}.prompt-analysis{margin:12px 0 0 49px;padding:11px 13px;border-left:3px solid var(--accent);border-radius:0 10px 10px 0;background:color-mix(in srgb,var(--bg) 74%,var(--card));font-size:11px;color:var(--sub)}.project-prompt-card .prompt-editor{margin-left:49px}.project-results-empty{padding:32px 18px;border:1px dashed var(--border);border-radius:12px;text-align:center;color:var(--light);font-size:12px;background:color-mix(in srgb,var(--bg) 64%,var(--card))}
 
 .project-provider-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:0 0 11px}.project-provider-grid label{display:block;font-size:10px;color:var(--sub);margin-bottom:4px}.project-provider-grid .input{padding:8px 10px;font-size:11px}
+.role-upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.role-upload-card{min-width:0}.role-upload-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:7px}.role-upload-head strong{font-size:12px}.role-upload-head span{font-size:9px;color:var(--light)}.role-upload-card .tool-upload{min-height:170px}.role-upload-note{margin-top:6px;font-size:10px;line-height:1.5;color:var(--sub)}
 .prompt-phase{margin:12px 0 0 49px}
 /* === Mobile === */
 .menu-btn{display:none;width:36px;height:36px;border-radius:8px;background:var(--bg);align-items:center;justify-content:center}
@@ -192,7 +193,7 @@ textarea.input{resize:vertical;min-height:60px}
   .platform-grid,.suite-grid,.gen-list{grid-template-columns:1fr}
   .tool-grid,.tool-preview-grid,.tool-result-grid,.field-row{grid-template-columns:1fr}
   .catalog-quick-list{grid-template-columns:1fr}
-  .project-provider-grid{grid-template-columns:1fr}
+  .project-provider-grid,.role-upload-grid{grid-template-columns:1fr}
   .prompt-chat-head{align-items:center}.prompt-chat-copy p{display:none}.prompt-scheme{align-items:flex-start}.prompt-scheme .btn{width:100%;justify-content:center;margin-left:0}.prompt-composer-footer{align-items:stretch;flex-direction:column}.prompt-composer-footer .btn{justify-content:center}.prompt-dialog-actions{grid-template-columns:1fr}.prompt-key-notice{align-items:flex-start;flex-wrap:wrap}.prompt-key-notice .btn{margin-left:0}
 }
 </style>
@@ -352,21 +353,22 @@ const TOOLS=[
 const TOOL_INPUT_RULES={
   'taobao-suite':{minFiles:1,maxFiles:6,outputCount:5,uploadLabel:'上传1—6张同一商品参考图',inputHint:'同一商品的正面、侧面、细节或包装参考；输出5张淘宝套图'},
   'aplus-page':{minFiles:1,maxFiles:6,uploadLabel:'上传1—6张商品与细节参考图'},
-  'viral-remake':{minFiles:2,maxFiles:2,uploadLabel:'上传商品图 + 参考爆款图',inputHint:'第1张为自己的商品，第2张仅作构图与风格参考'},
-  'detail-remake':{minFiles:2,maxFiles:2,uploadLabel:'上传商品图 + 参考详情页',inputHint:'第1张为自己的商品，第2张为节奏与版式参考'},
+  'viral-remake':{minFiles:2,maxFiles:10,roleUploads:[{id:'reference',label:'① 爆款参考图',hint:'上传1—6张要参考的主图或套图',min:1,max:6},{id:'product',label:'② 我的商品图',hint:'上传1—4张自己的真实商品图',min:1,max:4}],inputHint:'素材1组为爆款参考图，只参考构图、配色、光线与信息层级；素材2组为自己的商品图，生成结果必须替换为自己的商品并保持其形状、颜色、材质、包装、标签与数量真实，不复制参考图中的品牌、Logo、文字或受保护元素'},
+  'detail-remake':{minFiles:2,maxFiles:10,roleUploads:[{id:'reference',label:'① 参考详情页/套图',hint:'上传1—6张要参考的详情页或套图',min:1,max:6},{id:'product',label:'② 我的商品图',hint:'上传1—4张自己的真实商品图',min:1,max:4}],inputHint:'素材1组为参考详情页或套图，只参考版式节奏、构图、配色与信息层级；素材2组为自己的商品图，重新设计为自己的商品详情页并保持商品真实，不复制参考图中的品牌、Logo、文案或受保护元素'},
   'batch-suite':{minFiles:2,maxFiles:10,batchByInput:true,uploadLabel:'上传2—10张不同商品图',inputHint:'每张输入分别生成1张统一风格结果'},
   'product-shot':{minFiles:1,maxFiles:6,uploadLabel:'上传1—6张同一商品参考图'},
   'product-retouch':{minFiles:1,maxFiles:10,batchByInput:true,uploadLabel:'上传1—10张待精修图片'},
-  'background-swap':{minFiles:1,maxFiles:10,batchByInput:true,uploadLabel:'上传1—10张待换背景商品图'},
-  'subject-replace':{minFiles:2,maxFiles:2,uploadLabel:'上传原场景图 + 新商品图',inputHint:'第1张为要保留的场景，第2张为替换进去的新商品'},
+  'background-swap':{minFiles:1,maxFiles:10,roleOutput:'product',roleUploads:[{id:'product',label:'① 待处理商品图',hint:'上传1—8张需要换背景的商品图',min:1,max:8},{id:'reference',label:'② 背景参考图（选填）',hint:'可上传1—2张希望匹配的背景；不上传则按文字生成',min:0,max:2}],inputHint:'素材1组为待处理商品图，必须完整保留商品主体；素材2组为可选背景参考，只匹配场景、构图、光线和色调，不复制品牌或文字；每张商品图分别输出1张换背景结果'},
+  'subject-replace':{minFiles:2,maxFiles:10,roleOutput:'scene',roleUploads:[{id:'scene',label:'① 原场景/原版式',hint:'上传1—6张要保留构图的场景图',min:1,max:6},{id:'product',label:'② 新商品主体',hint:'上传1—4张要替换进去的真实商品图',min:1,max:4}],inputHint:'素材1组为要保留的原场景、透视与版式；素材2组为替换进去的新商品，必须保持新商品形状、材质、颜色、包装、标签和数量真实；每张原场景分别输出1张替换结果'},
   'product-recolor':{minFiles:1,maxFiles:10,batchByInput:true,uploadLabel:'上传1—10张待改色商品图'},
   'amazon-suite':{minFiles:1,maxFiles:6,outputCount:5,uploadLabel:'上传1—6张同一商品参考图'},
   'amazon-aplus':{minFiles:1,maxFiles:6,uploadLabel:'上传1—6张商品、细节与包装参考图'},
   'wearing-suite':{minFiles:1,maxFiles:6,outputCount:5,uploadLabel:'上传1—6张服装或配饰参考图'},
-  'ai-model':{minFiles:1,maxFiles:6,uploadLabel:'上传1—6张服装或配饰参考图'},
-  'virtual-tryon':{minFiles:2,maxFiles:2,uploadLabel:'上传人物图 + 服装图',inputHint:'第1张为人物，第2张为要试穿的服装'},
-  'shoe-tryon':{minFiles:2,maxFiles:2,uploadLabel:'上传人物全身图 + 鞋子图',inputHint:'第1张为人物，第2张为鞋子'},
-  'face-swap':{minFiles:2,maxFiles:10,referenceFirst:true,uploadLabel:'上传授权人脸图 + 1—9张目标图',inputHint:'第1张为获授权的人脸参考，其余为要处理的目标图'},
+  'ai-model':{minFiles:1,maxFiles:8,roleOutput:'product',roleUploads:[{id:'product',label:'① 服装/配饰商品图',hint:'上传1—6张真实服装或配饰图',min:1,max:6},{id:'model',label:'② 模特参考图（选填）',hint:'可上传1—2张已获授权的模特参考图',min:0,max:2}],inputHint:'素材1组为必须保持真实的服装或配饰；素材2组为可选且已获授权的模特参考，只参考人物外观与拍摄感觉；每件商品分别输出1张模特展示图'},
+  'virtual-tryon':{minFiles:2,maxFiles:10,roleOutput:'person',roleUploads:[{id:'person',label:'① 人物照片',hint:'上传1—6张已获授权的人物照片',min:1,max:6},{id:'product',label:'② 服装商品图',hint:'上传1—4张要试穿的真实服装图',min:1,max:4}],inputHint:'素材1组为要保留身份、姿态和体态的人物；素材2组为要试穿的服装，必须保持版型、长度、纹理、图案与颜色真实；每张人物图分别输出1张试穿结果'},
+  'portrait-background':{minFiles:1,maxFiles:10,roleOutput:'person',roleUploads:[{id:'person',label:'① 待处理人像',hint:'上传1—8张已获授权的人像照片',min:1,max:8},{id:'reference',label:'② 背景参考图（选填）',hint:'可上传1—2张希望匹配的背景；不上传则按文字生成',min:0,max:2}],inputHint:'素材1组为必须保持身份、面部、发型、肤色、体态与服装不变的人像；素材2组为可选背景参考，只匹配场景、构图、光线和色调；每张人像分别输出1张换背景结果'},
+  'shoe-tryon':{minFiles:2,maxFiles:10,roleOutput:'person',roleUploads:[{id:'person',label:'① 人物全身/脚部图',hint:'上传1—6张已获授权的人物照片',min:1,max:6},{id:'product',label:'② 鞋子商品图',hint:'上传1—4张要试穿的真实鞋子图',min:1,max:4}],inputHint:'素材1组为人物全身或脚部图；素材2组为鞋子商品图，必须保持鞋型、材质、配色与Logo位置真实；每张人物图分别输出1张试鞋结果'},
+  'face-swap':{minFiles:2,maxFiles:10,roleOutput:'target',roleUploads:[{id:'reference',label:'① 授权人脸参考',hint:'上传1张已获得明确授权的人脸图',min:1,max:1},{id:'target',label:'② 待处理目标图',hint:'上传1—9张需要换脸的目标图片',min:1,max:9}],inputHint:'素材1组为已获授权的人脸身份参考；素材2组为待处理目标图，只替换面部身份并保留目标姿态、发型、服装、光线与背景；每张目标图分别输出1张结果'},
   'dewrinkle':{minFiles:1,maxFiles:10,batchByInput:true,uploadLabel:'上传1—10张待去皱服装图'},
   'recolor':{minFiles:1,maxFiles:10,batchByInput:true,uploadLabel:'上传1—10张待换色服装图'},
   'cutout':{minFiles:1,maxFiles:10,batchByInput:true,uploadLabel:'上传1—10张待抠图图片'},
@@ -376,7 +378,7 @@ const TOOL_INPUT_RULES={
   'resize':{minFiles:1,maxFiles:10,batchByInput:true,uploadLabel:'上传1—10张待改尺寸图片'},
   'collage':{minFiles:2,maxFiles:10,uploadLabel:'上传2—10张拼图素材',inputHint:'所有图片将组合成1张商业拼图，不会逐张生成'},
   'watermark-remove':{minFiles:1,maxFiles:10,batchByInput:true,uploadLabel:'上传1—10张自有或已授权图片'},
-  'logo-swap':{minFiles:2,maxFiles:10,referenceFirst:true,uploadLabel:'上传新Logo + 1—9张目标图片',inputHint:'第1张为自有新Logo，其余为要替换Logo的图片'},
+  'logo-swap':{minFiles:2,maxFiles:10,roleOutput:'target',roleUploads:[{id:'reference',label:'① 自有新 Logo',hint:'上传1张你有权使用的新Logo',min:1,max:1},{id:'target',label:'② 待替换图片',hint:'上传1—9张需要替换Logo的目标图片',min:1,max:9}],inputHint:'素材1组为用户自有或已获授权的新Logo；素材2组为待替换目标图，只替换指定Logo并保持位置、尺寸、透视、材质与光线自然；每张目标图分别输出1张结果'},
   'seedream-studio':{minFiles:0,maxFiles:10,adjustableCount:true,uploadLabel:'可选：上传最多10张参考图'},
   'gpt-image-studio':{minFiles:0,maxFiles:10,adjustableCount:true,uploadLabel:'可选：上传最多10张参考图'},
   'nano-banana-studio':{minFiles:0,maxFiles:10,adjustableCount:true,uploadLabel:'可选：上传最多10张参考图'},
@@ -385,7 +387,8 @@ TOOLS.forEach(tool=>{
   Object.assign(tool,{minFiles:tool.requiresImage?1:0,maxFiles:tool.multi?6:1,outputCount:1},TOOL_INPUT_RULES[tool.id]||{});
 });
 function makeToolSession(tool){
-  return {files:[],results:[],resultMeta:[],text:'',note:'',aspect:tool?.aspect||'square',running:false,prompts:[],promptSummary:'',provider:tool?.provider||(state.settings.geminiKey?'gemini':'seedream'),textProvider:state.settings.geminiKey?'gemini':'doubao',requestedCount:1};
+  const roleFiles={}; (tool?.roleUploads||[]).forEach(role=>{roleFiles[role.id]=[];});
+  return {files:[],roleFiles,results:[],resultMeta:[],text:'',note:'',aspect:tool?.aspect||'square',running:false,prompts:[],promptSummary:'',provider:tool?.provider||(state.settings.geminiKey?'gemini':'seedream'),textProvider:state.settings.geminiKey?'gemini':'doubao',requestedCount:1};
 }
 
 function loadState(){
@@ -549,6 +552,7 @@ function setupCategoryObserver(){
 }
 
 function desiredOutputCount(tool){
+  if(tool.roleOutput) return Math.max(1,toolSession.roleFiles?.[tool.roleOutput]?.length||0);
   if(tool.batchByInput) return Math.max(1,toolSession.files.length);
   if(tool.referenceFirst) return Math.max(1,toolSession.files.length-1);
   if(tool.adjustableCount) return Math.max(1,Math.min(4,toolSession.requestedCount||1));
@@ -562,6 +566,17 @@ function setToolNote(value){
   if(toolSession.prompts.length){ toolSession.prompts=[]; toolSession.promptSummary=''; toolSession.results=[]; toolSession.resultMeta=[]; document.getElementById('prompt-editor')?.remove(); const button=document.getElementById('generate-images-btn'); if(button) button.disabled=true; }
 }
 function setToolPrompt(index,value){ if(toolSession.prompts[index]) toolSession.prompts[index].prompt=value; }
+function toolFiles(tool){
+  return tool?.roleUploads?.length?tool.roleUploads.flatMap(role=>toolSession.roleFiles?.[role.id]||[]):toolSession.files;
+}
+function roleUploadHtml(tool,fileLimit){
+  if(!tool.roleUploads?.length) return '';
+  return `<div class="role-upload-grid">${tool.roleUploads.map(role=>{
+    const files=toolSession.roleFiles?.[role.id]||[];
+    const previews=files.length?`<div style="width:100%"><div class="tool-preview-grid">${files.map((src,i)=>`<div class="tool-preview"><img src="${src}" alt="${esc(role.label)} ${i+1}"><span style="position:absolute;left:6px;top:6px;background:rgba(20,31,24,.7);color:#fff;padding:2px 6px;border-radius:99px;font-size:9px">${i+1}</span><button onclick="event.stopPropagation();removeToolRoleFile('${role.id}',${i})" title="移除">×</button></div>`).join('')}</div>${files.length<role.max?'<div class="upload-hint">点击空白处可继续添加</div>':''}</div>`:`<div><div style="font-size:30px;margin-bottom:8px">${role.id==='product'?'📦':'🖼️'}</div><strong>${esc(role.hint)}</strong><div class="upload-hint">${role.min?'必填':'选填'} · JPG / PNG / WebP · 单张不超过${fileLimit}MB</div></div>`;
+    return `<div class="role-upload-card"><div class="role-upload-head"><strong>${esc(role.label)}</strong><span>${files.length}/${role.max}</span></div><div class="tool-upload" onclick="document.getElementById('tool-role-${role.id}').click()">${previews}</div><input id="tool-role-${role.id}" type="file" accept="image/jpeg,image/png,image/webp" ${role.max>1?'multiple':''} style="display:none" onchange="handleToolRoleUpload(event,'${role.id}')"><div class="role-upload-note">${esc(role.hint)}</div></div>`;
+  }).join('')}</div><div class="input-rule">${esc(tool.inputHint)}</div>`;
+}
 function renderToolWorkspace(){
   const tool=TOOLS.find(item=>item.id===activeTool); if(!tool){ openCatalog(); return; }
   document.getElementById('page-title').textContent=tool.name;
@@ -570,7 +585,8 @@ function renderToolWorkspace(){
   const needsCopy=tool.minFiles>0?'必填':'选填';
   const notePlaceholder=tool.mode==='text'?'填写原文/商品信息、目标受众、平台、语气、语言或时长':'描述图片目标、主体、场景、风格、颜色、文字与禁止项';
   const fileLimit=tool.maxFiles>4?2.5:8;
-  const previews=toolSession.files.length?`<div style="width:100%"><div class="tool-preview-grid">${toolSession.files.map((src,i)=>`<div class="tool-preview"><img src="${src}" alt="参考素材 ${i+1}"><span style="position:absolute;left:6px;top:6px;background:rgba(20,31,24,.7);color:#fff;padding:2px 6px;border-radius:99px;font-size:9px">${i+1}</span><button onclick="event.stopPropagation();removeToolFile(${i})" title="移除">×</button></div>`).join('')}</div>${toolSession.files.length<tool.maxFiles?'<div class="upload-hint">点击空白处可继续添加</div>':''}</div>`:`<div><div style="font-size:34px;margin-bottom:8px">${tool.icon}</div><strong>${uploadCopy}</strong><div class="upload-hint">${needsCopy} · JPG / PNG / WebP · 单张不超过${fileLimit}MB</div></div>`;
+  const allFiles=toolFiles(tool);
+  const previews=allFiles.length?`<div style="width:100%"><div class="tool-preview-grid">${allFiles.map((src,i)=>`<div class="tool-preview"><img src="${src}" alt="参考素材 ${i+1}"><span style="position:absolute;left:6px;top:6px;background:rgba(20,31,24,.7);color:#fff;padding:2px 6px;border-radius:99px;font-size:9px">${i+1}</span><button onclick="event.stopPropagation();removeToolFile(${i})" title="移除">×</button></div>`).join('')}</div>${allFiles.length<tool.maxFiles?'<div class="upload-hint">点击空白处可继续添加</div>':''}</div>`:`<div><div style="font-size:34px;margin-bottom:8px">${tool.icon}</div><strong>${uploadCopy}</strong><div class="upload-hint">${needsCopy} · JPG / PNG / WebP · 单张不超过${fileLimit}MB</div></div>`;
   const output=tool.mode==='text'
     ?(toolSession.text?`<div class="tool-text-result">${esc(toolSession.text)}</div><button class="btn btn-sm" style="margin-top:10px" onclick="copyToolText()">复制结果</button>`:`<div class="tool-empty">AI生成的文字会显示在这里</div>`)
     :(toolSession.results.length?`<div class="tool-result-grid">${toolSession.results.map((src,i)=>{const meta=toolSession.resultMeta[i]||{};return `<div class="tool-result"><img src="${src}" alt="生成结果 ${i+1}"><div class="result-actions"><div class="result-meta"><strong>${esc(meta.model||imageProviderLabel(meta.provider)||'图片模型')}</strong>${meta.fallback?`<span class="fallback">已从 ${esc(meta.fallbackFrom||'首选模型')} 自动切换</span>`:'<span>首选模型完成</span>'}</div><button class="btn btn-sm" onclick="downloadToolResult(${i})">下载</button></div></div>`;}).join('')}</div>`:`<div class="tool-empty">先生成并确认提示词，再生成图片<br>批量任务会按素材逐张返回</div>`);
@@ -582,7 +598,7 @@ function renderToolWorkspace(){
     <div class="tool-head"><button class="tool-back" onclick="openCatalog(false)" aria-label="返回">‹</button><div><h2>${esc(tool.name)}</h2><p>${esc(tool.desc)}</p></div></div>
     ${tool.restricted?'<div class="phase-box"><strong>授权素材限定</strong><p>请只处理您拥有或已取得明确授权的素材；不得用于冒充身份、伪造文件或移除他人版权归属。</p></div>':''}
     <div class="tool-layout"><section class="tool-panel"><div class="card-title">任务设置</div>
-      ${imageAllowed?`<div class="tool-upload" onclick="document.getElementById('tool-file-input').click()">${previews}</div><input id="tool-file-input" type="file" accept="image/jpeg,image/png,image/webp" ${tool.maxFiles>1?'multiple':''} style="display:none" onchange="handleToolUpload(event)"><div class="input-rule">${esc(tool.inputHint||`${needsCopy}：最少${tool.minFiles||0}张，最多${tool.maxFiles}张；当前预计输出${expected}张`)}</div>`:''}
+      ${imageAllowed?(tool.roleUploads?.length?roleUploadHtml(tool,fileLimit):`<div class="tool-upload" onclick="document.getElementById('tool-file-input').click()">${previews}</div><input id="tool-file-input" type="file" accept="image/jpeg,image/png,image/webp" ${tool.maxFiles>1?'multiple':''} style="display:none" onchange="handleToolUpload(event)"><div class="input-rule">${esc(tool.inputHint||`${needsCopy}：最少${tool.minFiles||0}张，最多${tool.maxFiles}张；当前预计输出${expected}张`)}</div>`):''}
       <div class="form-group" style="margin-top:14px"><label class="label">具体要求</label><textarea class="input" rows="6" maxlength="6000" placeholder="${notePlaceholder}" oninput="setToolNote(this.value)">${esc(toolSession.note)}</textarea></div>
       ${textProvider}${imageProvider}
       ${tool.mode==='image'?`<div class="form-group"><label class="label">输出比例</label><select class="input" onchange="setToolAspect(this.value)"><option value="square" ${toolSession.aspect==='square'?'selected':''}>1:1 正方形</option><option value="vertical" ${toolSession.aspect==='vertical'?'selected':''}>2:3 竖版</option><option value="wide" ${toolSession.aspect==='wide'?'selected':''}>16:9 横版</option></select></div>`:''}
@@ -808,10 +824,29 @@ async function handleToolUpload(event){
   toolSession.files=toolSession.files.concat(valid).slice(0,tool.maxFiles);
   toolSession.results=[]; toolSession.resultMeta=[]; toolSession.text=''; toolSession.prompts=[]; toolSession.promptSummary=''; event.target.value=''; renderToolWorkspace();
 }
+async function handleToolRoleUpload(event,roleId){
+  const tool=TOOLS.find(item=>item.id===activeTool); const role=tool?.roleUploads?.find(item=>item.id===roleId); if(!tool||!role) return;
+  const current=toolSession.roleFiles?.[roleId]||[];
+  const incoming=Array.from(event.target.files||[]).slice(0,Math.max(0,role.max-current.length));
+  const valid=[]; const fileLimit=(tool.maxFiles>4?2.5:8)*1024*1024;
+  for(const file of incoming){
+    if(!['image/jpeg','image/png','image/webp'].includes(file.type)){ toast(file.name+' 格式不支持','error'); continue; }
+    if(file.size>fileLimit){ toast(file.name+' 体积过大','error'); continue; }
+    try{ valid.push(await fileToBase64(file)); }catch(error){ toast(file.name+' 读取失败','error'); }
+  }
+  toolSession.roleFiles[roleId]=current.concat(valid).slice(0,role.max);
+  toolSession.results=[]; toolSession.resultMeta=[]; toolSession.text=''; toolSession.prompts=[]; toolSession.promptSummary=''; event.target.value=''; renderToolWorkspace();
+}
 function removeToolFile(index){ toolSession.files.splice(index,1); toolSession.results=[]; toolSession.resultMeta=[]; toolSession.prompts=[]; toolSession.promptSummary=''; renderToolWorkspace(); }
+function removeToolRoleFile(roleId,index){
+  toolSession.roleFiles?.[roleId]?.splice(index,1); toolSession.results=[]; toolSession.resultMeta=[]; toolSession.prompts=[]; toolSession.promptSummary=''; renderToolWorkspace();
+}
 function validToolInput(tool){
-  if(toolSession.files.length<(tool.minFiles||0)){ toast(`此工具至少需要上传${tool.minFiles}张图片`,'warn'); return false; }
-  if(!toolSession.note.trim()&&!toolSession.files.length){ toast('请填写任务信息或上传参考图','warn'); return false; }
+  if(tool.roleUploads?.length){
+    const missing=tool.roleUploads.find(role=>(toolSession.roleFiles?.[role.id]?.length||0)<role.min);
+    if(missing){ toast(`请在“${missing.label}”上传至少${missing.min}张图片`,'warn'); return false; }
+  }else if(toolSession.files.length<(tool.minFiles||0)){ toast(`此工具至少需要上传${tool.minFiles}张图片`,'warn'); return false; }
+  if(!toolSession.note.trim()&&!toolFiles(tool).length){ toast('请填写任务信息或上传参考图','warn'); return false; }
   return true;
 }
 function hasSelectedTextKey(){ return toolSession.textProvider==='gemini'?Boolean(state.settings.geminiKey):Boolean(state.settings.arkKey); }
@@ -821,7 +856,7 @@ async function runTextTool(){
   if(!hasSelectedTextKey()){ toast('所选文字模型尚未配置API Key','warn'); showSettings(); return; }
   toolSession.running=true; toolSession.text=''; renderToolWorkspace();
   try{
-    const data=await apiCall('/api/tool-text',{toolId:tool.id,note:toolSession.note,imageBase64s:toolSession.files,textProvider:toolSession.textProvider,visionModel:state.settings.visionModel||undefined,geminiTextModel:state.settings.geminiTextModel||undefined});
+    const data=await apiCall('/api/tool-text',{toolId:tool.id,note:toolSession.note,imageBase64s:toolFiles(tool),textProvider:toolSession.textProvider,visionModel:state.settings.visionModel||undefined,geminiTextModel:state.settings.geminiTextModel||undefined});
     toolSession.text=data.text||''; toast('文字生成完成','success');
   }catch(error){ toast('处理失败：'+error.message,'error'); }
   finally{ toolSession.running=false; renderToolWorkspace(); }
@@ -831,13 +866,18 @@ async function generateToolPrompts(){
   if(!hasSelectedTextKey()){ toast('所选文字模型尚未配置API Key','warn'); showSettings(); return; }
   toolSession.running=true; toolSession.prompts=[]; toolSession.results=[]; toolSession.resultMeta=[]; renderToolWorkspace();
   try{
-    const data=await apiCall('/api/tool-prompt',{toolId:tool.id,note:toolSession.note,imageBase64s:toolSession.files,inputHint:tool.inputHint||'',outputCount:desiredOutputCount(tool),aspect:toolSession.aspect,provider:toolSession.provider,textProvider:toolSession.textProvider,visionModel:state.settings.visionModel||undefined,geminiTextModel:state.settings.geminiTextModel||undefined});
+    const data=await apiCall('/api/tool-prompt',{toolId:tool.id,note:toolSession.note,imageBase64s:toolFiles(tool),inputHint:tool.inputHint||'',outputCount:desiredOutputCount(tool),aspect:toolSession.aspect,provider:toolSession.provider,textProvider:toolSession.textProvider,visionModel:state.settings.visionModel||undefined,geminiTextModel:state.settings.geminiTextModel||undefined});
     toolSession.prompts=data.prompts||[]; toolSession.promptSummary=data.summary||'';
     toast(data.fallback?`原模型未通过，已自动改用${data.provider==='gemini'?'Gemini':'豆包'}生成提示词`:'提示词已生成，请检查后再生图',data.fallback?'warn':'success');
   }catch(error){ toast('提示词生成失败：'+error.message,'error'); }
   finally{ toolSession.running=false; renderToolWorkspace(); }
 }
 function generationUnits(tool){
+  if(tool.roleOutput){
+    const targets=toolSession.roleFiles?.[tool.roleOutput]||[];
+    return targets.map(target=>tool.roleUploads.flatMap(role=>role.id===tool.roleOutput?[target]:(toolSession.roleFiles?.[role.id]||[])));
+  }
+  if(tool.roleUploads?.length) return Array.from({length:desiredOutputCount(tool)},()=>toolFiles(tool));
   if(tool.batchByInput) return toolSession.files.map(image=>[image]);
   if(tool.referenceFirst) return toolSession.files.slice(1).map(image=>[toolSession.files[0],image]);
   return Array.from({length:desiredOutputCount(tool)},()=>toolSession.files.slice());

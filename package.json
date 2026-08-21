@@ -6,8 +6,9 @@
   "scripts": {
     "dev": "vinext dev",
     "build": "npm run check",
-    "start": "vinext start",
-    "check": "node --check lib/api.js && node --check app/api/[endpoint]/route.js && node --check worker.js",
+    "start": "node server.js",
+    "test": "node --test tests/*.test.mjs",
+    "check": "node --check lib/api.js && node --check app/api/[endpoint]/route.js && node --check worker.js && node --check server.js",
     "cf:dev": "wrangler dev",
     "cf:deploy": "wrangler deploy"
   },
