@@ -590,7 +590,7 @@ function renderToolWorkspace(){
   const output=tool.mode==='text'
     ?(toolSession.text?`<div class="tool-text-result">${esc(toolSession.text)}</div><button class="btn btn-sm" style="margin-top:10px" onclick="copyToolText()">复制结果</button>`:`<div class="tool-empty">AI生成的文字会显示在这里</div>`)
     :(toolSession.results.length?`<div class="tool-result-grid">${toolSession.results.map((src,i)=>{const meta=toolSession.resultMeta[i]||{};return `<div class="tool-result"><img src="${src}" alt="生成结果 ${i+1}"><div class="result-actions"><div class="result-meta"><strong>${esc(meta.model||imageProviderLabel(meta.provider)||'图片模型')}</strong>${meta.fallback?`<span class="fallback">已从 ${esc(meta.fallbackFrom||'首选模型')} 自动切换</span>`:'<span>首选模型完成</span>'}</div><button class="btn btn-sm" onclick="downloadToolResult(${i})">下载</button></div></div>`;}).join('')}</div>`:`<div class="tool-empty">先生成并确认提示词，再生成图片<br>批量任务会按素材逐张返回</div>`);
-  const textProvider=`<div class="form-group"><label class="label">文字 AI 模型</label><select class="input" onchange="setToolTextProvider(this.value)"><option value="gemini" ${toolSession.textProvider==='gemini'?'selected':''}>Gemini 3.7 Flash（免费额度优先）</option><option value="doubao" ${toolSession.textProvider==='doubao'?'selected':''}>豆包 Seed（火山方舟）</option></select><div class="model-note">用于理解素材、生成文案或编写图片提示词</div></div>`;
+  const textProvider=`<div class="form-group"><label class="label">文字与素材理解模型</label><select class="input" onchange="setToolTextProvider(this.value)"><option value="gemini" ${toolSession.textProvider==='gemini'?'selected':''}>Gemini（免费额度优先）</option><option value="doubao" ${toolSession.textProvider==='doubao'?'selected':''}>火山方舟（自动分配 DeepSeek / 豆包视觉）</option></select><div class="model-note">纯文字任务使用 DeepSeek；含图片任务自动使用豆包多模态视觉模型</div></div>`;
   const imageProvider=tool.mode==='image'?`<div class="form-group"><label class="label">图片生成模型</label><select class="input" onchange="setToolProvider(this.value)"><option value="gemini" ${toolSession.provider==='gemini'?'selected':''}>Nano Banana 2（免费额度优先）</option><option value="seedream" ${toolSession.provider==='seedream'?'selected':''}>Seedream 5.0</option><option value="openai" ${toolSession.provider==='openai'?'selected':''}>GPT Image 2</option></select><div class="model-note">切换模型后会重新优化提示词</div></div>`:'';
   const promptEditor=tool.mode==='image'?`<div class="workflow-steps"><div class="workflow-step ${toolSession.prompts.length?'ready':''}">① AI生成提示词</div><div class="workflow-step ${toolSession.results.length?'ready':''}">② 确认后生图</div></div>${toolSession.prompts.length?`<div class="prompt-editor" id="prompt-editor"><div class="prompt-editor-head"><strong>图片提示词（可修改）</strong><span class="tag tag-success">${toolSession.prompts.length} 条</span></div><div class="prompt-summary">${esc(toolSession.promptSummary)}</div>${toolSession.prompts.map((item,i)=>`<div class="prompt-item"><label><span>${i+1}. ${esc(item.label)}</span><span>可编辑</span></label><textarea class="input" maxlength="12000" oninput="setToolPrompt(${i},this.value)">${esc(item.prompt)}</textarea></div>`).join('')}</div>`:''}`:'';
   const expected=desiredOutputCount(tool);
@@ -1060,8 +1060,8 @@ function showSettings(){
     <div class="modal-title">API设置</div>
     <div class="form-group">
       <label class="label">火山方舟 API Key（选填）</label>
-      <input class="input" type="password" id="set-ark" value="${esc(state.settings.arkKey)}" placeholder="volc-xxx...">
-      <div style="font-size:11px;color:var(--light);margin-top:4px">同一个 Key 可调用账户已开通的 DeepSeek、豆包视觉和 Seedream；每类模型需填写自己的完整 Model ID。</div>
+      <input class="input" type="password" id="set-ark" value="${esc(state.settings.arkKey)}" placeholder="填写 API Key 列中的完整密钥">
+      <div style="font-size:11px;color:var(--light);margin-top:4px">请复制“API Key”列眼睛图标对应的完整密钥，不要填写右侧“资源 ID”。同一个 Key 可调用账户已开通的 DeepSeek、豆包视觉和 Seedream。</div>
     </div>
     <div class="form-group">
       <label class="label">火山文字模型 ID（DeepSeek）</label>
