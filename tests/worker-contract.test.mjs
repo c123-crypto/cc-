@@ -236,7 +236,13 @@ test('DeepSeek can be selected as the Ark text model', async (t) => {
 
 test('Ark Responses API accepts the output_text shortcut', async (t) => {
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = async () => Response.json({ output_text: '通过' });
+  let calls = 0;
+  globalThis.fetch = async () => {
+    calls += 1;
+    return calls === 1
+      ? new Response('<html>chat gateway mismatch</html>', { status: 200, headers: { 'content-type': 'text/html' } })
+      : Response.json({ output_text: '通过' });
+  };
   t.after(() => { globalThis.fetch = originalFetch; });
 
   const response = await worker.fetch(apiRequest('connection-test', {
@@ -247,6 +253,33 @@ test('Ark Responses API accepts the output_text shortcut', async (t) => {
 
   assert.equal(response.status, 200);
   assert.equal(body.ok, true);
+});
+
+test('Ark Responses API accepts SSE completed and delta events', async (t) => {
+  const originalFetch = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = async () => {
+    calls += 1;
+    if (calls === 1) return new Response('<html>chat gateway mismatch</html>', { status: 200, headers: { 'content-type': 'text/html' } });
+    return new Response([
+      'event: response.output_text.delta',
+      'data: {"type":"response.output_text.delta","delta":"通"}',
+      '',
+      'event: response.output_text.delta',
+      'data: {"type":"response.output_text.delta","delta":"过"}',
+      '',
+      'data: [DONE]',
+    ].join('\n'), { status: 200, headers: { 'content-type': 'text/event-stream' } });
+  };
+  t.after(() => { globalThis.fetch = originalFetch; });
+
+  const response = await worker.fetch(apiRequest('connection-test', {
+    provider: 'doubao',
+    arkTextModel: 'deepseek-v4-pro-test',
+  }, { 'x-ark-key': 'test-ark-key' }), env);
+
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).ok, true);
 });
 
 test('image-backed text tools use the multimodal model instead of DeepSeek', async (t) => {
