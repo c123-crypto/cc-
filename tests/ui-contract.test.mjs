@@ -101,3 +101,14 @@ test('settings can move between computers in a password-encrypted backup', () =>
   assert.match(html, /备份内容不会发送到服务器/);
   assert.match(html, /固定下载文件夹需在每台电脑单独授权/);
 });
+
+test('suite projects use practical generation goals and require a second reference image for remake', () => {
+  assert.match(html, /这套图主要要解决什么/);
+  assert.match(html, /平台自动匹配/);
+  assert.match(html, /提升点击率/);
+  assert.match(html, /提升转化率/);
+  assert.match(html, /参考图复刻/);
+  assert.match(html, /function handleReferenceUpload\(e\)/);
+  assert.match(html, /referenceImageBase64:p\.direction==='reference'/);
+  assert.match(html, /先上传参考图/);
+});

@@ -97,9 +97,10 @@ input,textarea,select{font-family:inherit;font-size:14px;outline:none}
 .suite-opt .s-count{font-size:11px;color:var(--light);margin-top:2px}
 
 .direction-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:16px}
-.direction-opt{padding:10px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;transition:all .15s}
+.direction-opt{padding:13px 14px;border:1px solid var(--border);border-radius:12px;cursor:pointer;font-size:13px;transition:all .15s;text-align:left}
 .direction-opt:hover{border-color:var(--primary)}
 .direction-opt.sel{border-color:var(--primary);background:var(--primary-bg);color:var(--primary)}
+.direction-opt strong{display:block;font-size:13px}.direction-opt span{display:block;margin-top:3px;font-size:10px;line-height:1.5;color:var(--light)}.direction-opt.sel span{color:var(--sub)}
 
 .label{font-size:13px;font-weight:600;margin-bottom:8px;display:block}
 .input,textarea.input{width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--card);font-size:13px}
@@ -489,7 +490,7 @@ function formatTime(t){ const d=new Date(t); return d.getMonth()+1+'/'+d.getDate
 /* ============ PROJECTS ============ */
 function newProject(){
   if(state.projects.length>=MAX_PROJECTS){ toast('最多'+MAX_PROJECTS+'个项目同时运行','warn'); return; }
-  const p={id:uid(),name:'商品项目 '+String(state.projects.length+1).padStart(2,'0'),image:'',platform:'taobao',suiteType:'square',direction:'standard',userNote:'',textProvider:state.settings.geminiKey?'gemini':state.settings.arkKey?'doubao':'gemini',imageProvider:state.settings.geminiKey?'gemini':state.settings.arkKey?'seedream':state.settings.openaiKey?'openai':'gemini',status:'idle',phase:'等待上传商品图',analysis:null,whiteImage:'',series:[],qcResults:[],createdAt:Date.now()};
+  const p={id:uid(),name:'商品项目 '+String(state.projects.length+1).padStart(2,'0'),image:'',referenceImage:'',platform:'taobao',suiteType:'square',direction:'auto',userNote:'',textProvider:state.settings.geminiKey?'gemini':state.settings.arkKey?'doubao':'gemini',imageProvider:state.settings.geminiKey?'gemini':state.settings.arkKey?'seedream':state.settings.openaiKey?'openai':'gemini',status:'idle',phase:'等待上传商品图',analysis:null,whiteImage:'',series:[],qcResults:[],createdAt:Date.now()};
   state.projects.push(p); state.currentProject=p.id; appView='project';
   renderProjectList(); renderMain();
 }
@@ -702,16 +703,16 @@ function scrollToProjectSetup(){ document.getElementById('project-settings')?.sc
 function renderProjectPromptAssistant(p){
   const platformLabels={taobao:'淘宝',pdd:'拼多多','1688':'1688'};
   const suiteLabels={square:'5 张正方形套图',vertical:'5 张竖版详情图',full:'10 张完整系列'};
-  const dirLabels={standard:'标准转化',scene:'生活场景',detail:'材质细节',procurement:'采购展示'};
+  const dirLabels={auto:'平台自动匹配',click:'提升点击率',conversion:'提升转化率',reference:'参考图复刻',standard:'平台自动匹配',scene:'提升点击率',detail:'提升转化率',procurement:'平台自动匹配'};
   const outputCount=p.suiteType==='full'?10:5;
   const running=p.status==='running';
   const textProvider=projectTextProvider(p);
   const imageProvider=projectImageProvider(p);
   const textModelLabel=textProvider==='gemini'?'Gemini 3.7 Flash':'豆包 Seed';
   const imageModelLabel=imageProvider==='gemini'?'Nano Banana 2':imageProvider==='openai'?'GPT Image 2':'Seedream 5.0';
-  const canPlan=Boolean(p.image&&hasProjectTextKey(p)&&!running);
+  const canPlan=Boolean(p.image&&(p.direction!=='reference'||p.referenceImage)&&hasProjectTextKey(p)&&!running);
   const canGenerate=Boolean(p.image&&p.analysis&&hasProjectImageKey(p)&&!running);
-  const planLabel=running&&!p.analysis?'正在生成提示词…':!p.image?'先上传商品图':p.analysis?'重新生成整套提示词':'AI 生成整套提示词';
+  const planLabel=running&&!p.analysis?'正在生成提示词…':!p.image?'先上传商品图':p.direction==='reference'&&!p.referenceImage?'先上传参考图':p.analysis?'重新生成整套提示词':'AI 生成整套提示词';
   return `<section class="card project-prompt-card" id="prompt-assistant">
     <div class="prompt-chat-head"><div class="prompt-chat-avatar">✦</div><div class="prompt-chat-copy"><h3>AI 提示词助手</h3><p>先规划、再确认、最后生图；不会跳过提示词直接生成。</p></div><span class="tag ${p.analysis?'tag-success':'tag-info'}" id="project-prompt-state">${p.analysis?'提示词已就绪':'等待需求'}</span></div>
     <div class="prompt-scheme"><span>当前方案</span><strong>${platformLabels[p.platform]||p.platform} · ${suiteLabels[p.suiteType]||p.suiteType} · ${dirLabels[p.direction]||p.direction}</strong><span class="tag tag-info">${textModelLabel} → ${imageModelLabel}</span><button class="btn btn-sm" onclick="scrollToProjectSetup()">修改方案</button></div>
@@ -742,7 +743,7 @@ function renderMain(){
 
   const platformLabels={taobao:'淘宝',pdd:'拼多多','1688':'1688'};
   const suiteLabels={square:'五张商品套图',vertical:'五张详情图',full:'十张完整系列'};
-  const dirLabels={standard:'标准转化',scene:'生活场景',detail:'材质细节',procurement:'采购展示'};
+  const dirLabels={auto:'平台自动匹配',click:'提升点击率',conversion:'提升转化率',reference:'参考图复刻',standard:'平台自动匹配',scene:'提升点击率',detail:'提升转化率',procurement:'平台自动匹配'};
 
   el.innerHTML=`
     <section class="hero">
@@ -786,12 +787,14 @@ function renderMain(){
 
     <!-- Direction -->
     <div class="card">
-      <div class="card-title"><svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>套图方向</div>
+      <div class="card-title"><svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>这套图主要要解决什么？</div>
+      <div class="section-desc">不确定就选“平台自动匹配”，AI 会根据商品和平台安排每一张图。</div>
       <div class="direction-grid">
-        ${Object.entries({standard:'标准转化套图',scene:'生活场景套图',detail:'材质细节套图',procurement:'采购展示套图'}).map(([k,v])=>
-          `<div class="direction-opt ${p.direction===k?'sel':''}" onclick="setDirection('${k}')">${v}</div>`
+        ${Object.entries({auto:{name:'✨ 平台自动匹配',desc:'根据淘宝、拼多多或1688自动安排主图、卖点、细节和场景'},click:{name:'👀 提升点击率',desc:'强化手机端第一眼识别、商品主体和核心卖点'},conversion:{name:'🛒 提升转化率',desc:'完整覆盖白底、功能、材质、尺寸、场景与购买理解'},reference:{name:'🧩 参考图复刻',desc:'上传参考图，只借鉴构图、配色和信息节奏并替换成你的商品'}}).map(([k,v])=>
+          `<div class="direction-opt ${p.direction===k?'sel':''}" onclick="setDirection('${k}')"><strong>${v.name}</strong><span>${v.desc}</span></div>`
         ).join('')}
       </div>
+      ${p.direction==='reference'?`<div style="margin-top:12px"><label class="label">参考套图/参考主图（必传）</label><div class="upload-zone ${p.referenceImage?'has-image':''}" style="padding:${p.referenceImage?'0':'24px'}" onclick="document.getElementById('reference-input').click()">${p.referenceImage?`<img src="${p.referenceImage}" style="max-height:220px">`:`<div><div class="upload-text">点击上传要参考的图片</div><div class="upload-hint">只参考构图、配色与信息层级，不复制第三方品牌和文字</div></div>`}</div><input type="file" id="reference-input" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="handleReferenceUpload(event)"></div>`:''}
     </div>
 
     <!-- Results -->
@@ -939,6 +942,13 @@ function localToolPromptPlan(tool){
   }[tool.id]||tool.desc;
   const prompts=Array.from({length:count},(_,index)=>({label:count>1?`结果 ${index+1}`:tool.name,prompt:`执行${tool.name}。任务要求：${special}。素材关系：${roleGuide}。用户补充：${note}。输出比例：${aspectLabel}。严格保持未指定区域不变，保留真实商品结构、颜色、材质、数量、包装文字和标识位置；禁止虚构功能、认证、价格、销量，禁止新增无关文字、二维码、水印、边框或第三方品牌元素。只输出一张完整结果图。`}));
   return {summary:`已根据${tool.name}规则和素材用途生成本地保真提示词；模型线路恢复后仍可重新智能优化。`,prompts};
+}
+async function handleReferenceUpload(e){
+  const file=e.target.files[0];if(!file)return;
+  if(file.size>8*1024*1024){toast('参考图超过8MB限制','error');return;}
+  if(!['image/jpeg','image/png','image/webp'].includes(file.type)){toast('参考图格式错误，支持JPG/PNG/WebP','error');return;}
+  const p=getCurrentProject();if(!p)return;
+  try{p.referenceImage=await fileToBase64(file);resetProjectPlan(p);p.phase='参考图已上传，等待生成提示词';renderMain();renderProjectList();toast('参考图上传成功','success');}catch(error){toast('参考图读取失败','error');}
 }
 async function runTextTool(){
   const tool=TOOLS.find(item=>item.id===activeTool); if(!tool||toolSession.running) return;
@@ -1092,6 +1102,7 @@ async function runPool(tasks,limit){
 
 async function planProjectPrompts(){
   const p=getCurrentProject(); if(!p||!p.image) return;
+  if(p.direction==='reference'&&!p.referenceImage){toast('请先上传要参考的套图或主图','warn');return;}
   if(!hasProjectTextKey(p)){ toast('请先配置所选文字模型的 API Key','warn'); showSettings(); return; }
   const labels=OUTPUT_LABELS[p.suiteType];
   p.series=labels.map((label,index)=>({id:index,label,prompt:'',image:'',status:'pending',model:'',provider:'',fallback:false,fallbackFrom:''}));
@@ -1099,7 +1110,7 @@ async function planProjectPrompts(){
   renderMain(); renderProjectList();
   try{
     toast('正在识别商品并制定平台提示词...','');
-    const analysis=await apiCall('/api/analyze',{imageBase64:p.image,platform:p.platform,suiteType:p.suiteType,direction:p.direction,userNote:p.userNote,textProvider:projectTextProvider(p),imageProvider:projectImageProvider(p),visionModel:state.settings.visionModel||undefined,geminiTextModel:state.settings.geminiTextModel||undefined});
+    const analysis=await apiCall('/api/analyze',{imageBase64:p.image,referenceImageBase64:p.direction==='reference'?p.referenceImage||undefined:undefined,platform:p.platform,suiteType:p.suiteType,direction:p.direction,userNote:p.userNote,textProvider:projectTextProvider(p),imageProvider:projectImageProvider(p),visionModel:state.settings.visionModel||undefined,geminiTextModel:state.settings.geminiTextModel||undefined});
     p.analysis=analysis;
     const hasWhiteOutput=p.suiteType!=='vertical';
     const plans=analysis.series||[];
