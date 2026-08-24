@@ -209,6 +209,78 @@ test('unparseable Ark responses return a useful configuration error', async (t) 
   assert.match(body.error, /HTTP 200，text\/html，24字节/);
 });
 
+test('Gemini project planning requests structured JSON output', async (t) => {
+  const originalFetch = globalThis.fetch;
+  let sentBody;
+  globalThis.fetch = async (url, options) => {
+    assert.match(String(url), /generativelanguage\.googleapis\.com\/v1beta\/interactions/);
+    sentBody = JSON.parse(options.body);
+    return Response.json({
+      status: 'completed',
+      output_text: JSON.stringify({
+        product_summary: '白色收纳盒',
+        white_prompt: '保持白色收纳盒外观，生成白底图',
+        series: [
+          { label: '核心卖点场景', prompt: '场景提示词' },
+          { label: '材质做工细节', prompt: '细节提示词' },
+          { label: '尺寸使用感知', prompt: '尺寸提示词' },
+          { label: '转化留白构图', prompt: '留白提示词' },
+        ],
+      }),
+    });
+  };
+  t.after(() => { globalThis.fetch = originalFetch; });
+
+  const response = await worker.fetch(apiRequest('analyze', {
+    imageBase64: 'data:image/png;base64,AA==',
+    platform: 'taobao',
+    suiteType: 'square',
+    textProvider: 'gemini',
+    imageProvider: 'openai',
+  }, { 'x-gemini-key': 'test-gemini-key' }), env);
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(body.provider, 'gemini');
+  assert.equal(body.series.length, 4);
+  assert.deepEqual(sentBody.response_format, { type: 'text', mime_type: 'application/json' });
+  assert.equal(sentBody.generation_config.max_output_tokens, 3000);
+});
+
+test('prompt planning preserves the selected provider error when Ark fallback hits 525', async (t) => {
+  const originalFetch = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = async (url) => {
+    calls += 1;
+    if (String(url).includes('generativelanguage.googleapis.com')) {
+      return Response.json({ status: 'completed', output_text: 'not json' });
+    }
+    return new Response('error code: 525', { status: 525, headers: { 'content-type': 'text/plain' } });
+  };
+  t.after(() => { globalThis.fetch = originalFetch; });
+
+  const response = await worker.fetch(apiRequest('analyze', {
+    imageBase64: 'data:image/png;base64,AA==',
+    platform: 'pdd',
+    suiteType: 'square',
+    textProvider: 'gemini',
+    imageProvider: 'openai',
+  }, {
+    'x-gemini-key': 'test-gemini-key',
+    'x-ark-key': 'test-ark-key',
+  }), env);
+  const body = await response.json();
+
+  assert.equal(response.status, 502);
+  assert.equal(body.code, 'MODEL_JSON_INVALID');
+  assert.equal(body.providerFailures.length, 2);
+  assert.equal(body.providerFailures[0].provider, 'gemini');
+  assert.equal(body.providerFailures[0].code, 'MODEL_JSON_INVALID');
+  assert.equal(body.providerFailures[1].provider, 'doubao');
+  assert.equal(body.providerFailures[1].code, 'ARK_CHAT_TLS_525');
+  assert.equal(calls, 4);
+});
+
 test('DeepSeek can be selected as the Ark text model', async (t) => {
   const originalFetch = globalThis.fetch;
   let sentBody;
