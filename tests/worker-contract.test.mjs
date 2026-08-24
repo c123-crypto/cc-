@@ -240,7 +240,7 @@ test('unparseable Ark responses return a useful configuration error', async (t) 
   assert.match(body.error, /HTTP 200，text\/html，24字节/);
 });
 
-test('Gemini project planning requests structured JSON output', async (t) => {
+test('Gemini project planning understands grouped product and scene references before planning', async (t) => {
   const originalFetch = globalThis.fetch;
   let sentBody;
   globalThis.fetch = async (url, options) => {
@@ -250,12 +250,13 @@ test('Gemini project planning requests structured JSON output', async (t) => {
       status: 'completed',
       output_text: JSON.stringify({
         product_summary: '白色收纳盒',
+        reference_strategy: '轮换正面、侧面与场景参考',
         white_prompt: '保持白色收纳盒外观，生成白底图',
         series: [
-          { label: '核心卖点场景', prompt: '场景提示词' },
-          { label: '材质做工细节', prompt: '细节提示词' },
-          { label: '尺寸使用感知', prompt: '尺寸提示词' },
-          { label: '转化留白构图', prompt: '留白提示词' },
+          { label: '核心卖点场景', product_refs: [1, 2], style_ref: 1, prompt: '场景提示词' },
+          { label: '材质做工细节', product_refs: [3], style_ref: 1, prompt: '细节提示词' },
+          { label: '尺寸使用感知', product_refs: [2], style_ref: 1, prompt: '尺寸提示词' },
+          { label: '转化留白构图', product_refs: [1], style_ref: 1, prompt: '留白提示词' },
         ],
       }),
     });
@@ -264,6 +265,8 @@ test('Gemini project planning requests structured JSON output', async (t) => {
 
   const response = await worker.fetch(apiRequest('analyze', {
     imageBase64: 'data:image/png;base64,AA==',
+    productImagesBase64s: ['data:image/png;base64,AA==', 'data:image/png;base64,AQ==', 'data:image/png;base64,Ag=='],
+    styleImagesBase64s: ['data:image/png;base64,Aw=='],
     platform: 'taobao',
     suiteType: 'square',
     textProvider: 'gemini',
@@ -274,6 +277,12 @@ test('Gemini project planning requests structured JSON output', async (t) => {
   assert.equal(response.status, 200);
   assert.equal(body.provider, 'gemini');
   assert.equal(body.series.length, 4);
+  assert.deepEqual(body.series[0].product_refs, [1, 2]);
+  assert.equal(body.series[0].style_ref, 1);
+  assert.equal(body.reference_strategy, '轮换正面、侧面与场景参考');
+  assert.equal(sentBody.input.filter(item => item.type === 'image').length, 4);
+  assert.match(sentBody.input[0].text, /前 3 张是同一商品的商品证据图/);
+  assert.match(sentBody.input[0].text, /后 1 张是场景\/风格参考图/);
   assert.deepEqual(sentBody.response_format, { type: 'text', mime_type: 'application/json' });
   assert.equal(sentBody.generation_config.max_output_tokens, 3000);
 });
@@ -516,6 +525,42 @@ test('Qwen Image edits reference images through the native multimodal endpoint',
   assert.equal(sentBody.parameters.size, '1536*1024');
   assert.equal(sentBody.parameters.n, 1);
   assert.equal(calls, 2);
+});
+
+test('suite image generation forwards a different three-reference bundle for each scene', async (t) => {
+  const originalFetch = globalThis.fetch;
+  let sentBody;
+  globalThis.fetch = async (url, options = {}) => {
+    if (String(url).includes('/multimodal-generation/generation')) {
+      sentBody = JSON.parse(options.body);
+      return Response.json({ output: { choices: [{ message: { content: [{ image: 'https://dashscope-result.oss-cn-shenzhen.aliyuncs.com/suite.png' }] } }] } });
+    }
+    if (String(url) === 'https://dashscope-result.oss-cn-shenzhen.aliyuncs.com/suite.png') {
+      return new Response(new Uint8Array([4, 5, 6]), { headers: { 'content-type': 'image/png' } });
+    }
+    throw new Error(`unexpected URL: ${url}`);
+  };
+  t.after(() => { globalThis.fetch = originalFetch; });
+
+  const response = await worker.fetch(apiRequest('series-image', {
+    provider: 'qwen',
+    prompt: '窗边生活场景，侧前方中景，只生成一张图',
+    whiteImageBase64: 'data:image/png;base64,AA==',
+    referenceImagesBase64s: [
+      'data:image/png;base64,AA==',
+      'data:image/png;base64,AQ==',
+      'data:image/png;base64,Ag==',
+      'data:image/png;base64,Aw==',
+    ],
+    allowFallback: false,
+    qwenImageModel: 'qwen-image-3.0-pro',
+  }, { 'x-qwen-key': 'test-qwen-key' }), env);
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(body.provider, 'qwen');
+  assert.equal(sentBody.input.messages[0].content.filter(item => item.image).length, 3);
+  assert.match(sentBody.input.messages[0].content.at(-1).text, /窗边生活场景/);
 });
 
 test('Qwen endpoint validation rejects non-Aliyun hosts before fetching', async (t) => {
