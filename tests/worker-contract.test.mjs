@@ -56,6 +56,37 @@ test('validation errors do not call an upstream model', async (t) => {
   assert.equal(calls, 0);
 });
 
+test('download proxy converts an approved temporary model URL into a same-origin image response', async (t) => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    assert.equal(String(url), 'https://example.tos-cn-beijing.volces.com/generated/result.png');
+    return new Response(new Uint8Array([137, 80, 78, 71]), { headers: { 'content-type': 'image/png', 'content-length': '4' } });
+  };
+  t.after(() => { globalThis.fetch = originalFetch; });
+
+  const response = await worker.fetch(apiRequest('download-image', {
+    url: 'https://example.tos-cn-beijing.volces.com/generated/result.png',
+  }), env);
+
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('content-type'), 'image/png');
+  assert.deepEqual([...new Uint8Array(await response.arrayBuffer())], [137, 80, 78, 71]);
+});
+
+test('download proxy rejects arbitrary hosts without fetching them', async (t) => {
+  const originalFetch = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = async () => { calls += 1; throw new Error('unexpected fetch'); };
+  t.after(() => { globalThis.fetch = originalFetch; });
+
+  const response = await worker.fetch(apiRequest('download-image', { url: 'https://attacker.example/private' }), env);
+  const body = await response.json();
+
+  assert.equal(response.status, 400);
+  assert.equal(body.code, 'IMAGE_DOWNLOAD_URL_REJECTED');
+  assert.equal(calls, 0);
+});
+
 test('image generation falls back after rate limiting and reports the used model', async (t) => {
   const originalFetch = globalThis.fetch;
   const urls = [];

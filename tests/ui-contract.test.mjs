@@ -106,6 +106,10 @@ test('completed tool images are cached for one day and downloadable as a named Z
   assert.match(html, /async function downloadToolZip\(\)/);
   assert.match(html, /`\$\{name\}\.zip`/);
   assert.match(html, /下载任务 ZIP/);
+  assert.match(html, /async function proxyImageBlob\(src\)/);
+  assert.match(html, /\/api\/download-image/);
+  assert.match(html, /image:await cacheImageSource\(image\)/);
+  assert.match(html, /function safeDownloadName\(name\)/);
 });
 
 test('users can select a persistent download folder with a safe browser fallback', () => {
