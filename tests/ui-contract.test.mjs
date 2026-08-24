@@ -147,7 +147,12 @@ test('suite projects separate product evidence from scene references and require
   assert.match(html, /场景 \/ 风格参考（选填）/);
   assert.match(html, /productImagesBase64s:productImages/);
   assert.match(html, /styleImagesBase64s:styleImages/);
+  assert.match(html, /function projectGenerationContext\(p,index\)/);
   assert.match(html, /function projectGenerationRefs\(p,index\)/);
+  assert.match(html, /本次模型实际收到 \$\{unique\.length\} 张参考图/);
+  assert.match(html, /实际发送：\$\{labels\.join\('\s*\+\s*'\)\}/);
+  assert.match(html, /参考配方：\$\{esc\(s\.referenceRecipe\.join\('\s*\+\s*'\)\)\}/);
+  assert.match(html, /productImagesBase64s:projectProductImages\(p\)/);
   assert.match(html, /referenceImagesBase64s:refs/);
 });
 
