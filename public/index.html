@@ -745,10 +745,11 @@ function updateProjectWhitePrompt(value){
   if(projectHasWhiteOutput(p)&&p.series[0]) p.series[0].prompt=value;
 }
 function updateProjectPrompt(index,value){ const p=getCurrentProject(); if(p?.series[index]) p.series[index].prompt=value; }
+function projectReferenceRecipeLabel(p,index){ const labels=projectGenerationContext(p,index).labels;return labels.length?`实际发送：${labels.join(' + ')}`:'自动分配'; }
 function renderProjectPromptPlan(p){
   if(!p.analysis) return '';
   const offset=projectHasWhiteOutput(p)?1:0;
-  return `<div class="prompt-editor" id="project-prompt-plan" style="margin-bottom:14px"><div class="prompt-editor-head"><strong>整套图片提示词（请检查后再生成）</strong><span class="tag tag-success">已规划</span></div><div class="prompt-summary">${esc(p.analysis.product_summary||'已完成商品理解')}<br>${esc(p.analysis.reference_strategy||'每张图片会轮换商品角度与场景参考。')}</div><div class="prompt-item"><label><span>白底保真基准${offset?'（同时作为第1张输出）':'（仅内部质检）'}</span><span>商品证据图 1—${projectProductImages(p).length}</span></label><textarea class="input" maxlength="12000" oninput="updateProjectWhitePrompt(this.value)">${esc(p.analysis.white_prompt||'')}</textarea></div>${p.series.slice(offset).map((item,i)=>`<div class="prompt-item"><label><span>${i+offset+1}. ${esc(item.label)}</span><span>${item.product_refs?.length?`商品图 ${item.product_refs.join('、')}`:'自动分配'}${item.style_ref?` · 场景图 ${item.style_ref}`:''} · 可编辑</span></label><textarea class="input" maxlength="12000" oninput="updateProjectPrompt(${i+offset},this.value)">${esc(item.prompt||'')}</textarea></div>`).join('')}</div>`;
+  return `<div class="prompt-editor" id="project-prompt-plan" style="margin-bottom:14px"><div class="prompt-editor-head"><strong>整套图片提示词（请检查后再生成）</strong><span class="tag tag-success">已规划</span></div><div class="prompt-summary">${esc(p.analysis.product_summary||'已完成商品理解')}<br>${esc(p.analysis.reference_strategy||'每张图片会轮换商品角度与场景参考。')}</div><div class="prompt-item"><label><span>白底保真基准${offset?'（同时作为第1张输出）':'（仅内部质检）'}</span><span>商品证据图 1—${projectProductImages(p).length}</span></label><textarea class="input" maxlength="12000" oninput="updateProjectWhitePrompt(this.value)">${esc(p.analysis.white_prompt||'')}</textarea></div>${p.series.slice(offset).map((item,i)=>`<div class="prompt-item"><label><span>${i+offset+1}. ${esc(item.label)}</span><span>${esc(projectReferenceRecipeLabel(p,i+offset))} · 可编辑</span></label><textarea class="input" maxlength="12000" oninput="updateProjectPrompt(${i+offset},this.value)">${esc(item.prompt||'')}</textarea></div>`).join('')}</div>`;
 }
 function scrollToProjectSetup(){ document.getElementById('project-settings')?.scrollIntoView({behavior:'smooth',block:'start'}); }
 function renderProjectPromptAssistant(p){
@@ -898,6 +899,7 @@ function renderSeries(p){
             ${s.fallback?`<span class="tag tag-warn">自动备用：${esc(imageProviderLabel(s.provider))}</span>`:''}
             ${qc?qc.pass?`<span class="tag tag-success">${qc.redone?'↻ 重做通过':'✓ 质检通过'} ${qc.score}分</span>`:`<span class="tag tag-danger">! 建议复核 ${qc.score}分</span>`:''}
           </div>
+          ${s.referenceRecipe?.length?`<div style="font-size:10px;color:var(--light);margin-top:5px;line-height:1.45">参考配方：${esc(s.referenceRecipe.join(' + '))}</div>`:''}
           ${qc?.summary?`<div style="font-size:10px;color:var(--light);margin-top:5px;line-height:1.45">${esc(qc.summary)}</div>`:''}
           ${s.image?`<div class="gen-item-actions">
             <button class="btn btn-sm" onclick="downloadSingle(${i})">下载</button>
@@ -1223,16 +1225,25 @@ function projectReferenceAssignment(p,index){
   const styleIndex=styles.length?index%styles.length:null;
   return {productIndex,secondaryProductIndex,styleIndex,scene:PROJECT_SCENE_BLUEPRINTS[index%PROJECT_SCENE_BLUEPRINTS.length]};
 }
-function projectGenerationRefs(p,index){
+function projectGenerationContext(p,index){
   const products=projectProductImages(p),styles=projectStyleImages(p),fallback=projectReferenceAssignment(p,index),item=p.series?.[index]||{};
-  const plannedProduct=Number(item.product_refs?.[0])-1;
+  const plannedProducts=(Array.isArray(item.product_refs)?item.product_refs:[]).map(value=>Number(value)-1).filter(value=>value>=0&&value<products.length).slice(0,2);
+  if(!plannedProducts.length&&products.length) plannedProducts.push(fallback.productIndex);
+  if(products.length>1&&plannedProducts.length<2){
+    const secondary=fallback.secondaryProductIndex!==null&&!plannedProducts.includes(fallback.secondaryProductIndex)?fallback.secondaryProductIndex:products.findIndex((_,value)=>!plannedProducts.includes(value));
+    if(secondary>=0) plannedProducts.push(secondary);
+  }
   const plannedStyle=Number(item.style_ref)-1;
-  const productIndex=plannedProduct>=0&&plannedProduct<products.length?plannedProduct:fallback.productIndex;
-  const secondaryProductIndex=products.length>1?(productIndex+1)%products.length:null;
   const styleIndex=plannedStyle>=0&&plannedStyle<styles.length?plannedStyle:fallback.styleIndex;
-  const candidates=[p.whiteImage,products[productIndex],styleIndex!==null?styles[styleIndex]:products[secondaryProductIndex]].filter(Boolean);
-  return [...new Set(candidates)].slice(0,3);
+  const entries=plannedProducts.map(value=>({src:products[value],label:`商品证据图 ${value+1}`,rule:'只用于锁定商品身份、结构、颜色、材质、标签与配件'}));
+  if(styleIndex!==null&&styles[styleIndex]) entries.push({src:styles[styleIndex],label:`场景参考图 ${styleIndex+1}`,rule:'只借鉴环境、构图、机位、光线和色调，不复制其中商品、文字或品牌'});
+  if(!entries.some(entry=>entry.src===p.whiteImage)&&p.whiteImage&&(!styles.length||entries.length<3)) entries.push({src:p.whiteImage,label:'白底保真基准',rule:'仅辅助核对商品轮廓与比例，不沿用白色背景'});
+  const seen=new Set();
+  const unique=entries.filter(entry=>entry.src&&!seen.has(entry.src)&&seen.add(entry.src)).slice(0,projectImageProvider(p)==='qwen'?3:4);
+  const instruction=`本次模型实际收到 ${unique.length} 张参考图，顺序与用途如下：\n${unique.map((entry,position)=>`参考图 ${position+1}：${entry.label}，${entry.rule}。`).join('\n')}\n只生成“${item.label||'当前任务'}”这一张独立单场景图片。不得把参考图拼接、分屏或复刻为多宫格；场景必须与本套其他图片明显不同。`;
+  return {refs:unique.map(entry=>entry.src),labels:unique.map(entry=>entry.label),instruction};
 }
+function projectGenerationRefs(p,index){ return projectGenerationContext(p,index).refs; }
 function localProjectPromptPlan(p){
   const platform={taobao:'淘宝真实精致、自然生活感与适度留白',pdd:'拼多多手机端强识别、主体醒目且单图单卖点','1688':'1688专业目录感、突出结构材质与采购判断'}[p.platform]||'目标平台电商规范';
   const direction={auto:'按商品特点平衡识别、卖点、细节、尺寸与场景',click:'强化第一眼主体识别和一个可见核心卖点',conversion:'覆盖功能理解、材质证明、尺寸判断与真实使用场景',reference:'仅借鉴第二张参考图的构图、配色、机位与信息节奏，禁止复制其品牌、文字和受保护元素',standard:'均衡展示商品主体、卖点、细节与场景',scene:'突出真实使用关系和自然生活氛围',detail:'突出材质、纹理、边缘、接口与表面做工',procurement:'突出结构、包装、材质和采购判断信息'}[p.direction]||'按商品和平台自动规划';
@@ -1374,8 +1385,10 @@ async function directQwenProjectPrompts(p){
   return {product_summary:String(raw.product_summary||'已综合识别商品主体与不同角度').trim().slice(0,500),reference_strategy:String(raw.reference_strategy||'商品证据图锁定商品身份，场景参考图按张轮换画面方向。').trim().slice(0,500),white_prompt:String(raw.white_prompt||'综合全部商品证据图生成纯白背景保真商品图，严格保持商品真实外观。').trim().slice(0,5000),series,roles,provider:'qwen',model,fallback:true,direct:true};
 }
 async function directQwenQc(input){
-  const prompt=`你是电商商品图质检员。对照第一张白底基准图，检查第二张生成图。任务：${input.taskLabel}；平台：${input.platform}。检查商品形状、颜色、材质、数量、包装文字、Logo位置、乱码、额外物体和平台适配。只输出合法JSON：{"pass":true,"score":0,"summary":"结论","issues":["问题"],"correction":"修正要求"}。score为0到100，只有商品真实且无明显错误时pass才为true。`;
-  const raw=browserJsonObject(await directQwenText(prompt,[input.whiteImageBase64,input.generatedImageBase64],{json:true,temperature:.1,maxTokens:1200}));
+  const evidence=(Array.isArray(input.productImagesBase64s)?input.productImagesBase64s:[]).filter(Boolean).slice(0,4);
+  const images=[...evidence,...(input.whiteImageBase64?[input.whiteImageBase64]:[]),input.generatedImageBase64].filter(Boolean);
+  const prompt=`你是电商商品图质检员。前 ${evidence.length} 张是用户上传的原始商品证据图${input.whiteImageBase64?'，倒数第2张是系统生成的白底基准':''}，最后1张是待检生成图。任务：${input.taskLabel}；平台：${input.platform}。以原始商品证据图为最高依据，检查待检图的商品形状、颜色、材质、数量、包装文字、Logo位置、乱码、额外物体和平台适配；白底基准仅作辅助，不能覆盖原图事实。只输出合法JSON：{"pass":true,"score":0,"summary":"结论","issues":["问题"],"correction":"修正要求"}。score为0到100，只有商品真实且无明显错误时pass才为true。`;
+  const raw=browserJsonObject(await directQwenText(prompt,images,{json:true,temperature:.1,maxTokens:1200}));
   const score=Math.max(0,Math.min(100,Number(raw.score)||0));
   return {pass:Boolean(raw.pass)&&score>=80,score,summary:String(raw.summary||'已完成千问视觉质检').slice(0,300),issues:Array.isArray(raw.issues)?raw.issues.map(item=>String(item).slice(0,200)).slice(0,8):[],correction:String(raw.correction||'').slice(0,600),provider:'qwen',model:cleanModelId(state.settings.qwenVisionModel)||'qwen3-vl-plus',direct:true};
 }
@@ -1402,24 +1415,26 @@ async function generateOneTask(p,task,index){
   renderMain(); renderProjectList();
   try{
     const aspect=outputAspect(p,index);
-    const refs=projectGenerationRefs(p,index);
-    const imgResp=await projectImageCall(p,'/api/series-image',{prompt:task.prompt,whiteImageBase64:p.whiteImage,referenceImagesBase64s:refs,aspect,...modelOptions(p)},refs,aspect);
+    const context=projectGenerationContext(p,index),refs=context.refs;
+    const generationPrompt=`${task.prompt}\n\n${context.instruction}`;
+    item.referenceRecipe=context.labels;
+    const imgResp=await projectImageCall(p,'/api/series-image',{prompt:generationPrompt,whiteImageBase64:p.whiteImage,referenceImagesBase64s:refs,aspect,...modelOptions(p)},refs,aspect);
     item.image=imgResp.image; item.model=imgResp.model; item.provider=imgResp.provider; item.fallback=Boolean(imgResp.fallback); item.fallbackFrom=imgResp.fallbackFrom||''; item.status='done';
     if(imgResp.fallback) toast(`图${index+1}已从${imgResp.fallbackFrom||imageProviderLabel(projectImageProvider(p))}自动切换到${imageProviderLabel(imgResp.provider)}`,'warn');
     p.phase='正在质检第 '+(index+1)+' 张：'+item.label;
     renderMain();
     try{
-      let qc=await projectQcCall(p,{whiteImageBase64:p.whiteImage,generatedImageBase64:item.image,taskLabel:item.label,platform:p.platform,textProvider:projectTextProvider(p),visionModel:state.settings.visionModel||undefined,geminiTextModel:state.settings.geminiTextModel||undefined,qwenVisionModel:state.settings.qwenVisionModel||undefined,qwenEndpoint:state.settings.qwenEndpoint||undefined});
+      let qc=await projectQcCall(p,{productImagesBase64s:projectProductImages(p),whiteImageBase64:p.whiteImage,generatedImageBase64:item.image,taskLabel:item.label,platform:p.platform,textProvider:projectTextProvider(p),visionModel:state.settings.visionModel||undefined,geminiTextModel:state.settings.geminiTextModel||undefined,qwenVisionModel:state.settings.qwenVisionModel||undefined,qwenEndpoint:state.settings.qwenEndpoint||undefined});
       p.qcResults[index]=qc;
       if(!qc.pass){
         toast('图'+(index+1)+'未通过质检，正在自动修正重做','warn');
         p.phase='第 '+(index+1)+' 张质检未通过，正在自动重做'; renderMain();
         const correction=(qc.correction||qc.summary||'恢复商品真实外观并移除错误元素').slice(0,300);
-        const redoPrompt=task.prompt+'\n质检修正要求：'+correction;
+        const redoPrompt=generationPrompt+'\n质检修正要求：'+correction;
         const redoResp=await projectImageCall(p,'/api/series-image',{prompt:redoPrompt,whiteImageBase64:p.whiteImage,referenceImagesBase64s:refs,aspect,...modelOptions(p)},refs,aspect);
         item.image=redoResp.image; item.model=redoResp.model+'-redo'; item.provider=redoResp.provider; item.fallback=Boolean(redoResp.fallback); item.fallbackFrom=redoResp.fallbackFrom||'';
         if(redoResp.fallback) toast(`图${index+1}重做时已自动切换到${imageProviderLabel(redoResp.provider)}`,'warn');
-        const qc2=await projectQcCall(p,{whiteImageBase64:p.whiteImage,generatedImageBase64:item.image,taskLabel:item.label,platform:p.platform,textProvider:projectTextProvider(p),visionModel:state.settings.visionModel||undefined,geminiTextModel:state.settings.geminiTextModel||undefined,qwenVisionModel:state.settings.qwenVisionModel||undefined,qwenEndpoint:state.settings.qwenEndpoint||undefined});
+        const qc2=await projectQcCall(p,{productImagesBase64s:projectProductImages(p),whiteImageBase64:p.whiteImage,generatedImageBase64:item.image,taskLabel:item.label,platform:p.platform,textProvider:projectTextProvider(p),visionModel:state.settings.visionModel||undefined,geminiTextModel:state.settings.geminiTextModel||undefined,qwenVisionModel:state.settings.qwenVisionModel||undefined,qwenEndpoint:state.settings.qwenEndpoint||undefined});
         qc2.redone=true; p.qcResults[index]=qc2;
       }
     }catch(qcError){
@@ -1504,7 +1519,7 @@ async function generateProjectImages(){
   p.qcResults=[]; p.status='running'; p.phase='正在根据已确认提示词制作白底基准图'; p.whiteImage='';
   renderMain(); renderProjectList();
   try{
-    const whiteRefs=projectProductImages(p).slice(0,3);
+    const whiteRefs=projectProductImages(p).slice(0,6);
     const whiteResp=await projectImageCall(p,'/api/white-image',{prompt:p.analysis.white_prompt,imageBase64:p.image,imageBase64s:whiteRefs,...modelOptions(p)},whiteRefs,'square');
     p.whiteImage=whiteResp.image;
     if(whiteResp.fallback) toast(`白底基准图已从${whiteResp.fallbackFrom||imageProviderLabel(projectImageProvider(p))}自动切换到${imageProviderLabel(whiteResp.provider)}`,'warn');
@@ -1523,7 +1538,7 @@ async function generateProjectImages(){
     p.phase=doneCount===labels.length?'整套图片已生成并完成质检':'部分图片未完成，可单张重做';
     renderMain(); renderProjectList();
     if(doneCount){
-      await idbAdd({id:p.id,name:p.name,platform:p.platform,suiteType:p.suiteType,direction:p.direction,whiteImage:p.whiteImage,series:p.series.map(item=>({label:item.label,image:item.image,model:item.model,provider:item.provider,fallback:item.fallback,fallbackFrom:item.fallbackFrom,prompt:item.prompt})),qcResults:p.qcResults,createdAt:Date.now()});
+      await idbAdd({id:p.id,name:p.name,platform:p.platform,suiteType:p.suiteType,direction:p.direction,whiteImage:p.whiteImage,series:p.series.map(item=>({label:item.label,image:item.image,model:item.model,provider:item.provider,fallback:item.fallback,fallbackFrom:item.fallbackFrom,prompt:item.prompt,referenceRecipe:item.referenceRecipe||[]})),qcResults:p.qcResults,createdAt:Date.now()});
       toast((doneCount===labels.length?'整套生成完成！':'生成完成，部分图片需要重做。')+' 已保存到历史记录',doneCount===labels.length?'success':'warn');
     }
   }catch(error){
