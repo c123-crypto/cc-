@@ -712,9 +712,10 @@ function renderProjectPromptAssistant(p){
   const imageModelLabel=imageProvider==='gemini'?'Nano Banana 2':imageProvider==='openai'?'GPT Image 2':'Seedream 5.0';
   const canPlan=Boolean(p.image&&(p.direction!=='reference'||p.referenceImage)&&hasProjectTextKey(p)&&!running);
   const canGenerate=Boolean(p.image&&p.analysis&&hasProjectImageKey(p)&&!running);
+  const localPlan=Boolean(p.analysis?.offline);
   const planLabel=running&&!p.analysis?'正在生成提示词…':!p.image?'先上传商品图':p.direction==='reference'&&!p.referenceImage?'先上传参考图':p.analysis?'重新生成整套提示词':'AI 生成整套提示词';
   return `<section class="card project-prompt-card" id="prompt-assistant">
-    <div class="prompt-chat-head"><div class="prompt-chat-avatar">✦</div><div class="prompt-chat-copy"><h3>AI 提示词助手</h3><p>先规划、再确认、最后生图；不会跳过提示词直接生成。</p></div><span class="tag ${p.analysis?'tag-success':'tag-info'}" id="project-prompt-state">${p.analysis?'提示词已就绪':'等待需求'}</span></div>
+    <div class="prompt-chat-head"><div class="prompt-chat-avatar">✦</div><div class="prompt-chat-copy"><h3>AI 提示词助手</h3><p>先规划、再确认、最后生图；不会跳过提示词直接生成。</p></div><span class="tag ${localPlan?'tag-warn':p.analysis?'tag-success':'tag-info'}" id="project-prompt-state">${localPlan?'本地模板已就绪':p.analysis?'提示词已就绪':'等待需求'}</span></div>
     <div class="prompt-scheme"><span>当前方案</span><strong>${platformLabels[p.platform]||p.platform} · ${suiteLabels[p.suiteType]||p.suiteType} · ${dirLabels[p.direction]||p.direction}</strong><span class="tag tag-info">${textModelLabel} → ${imageModelLabel}</span><button class="btn btn-sm" onclick="scrollToProjectSetup()">修改方案</button></div>
     <div class="prompt-bubble">先上传商品实拍图，再告诉我想要的场景、风格、卖点、文案留白和禁用项。我会先生成 ${outputCount} 张图的完整提示词，等你逐条确认后才开始生图。</div>
     <div class="prompt-composer"><div class="project-provider-grid"><div><label for="project-text-provider">提示词与质检模型</label><select class="input" id="project-text-provider" onchange="setProjectTextProvider(this.value)"><option value="gemini" ${textProvider==='gemini'?'selected':''}>Gemini 3.7 Flash（免费额度优先）</option><option value="doubao" ${textProvider==='doubao'?'selected':''}>豆包 Seed（火山方舟）</option></select></div><div><label for="project-image-provider">图片生成模型</label><select class="input" id="project-image-provider" onchange="setProjectImageProvider(this.value)"><option value="gemini" ${imageProvider==='gemini'?'selected':''}>Nano Banana 2（免费额度优先）</option><option value="seedream" ${imageProvider==='seedream'?'selected':''}>Seedream 5.0</option><option value="openai" ${imageProvider==='openai'?'selected':''}>GPT Image 2</option></select></div></div><label class="label" for="user-note">告诉 AI 你想要什么</label><textarea class="input" id="user-note" maxlength="2000" placeholder="例如：卡皮巴拉暖棕色居家场景，突出柔软材质，保留右侧文案留白，不要价格、促销字样和多余道具。" oninput="updateNote()">${esc(p.userNote||'')}</textarea><div class="prompt-composer-footer"><span class="prompt-composer-hint">可写场景、色调、目标人群、核心卖点和不要出现的元素</span><button class="btn btn-primary" ${canPlan?'':'disabled'} onclick="planProjectPrompts()">① ${planLabel}</button></div></div>
@@ -876,7 +877,7 @@ async function apiCall(path,data,extraHeaders){
   try{ json=raw?JSON.parse(raw):{}; }catch(e){ throw new Error('服务器返回格式异常（HTTP '+resp.status+'）'); }
   if(!resp.ok){
     const detail=[json.error||'请求失败（HTTP '+resp.status+'）',json.code&&`错误码 ${json.code}`,json.requestId&&`追踪号 ${json.requestId}`].filter(Boolean).join(' · ');
-    const error=new Error(detail); error.code=json.code||''; error.requestId=json.requestId||''; error.status=resp.status; throw error;
+    const error=new Error(detail); error.code=json.code||''; error.requestId=json.requestId||''; error.status=resp.status; error.providerFailures=Array.isArray(json.providerFailures)?json.providerFailures:[]; throw error;
   }
   return json;
 }
@@ -1057,6 +1058,18 @@ async function copyToolText(){
 const OUTPUT_LABELS={square:['白底商品主图','核心卖点场景','材质做工细节','尺寸使用感知','转化留白构图'],vertical:['首屏卖点概览','核心结构功能','材质工艺证明','尺寸适配说明','使用场景收尾'],full:['白底商品主图','核心卖点场景','材质做工细节','尺寸使用感知','转化留白构图','首屏卖点概览','核心结构功能','材质工艺证明','尺寸适配说明','使用场景收尾']};
 function modelOptions(p){ return {provider:projectImageProvider(p),allowFallback:state.settings.imageFallback!==false,imageModel:state.settings.imageModel||undefined,openaiImageModel:state.settings.openaiImageModel||undefined,geminiImageModel:state.settings.geminiImageModel||undefined}; }
 function outputAspect(p,index){ return p.suiteType==='vertical'||(p.suiteType==='full'&&index>=5)?'vertical':'square'; }
+function localProjectPromptPlan(p){
+  const platform={taobao:'淘宝真实精致、自然生活感与适度留白',pdd:'拼多多手机端强识别、主体醒目且单图单卖点','1688':'1688专业目录感、突出结构材质与采购判断'}[p.platform]||'目标平台电商规范';
+  const direction={auto:'按商品特点平衡识别、卖点、细节、尺寸与场景',click:'强化第一眼主体识别和一个可见核心卖点',conversion:'覆盖功能理解、材质证明、尺寸判断与真实使用场景',reference:'仅借鉴第二张参考图的构图、配色、机位与信息节奏，禁止复制其品牌、文字和受保护元素',standard:'均衡展示商品主体、卖点、细节与场景',scene:'突出真实使用关系和自然生活氛围',detail:'突出材质、纹理、边缘、接口与表面做工',procurement:'突出结构、包装、材质和采购判断信息'}[p.direction]||'按商品和平台自动规划';
+  const note=p.userNote?.trim()||'采用真实、克制、清晰的商业视觉';
+  const labels=OUTPUT_LABELS[p.suiteType]||OUTPUT_LABELS.square;
+  const offset=projectHasWhiteOutput(p)?1:0;
+  const preserve='以用户上传的商品实拍图为唯一商品依据，严格保持形状、比例、颜色、材质、包装结构、标签原文、商标位置、配件与数量；不重新设计、不增减功能、不复制主体。';
+  const forbid='禁止新增价格、促销角标、二维码、水印、边框、乱码、无关Logo、未经证实的功效、认证、销量或官方背书。';
+  const white_prompt=`将用户上传的商品实拍图处理为专业纯白背景保真主图。${preserve} 商品居中完整展示，占画面约75%，正面或最能说明结构的三分之四视角，柔和棚拍布光，边缘干净，接触阴影自然，白色背景无杂物。${forbid}`;
+  const series=labels.slice(offset).map(label=>({label,prompt:`生成“${label}”。平台要求：${platform}。画面目标：${direction}。用户补充：${note}。${preserve} 围绕“${label}”只解决一个购买问题，明确主体占比、镜头角度、构图、真实场景、自然光线、少量相关道具和安全留白；未指定区域保持不变。${forbid} 只输出一张完整图片。`}));
+  return {product_summary:'在线视觉模型暂时不可用，已依据当前平台、套图方向与参考素材生成本地保真提示词模板；请在生图前检查商品细节描述。',white_prompt,series,provider:'local',model:'本地专业模板',fallback:true,offline:true};
+}
 
 async function generateOneTask(p,task,index){
   const item=p.series[index];
@@ -1121,8 +1134,22 @@ async function planProjectPrompts(){
     p.status='idle'; p.phase='整套提示词已生成，等待检查与确认';
     renderMain(); renderProjectList(); toast(analysis.fallback?`原文字模型未通过，已自动改用${analysis.provider==='gemini'?'Gemini':'豆包'}完成提示词`:'提示词已生成，请逐条检查后再生图',analysis.fallback?'warn':'success');
   }catch(error){
-    p.status='error'; p.phase='提示词规划失败'; p.analysis=null; p.series=[]; renderMain(); renderProjectList();
-    toast('提示词生成失败：'+error.message,'error');
+    const blocked=error.code==='CONTENT_BLOCKED'||error.providerFailures?.some(item=>item.code==='CONTENT_BLOCKED');
+    if(blocked){
+      p.status='error'; p.phase='提示词规划被安全规则拒绝'; p.analysis=null; p.series=[]; renderMain(); renderProjectList();
+      toast('提示词生成失败：'+error.message,'error');
+      return;
+    }
+    const analysis=localProjectPromptPlan(p);
+    p.analysis=analysis;
+    const hasWhiteOutput=projectHasWhiteOutput(p);
+    const offset=hasWhiteOutput?1:0;
+    if(hasWhiteOutput) p.series[0].prompt=analysis.white_prompt;
+    analysis.series.forEach((task,i)=>{ if(p.series[i+offset]) p.series[i+offset].prompt=task.prompt; });
+    p.status='idle'; p.phase='在线模型不可用，已生成本地保真提示词，等待检查';
+    renderMain(); renderProjectList();
+    const primary=error.providerFailures?.[0];
+    toast(`在线提示词模型未通过${primary?`（${primary.code}）`:''}，已生成本地可编辑提示词，可继续生图`,'warn');
   }
 }
 
