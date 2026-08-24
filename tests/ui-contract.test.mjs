@@ -142,3 +142,24 @@ test('suite projects use practical generation goals and require a second referen
   assert.match(html, /referenceImageBase64:p\.direction==='reference'/);
   assert.match(html, /先上传参考图/);
 });
+
+test('Qwen is available for text, vision, image generation and regional configuration', () => {
+  assert.match(html, /千问（Qwen Plus \/ Qwen3-VL）/);
+  assert.match(html, /Qwen Image 2\.0/);
+  assert.match(html, /id="set-qwen"/);
+  assert.match(html, /id="set-qwen-endpoint"/);
+  assert.match(html, /dashscope-intl\.aliyuncs\.com/);
+  assert.match(html, /qwenVisionModel:state\.settings\.qwenVisionModel/);
+  assert.match(html, /qwenImageModel:state\.settings\.qwenImageModel/);
+  assert.match(html, /headers\['X-Qwen-Key'\]/);
+});
+
+test('all Doubao text paths can bypass Cloudflare 525 in the browser', () => {
+  assert.match(html, /async function directArkText\(prompt,images=\[\],options=\{\}\)/);
+  assert.match(html, /async function directArkToolPrompts\(tool\)/);
+  assert.match(html, /async function directArkToolText\(tool\)/);
+  assert.match(html, /ark\.cn-beijing\.volces\.com\/api\/v3\/responses/);
+  assert.match(html, /已绕开 Cloudflare 525，通过浏览器直连豆包生成提示词/);
+  assert.match(html, /async function projectImageCall\(p,path,data,images,aspect\)/);
+  assert.match(html, /正在改用浏览器直连生图/);
+});
