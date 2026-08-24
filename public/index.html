@@ -1094,6 +1094,49 @@ function localProjectPromptPlan(p){
   return {product_summary:'在线视觉模型暂时不可用，已依据当前平台、套图方向与参考素材生成本地保真提示词模板；请在生图前检查商品细节描述。',white_prompt,series,provider:'local',model:'本地专业模板',fallback:true,offline:true};
 }
 
+function browserModelText(message){
+  if(typeof message?.content==='string') return message.content;
+  if(Array.isArray(message?.content)) return message.content.map(item=>typeof item==='string'?item:item?.text||'').join('\n');
+  return typeof message?.reasoning_content==='string'?message.reasoning_content:'';
+}
+function browserJsonObject(text){
+  const clean=String(text||'').replace(/```(?:json)?/gi,'').replace(/```/g,'').trim();
+  const start=clean.indexOf('{'),end=clean.lastIndexOf('}');
+  if(start<0||end<=start) throw new Error('火山视觉模型未返回有效的提示词 JSON');
+  try{return JSON.parse(clean.slice(start,end+1));}catch(error){throw new Error('火山视觉模型返回的提示词格式无法解析');}
+}
+async function directArkProjectPrompts(p){
+  const model=cleanModelId(state.settings.visionModel);
+  if(!state.settings.arkKey||!model) throw new Error('未配置可用的火山视觉模型 ID');
+  const labels=OUTPUT_LABELS[p.suiteType]||OUTPUT_LABELS.square;
+  const offset=projectHasWhiteOutput(p)?1:0;
+  const roles=labels.slice(offset);
+  const platform={taobao:'淘宝：真实精致、自然生活感、主体清晰并保留适度留白',pdd:'拼多多：手机端强识别、商品突出、每张只表达一个可见卖点','1688':'1688：专业目录感，突出真实结构、材质、工艺和采购判断'}[p.platform]||'目标电商平台规范';
+  const direction={auto:'平衡商品识别、卖点、细节、尺寸与真实使用场景',click:'强化第一眼主体识别和一个可见核心卖点',conversion:'覆盖功能理解、材质证明、尺寸判断与真实使用场景',reference:'第二张图仅参考构图、机位、配色和光线，不复制品牌、文字或人物身份',standard:'均衡展示主体、卖点、细节和场景',scene:'重点规划彼此不同的真实使用场景',detail:'重点展示材质、纹理、边缘、接口和做工',procurement:'重点展示结构、包装、材质和采购判断信息'}[p.direction]||'按商品特点规划';
+  const prompt=`你是中国大陆电商商品视觉策划师。请先识别图片中的真实商品，再规划一套可逐张生成、彼此不重复的商品图片提示词。\n平台：${platform}\n方向：${direction}\n用户要求：${p.userNote?.trim()||'真实、克制、清晰的商业视觉'}\n固定任务顺序：\n${roles.map((role,index)=>`${index+1}. ${role}`).join('\n')}\n只输出合法JSON：{"product_summary":"商品外观与用途摘要","white_prompt":"白底保真提示词","series":[{"label":"固定任务名","prompt":"完整中文生图提示词"}]}。series必须正好${roles.length}项。每张图必须是一个独立结果，场景、构图、机位和光线至少三项不同，不得把多个场景拼成一张。严格保持商品形状、颜色、材质、包装、标签、标识和数量，不虚构功能、认证、价格、销量，不新增乱码、二维码、水印或第三方品牌。`;
+  const content=[{type:'text',text:prompt},{type:'image_url',image_url:{url:p.image}}];
+  if(p.direction==='reference'&&p.referenceImage) content.push({type:'image_url',image_url:{url:p.referenceImage}});
+  const resp=await fetch('https://ark.cn-beijing.volces.com/api/v3/chat/completions',{
+    method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+state.settings.arkKey},
+    body:JSON.stringify({model,messages:[{role:'user',content}],temperature:.25,max_tokens:p.suiteType==='full'?4600:3000,response_format:{type:'json_object'},stream:false})
+  });
+  const rawText=await resp.text(); let payload={};
+  try{payload=rawText?JSON.parse(rawText):{};}catch(error){}
+  if(!resp.ok) throw new Error(payload?.error?.message||payload?.message||`浏览器直连火山失败（HTTP ${resp.status}）`);
+  const raw=browserJsonObject(browserModelText(payload?.choices?.[0]?.message));
+  const series=Array.isArray(raw.series)?raw.series.slice(0,roles.length).map((item,index)=>({label:roles[index],prompt:String(item?.prompt||'').trim().slice(0,7000)})):[];
+  if(series.length!==roles.length||series.some(item=>!item.prompt)) throw new Error('火山视觉模型返回的提示词数量不完整');
+  return {product_summary:String(raw.product_summary||'已识别商品主体与外观特征').trim().slice(0,240),white_prompt:String(raw.white_prompt||'生成纯白背景保真商品图，严格保持商品真实外观。').trim().slice(0,5000),series,roles,provider:'doubao',model,fallback:true,direct:true};
+}
+
+function applyProjectPromptPlan(p,analysis){
+  p.analysis=analysis;
+  const offset=projectHasWhiteOutput(p)?1:0;
+  if(offset) p.series[0].prompt=analysis.white_prompt;
+  (analysis.series||[]).forEach((task,index)=>{if(p.series[index+offset])p.series[index+offset].prompt=task.prompt;});
+  if(p.series.some(item=>!item.prompt)) throw new Error('提示词数量不完整，请重新规划');
+}
+
 async function generateOneTask(p,task,index){
   const item=p.series[index];
   item.prompt=task.prompt; item.status='running';
@@ -1147,13 +1190,7 @@ async function planProjectPrompts(){
   try{
     toast('正在识别商品并制定平台提示词...','');
     const analysis=await apiCall('/api/analyze',{imageBase64:p.image,referenceImageBase64:p.direction==='reference'?p.referenceImage||undefined:undefined,platform:p.platform,suiteType:p.suiteType,direction:p.direction,userNote:p.userNote,textProvider:projectTextProvider(p),imageProvider:projectImageProvider(p),visionModel:state.settings.visionModel||undefined,geminiTextModel:state.settings.geminiTextModel||undefined});
-    p.analysis=analysis;
-    const hasWhiteOutput=p.suiteType!=='vertical';
-    const plans=analysis.series||[];
-    const offset=hasWhiteOutput?1:0;
-    if(hasWhiteOutput) p.series[0].prompt=analysis.white_prompt;
-    plans.forEach((task,i)=>{ if(p.series[i+offset]) p.series[i+offset].prompt=task.prompt; });
-    if(p.series.some(item=>!item.prompt)) throw new Error('提示词数量不完整，请重新规划');
+    applyProjectPromptPlan(p,analysis);
     p.status='idle'; p.phase='整套提示词已生成，等待检查与确认';
     renderMain(); renderProjectList(); toast(analysis.fallback?`原文字模型未通过，已自动改用${analysis.provider==='gemini'?'Gemini':'豆包'}完成提示词`:'提示词已生成，请逐条检查后再生图',analysis.fallback?'warn':'success');
   }catch(error){
@@ -1163,12 +1200,21 @@ async function planProjectPrompts(){
       toast('提示词生成失败：'+error.message,'error');
       return;
     }
+    const arkTlsFailure=String(error.message||'').includes('HTTP 525')||error.providerFailures?.some(item=>item.code==='ARK_CHAT_TLS_525');
+    if(arkTlsFailure&&state.settings.arkKey&&state.settings.visionModel){
+      try{
+        toast('Cloudflare 到火山线路异常，正在改用浏览器直连识图...','warn');
+        const analysis=await directArkProjectPrompts(p);
+        applyProjectPromptPlan(p,analysis);
+        p.status='idle';p.phase='已绕开 Cloudflare 525，整套提示词等待确认';
+        renderMain();renderProjectList();toast('已通过浏览器直连火山完成商品理解和提示词规划','success');
+        return;
+      }catch(directError){
+        toast('火山浏览器直连也未完成，已切换本地可编辑方案：'+directError.message,'warn');
+      }
+    }
     const analysis=localProjectPromptPlan(p);
-    p.analysis=analysis;
-    const hasWhiteOutput=projectHasWhiteOutput(p);
-    const offset=hasWhiteOutput?1:0;
-    if(hasWhiteOutput) p.series[0].prompt=analysis.white_prompt;
-    analysis.series.forEach((task,i)=>{ if(p.series[i+offset]) p.series[i+offset].prompt=task.prompt; });
+    applyProjectPromptPlan(p,analysis);
     p.status='idle'; p.phase='在线模型不可用，已生成本地保真提示词，等待检查';
     renderMain(); renderProjectList();
     const primary=error.providerFailures?.[0];

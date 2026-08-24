@@ -68,6 +68,15 @@ test('suite projects fall back to editable local prompts when both online planne
   assert.match(html, /已生成本地可编辑提示词，可继续生图/);
 });
 
+test('project prompt planning bypasses Cloudflare Ark 525 before using local templates', () => {
+  assert.match(html, /async function directArkProjectPrompts\(p\)/);
+  assert.match(html, /function applyProjectPromptPlan\(p,analysis\)/);
+  assert.match(html, /ark\.cn-beijing\.volces\.com\/api\/v3\/chat\/completions/);
+  assert.match(html, /item\.code==='ARK_CHAT_TLS_525'/);
+  assert.match(html, /正在改用浏览器直连识图/);
+  assert.match(html, /已通过浏览器直连火山完成商品理解和提示词规划/);
+});
+
 test('Seedream image generation can bypass Cloudflare and call Ark directly', () => {
   assert.match(html, /async function directSeedreamImage\(images,prompt,aspect\)/);
   assert.match(html, /ark\.cn-beijing\.volces\.com\/api\/v3\/images\/generations/);
