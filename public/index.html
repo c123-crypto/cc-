@@ -232,7 +232,7 @@ textarea.input{resize:vertical;min-height:60px}
       <div class="nav-section-label">功能分类</div>
       <nav class="category-list" id="category-list" aria-label="功能分类"></nav>
     </div>
-    <div class="project-section-label">生成项目与任务</div>
+    <div class="project-section-label">生成项目与任务 · 草稿保存24小时</div>
     <div class="project-list" id="project-list"></div>
     <div class="sidebar-footer">
       <button class="new-project-btn" id="new-project-btn" onclick="newProject()">
@@ -286,6 +286,9 @@ let expandedCategory='';
 let toolSession={files:[],results:[],resultMeta:[],text:'',note:'',aspect:'square',running:false,prompts:[],promptSummary:'',provider:'seedream',textProvider:'gemini'};
 let categoryObserver=null;
 let providerHealth={};
+let workspaceReady=false;
+let workspaceSaveTimer=null;
+let workspaceQuotaWarned=false;
 
 const TOOL_CATEGORIES=[
   {id:'product',label:'商品图',icon:'▣'},
@@ -455,9 +458,34 @@ async function idbAdd(rec){ const db=await openIDB(); if(!db)return; return new 
 async function idbAll(){ const db=await openIDB(); if(!db)return []; return new Promise(r=>{ const tx=db.transaction('records','readonly'); const req=tx.objectStore('records').getAll(); req.onsuccess=()=>r(req.result||[]); req.onerror=()=>r([]); }); }
 async function idbDel(id){ const db=await openIDB(); if(!db)return; return new Promise(r=>{ const tx=db.transaction('records','readwrite'); tx.objectStore('records').delete(id); tx.oncomplete=()=>r(); tx.onerror=()=>r(); }); }
 async function idbPrefGet(key){const db=await openIDB();if(!db||!db.objectStoreNames.contains('preferences'))return null;return new Promise(r=>{const req=db.transaction('preferences','readonly').objectStore('preferences').get(key);req.onsuccess=()=>r(req.result?.value||null);req.onerror=()=>r(null);});}
-async function idbPrefPut(key,value){const db=await openIDB();if(!db||!db.objectStoreNames.contains('preferences'))return;return new Promise(r=>{const tx=db.transaction('preferences','readwrite');tx.objectStore('preferences').put({key,value});tx.oncomplete=()=>r();tx.onerror=()=>r();});}
+async function idbPrefPut(key,value){const db=await openIDB();if(!db||!db.objectStoreNames.contains('preferences'))return false;return new Promise(r=>{const tx=db.transaction('preferences','readwrite');tx.objectStore('preferences').put({key,value});tx.oncomplete=()=>r(true);tx.onerror=()=>r(false);tx.onabort=()=>r(false);});}
 async function loadDownloadFolderName(){const handle=await idbPrefGet('downloadFolder');downloadFolderName=handle?.name||'';return downloadFolderName;}
 async function pruneHistory(){const records=await idbAll();const cutoff=Date.now()-HISTORY_TTL;await Promise.all(records.filter(rec=>(rec.expiresAt||rec.createdAt+HISTORY_TTL)<=Date.now()||rec.createdAt<cutoff).map(rec=>idbDel(rec.id)));}
+function normalizeDraftProject(project){
+  const p={...project};p.productImages=Array.isArray(p.productImages)?p.productImages:[];p.styleImages=Array.isArray(p.styleImages)?p.styleImages:[];p.series=Array.isArray(p.series)?p.series:[];p.qcResults=Array.isArray(p.qcResults)?p.qcResults:[];
+  if(p.status==='running'){p.status='idle';p.phase='上次操作已中断，可从提示词或生图步骤继续';p.series=p.series.map(item=>item.status==='running'?{...item,status:'pending'}:item);}
+  return p;
+}
+function normalizeDraftJob(job){const restored={...job,session:{...(job.session||{}),running:false}};if(restored.status==='running'){restored.status='idle';restored.phase='上次操作已中断，可重新生成';}return restored;}
+async function loadWorkspaceDraft(){
+  const draft=await idbPrefGet('workspaceDraft');if(!draft)return false;
+  if(!draft.savedAt||Date.now()-draft.savedAt>HISTORY_TTL){await idbPrefPut('workspaceDraft',null);return false;}
+  state.projects=(Array.isArray(draft.projects)?draft.projects:[]).slice(0,MAX_PROJECTS).map(normalizeDraftProject);
+  state.toolJobs=(Array.isArray(draft.toolJobs)?draft.toolJobs:[]).slice(0,Math.max(0,MAX_PROJECTS-state.projects.length)).map(normalizeDraftJob);
+  state.currentProject=state.projects.some(item=>item.id===draft.currentProject)?draft.currentProject:state.projects[0]?.id||null;
+  state.currentToolJob=state.toolJobs.some(item=>item.id===draft.currentToolJob)?draft.currentToolJob:null;
+  appView=['catalog','project','tool'].includes(draft.appView)?draft.appView:'catalog';activeCategory=draft.activeCategory||'product';activeTool=draft.activeTool||'';expandedCategory=draft.expandedCategory||'';
+  if(appView==='project'&&!state.currentProject)appView='catalog';
+  if(appView==='tool'){const job=state.toolJobs.find(item=>item.id===state.currentToolJob);if(job){toolSession=job.session;activeTool=job.toolId;}else appView='catalog';}
+  return Boolean(state.projects.length||state.toolJobs.length);
+}
+async function saveWorkspaceDraft(){
+  if(!workspaceReady)return false;
+  const saved=await idbPrefPut('workspaceDraft',{savedAt:Date.now(),expiresAt:Date.now()+HISTORY_TTL,projects:state.projects,toolJobs:state.toolJobs,currentProject:state.currentProject,currentToolJob:state.currentToolJob,appView,activeCategory,activeTool,expandedCategory});
+  if(!saved&&!workspaceQuotaWarned){workspaceQuotaWarned=true;toast('草稿图片较多，浏览器空间不足；建议先下载已完成结果','warn');}
+  return saved;
+}
+function scheduleWorkspaceSave(){if(!workspaceReady)return;clearTimeout(workspaceSaveTimer);workspaceSaveTimer=setTimeout(saveWorkspaceDraft,700);}
 
 /* ============ TOAST ============ */
 function toast(msg,type){
@@ -510,7 +538,7 @@ async function exportSettingsBackup(){
 }
 async function importSettingsBackup(){
   const input=document.createElement('input');input.type='file';input.accept='.zts-settings,application/json';input.onchange=async()=>{const file=input.files?.[0];if(!file)return;const password=prompt('请输入该设置备份的密码：');if(password===null)return;
-    try{const payload=JSON.parse(await file.text());if(payload.format!=='zaotutai-settings'||payload.version!==1)throw new Error('不是有效的造图台设置备份');const salt=base64ToBytes(payload.salt),iv=base64ToBytes(payload.iv),encrypted=base64ToBytes(payload.data);const key=await deriveBackupKey(password,salt,'decrypt');const plain=await crypto.subtle.decrypt({name:'AES-GCM',iv},key,encrypted);const backup=JSON.parse(new TextDecoder().decode(plain));if(!backup.settings||typeof backup.settings!=='object')throw new Error('备份内容不完整');const allowed=['arkKey','arkTextModel','openaiKey','geminiKey','visionModel','imageModel','openaiImageModel','geminiTextModel','geminiImageModel','imageFallback'];const restored={};allowed.forEach(name=>{if(Object.hasOwn(backup.settings,name))restored[name]=backup.settings[name];});state.settings={...state.settings,...restored};saveSettings();providerHealth={};closeModal();updateApiStatus();renderMain();toast('设置已恢复，请重新检测模型连接','success');}catch(error){toast(error?.name==='OperationError'?'密码错误或备份文件已损坏':'导入失败：'+error.message,'error');}
+    try{const payload=JSON.parse(await file.text());if(payload.format!=='zaotutai-settings'||payload.version!==1)throw new Error('不是有效的造图台设置备份');const salt=base64ToBytes(payload.salt),iv=base64ToBytes(payload.iv),encrypted=base64ToBytes(payload.data);const key=await deriveBackupKey(password,salt,'decrypt');const plain=await crypto.subtle.decrypt({name:'AES-GCM',iv},key,encrypted);const backup=JSON.parse(new TextDecoder().decode(plain));if(!backup.settings||typeof backup.settings!=='object')throw new Error('备份内容不完整');const allowed=['arkKey','arkTextModel','openaiKey','geminiKey','qwenKey','qwenEndpoint','visionModel','imageModel','openaiImageModel','geminiTextModel','geminiImageModel','qwenTextModel','qwenVisionModel','qwenImageModel','imageFallback'];const restored={};allowed.forEach(name=>{if(Object.hasOwn(backup.settings,name))restored[name]=backup.settings[name];});state.settings={...state.settings,...restored};saveSettings();providerHealth={};closeModal();updateApiStatus();renderMain();toast('设置已恢复，请重新检测模型连接','success');}catch(error){toast(error?.name==='OperationError'?'密码错误或备份文件已损坏':'导入失败：'+error.message,'error');}
   };input.click();
 }
 async function imageSourceBlob(src){if(String(src).startsWith('data:'))return base64ToBlob(src);const response=await fetch(src);if(!response.ok)throw new Error('图片下载地址已失效');return response.blob();}
@@ -548,6 +576,7 @@ function selectToolJob(id){const job=state.toolJobs.find(item=>item.id===id);if(
 function deleteToolJob(id){if(!confirm('删除该生成任务？'))return;state.toolJobs=state.toolJobs.filter(item=>item.id!==id);if(state.currentToolJob===id)state.currentToolJob=null;renderProjectList();renderMain();}
 
 function renderProjectList(){
+  scheduleWorkspaceSave();
   const el=document.getElementById('project-list');
   const counter=document.getElementById('project-counter');
   const addBtn=document.getElementById('new-project-btn');
@@ -669,8 +698,9 @@ function setToolSceneMode(value){ toolSession.sceneMode=TOOL_SCENE_ROLES[value]?
 function setToolNote(value){
   toolSession.note=value;
   if(toolSession.prompts.length){ toolSession.prompts=[]; toolSession.promptSummary=''; toolSession.results=[]; toolSession.resultMeta=[]; document.getElementById('prompt-editor')?.remove(); const button=document.getElementById('generate-images-btn'); if(button) button.disabled=true; }
+  scheduleWorkspaceSave();
 }
-function setToolPrompt(index,value){ if(toolSession.prompts[index]) toolSession.prompts[index].prompt=value; }
+function setToolPrompt(index,value){ if(toolSession.prompts[index]) toolSession.prompts[index].prompt=value; scheduleWorkspaceSave(); }
 function toolFiles(tool){
   return tool?.roleUploads?.length?tool.roleUploads.flatMap(role=>toolSession.roleFiles?.[role.id]||[]):toolSession.files;
 }
@@ -755,8 +785,9 @@ function updateProjectWhitePrompt(value){
   const p=getCurrentProject(); if(!p?.analysis) return;
   p.analysis.white_prompt=value;
   if(projectHasWhiteOutput(p)&&p.series[0]) p.series[0].prompt=value;
+  scheduleWorkspaceSave();
 }
-function updateProjectPrompt(index,value){ const p=getCurrentProject(); if(p?.series[index]) p.series[index].prompt=value; }
+function updateProjectPrompt(index,value){ const p=getCurrentProject(); if(p?.series[index]) p.series[index].prompt=value; scheduleWorkspaceSave(); }
 function projectReferenceRecipeLabel(p,index){ const labels=projectGenerationContext(p,index).labels;return labels.length?`实际发送：${labels.join(' + ')}`:'自动分配'; }
 function renderProjectPromptPlan(p){
   if(!p.analysis) return '';
@@ -936,7 +967,7 @@ function setPlatform(k){ const p=getCurrentProject(); if(projectEditable(p)){res
 function setSuiteType(k){ const p=getCurrentProject(); if(projectEditable(p)){resetProjectPlan(p);p.suiteType=k;renderMain();renderProjectList();} }
 function setIncludeWhite(value){ const p=getCurrentProject(); if(projectEditable(p)){resetProjectPlan(p);p.includeWhite=Boolean(value);renderMain();renderProjectList();} }
 function setDirection(k){ const p=getCurrentProject(); if(projectEditable(p)){resetProjectPlan(p);p.direction=k;renderMain();renderProjectList();} }
-function updateNote(){ const p=getCurrentProject(); if(!projectEditable(p)){renderMain();return;} p.userNote=document.getElementById('user-note').value;resetProjectPlan(p);document.getElementById('project-prompt-plan')?.remove();document.getElementById('project-analysis')?.remove();const tag=document.getElementById('project-prompt-state');if(tag){tag.className='tag tag-info';tag.textContent='需求已修改';}const step=document.getElementById('project-prompt-step');if(step){step.classList.remove('ready');step.textContent='① 请重新生成整套提示词';}const button=document.getElementById('project-generate-btn');if(button)button.disabled=true; }
+function updateNote(){ const p=getCurrentProject(); if(!projectEditable(p)){renderMain();return;} p.userNote=document.getElementById('user-note').value;resetProjectPlan(p);document.getElementById('project-prompt-plan')?.remove();document.getElementById('project-analysis')?.remove();const tag=document.getElementById('project-prompt-state');if(tag){tag.className='tag tag-info';tag.textContent='需求已修改';}const step=document.getElementById('project-prompt-step');if(step){step.classList.remove('ready');step.textContent='① 请重新生成整套提示词';}const button=document.getElementById('project-generate-btn');if(button)button.disabled=true;scheduleWorkspaceSave(); }
 
 async function handleUpload(e){
   const p=getCurrentProject(); if(!p) return;
@@ -1846,7 +1877,11 @@ function closeModal(){ document.getElementById('modal-overlay').classList.remove
 function toggleSidebar(open){ document.getElementById('sidebar').classList.toggle('open',open); document.getElementById('backdrop').classList.toggle('show',open); }
 
 /* ============ INIT ============ */
-applyDailyTheme(); loadState(); pruneHistory(); loadDownloadFolderName(); updateApiStatus(); renderProjectList(); renderMain();
+async function initializeApp(){
+  applyDailyTheme();loadState();await Promise.all([pruneHistory(),loadDownloadFolderName()]);const restored=await loadWorkspaceDraft();workspaceReady=true;updateApiStatus();renderProjectList();renderMain();if(restored)toast('已恢复24小时内的项目草稿和待生成任务','success');
+}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveWorkspaceDraft();});
+initializeApp();
 </script>
 </body>
 </html>

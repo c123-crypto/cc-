@@ -207,3 +207,19 @@ test('all Doubao text paths can bypass Cloudflare 525 in the browser', () => {
   assert.match(html, /async function projectImageCall\(p,path,data,images,aspect\)/);
   assert.match(html, /正在改用浏览器直连生图/);
 });
+
+test('unfinished projects and tool jobs are restored from a 24-hour local draft', () => {
+  assert.match(html, /async function saveWorkspaceDraft\(\)/);
+  assert.match(html, /async function loadWorkspaceDraft\(\)/);
+  assert.match(html, /idbPrefPut\('workspaceDraft'/);
+  assert.match(html, /Date\.now\(\)-draft\.savedAt>HISTORY_TTL/);
+  assert.match(html, /上次操作已中断，可从提示词或生图步骤继续/);
+  assert.match(html, /已恢复24小时内的项目草稿和待生成任务/);
+  assert.match(html, /visibilitychange/);
+  assert.match(html, /草稿保存24小时/);
+});
+
+test('encrypted settings import restores Qwen configuration too', () => {
+  assert.match(html, /'qwenKey','qwenEndpoint'/);
+  assert.match(html, /'qwenTextModel','qwenVisionModel','qwenImageModel'/);
+});
