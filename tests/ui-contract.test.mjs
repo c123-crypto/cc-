@@ -132,7 +132,7 @@ test('settings can move between computers in a password-encrypted backup', () =>
   assert.match(html, /固定下载文件夹需在每台电脑单独授权/);
 });
 
-test('suite projects use practical generation goals and require a second reference image for remake', () => {
+test('suite projects separate product evidence from scene references and require a scene reference for remake', () => {
   assert.match(html, /这套图主要要解决什么/);
   assert.match(html, /平台自动匹配/);
   assert.match(html, /提升点击率/);
@@ -140,7 +140,15 @@ test('suite projects use practical generation goals and require a second referen
   assert.match(html, /参考图复刻/);
   assert.match(html, /function handleReferenceUpload\(e\)/);
   assert.match(html, /referenceImageBase64:p\.direction==='reference'/);
-  assert.match(html, /先上传参考图/);
+  assert.match(html, /先上传场景参考图/);
+  assert.match(html, /productImages:\[\]/);
+  assert.match(html, /styleImages:\[\]/);
+  assert.match(html, /商品证据图（必填）/);
+  assert.match(html, /场景 \/ 风格参考（选填）/);
+  assert.match(html, /productImagesBase64s:productImages/);
+  assert.match(html, /styleImagesBase64s:styleImages/);
+  assert.match(html, /function projectGenerationRefs\(p,index\)/);
+  assert.match(html, /referenceImagesBase64s:refs/);
 });
 
 test('Qwen is available for text, vision, image generation and regional configuration', () => {
