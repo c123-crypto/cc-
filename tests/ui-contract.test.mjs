@@ -145,13 +145,25 @@ test('suite projects use practical generation goals and require a second referen
 
 test('Qwen is available for text, vision, image generation and regional configuration', () => {
   assert.match(html, /千问（Qwen Plus \/ Qwen3-VL）/);
-  assert.match(html, /Qwen Image 2\.0/);
+  assert.match(html, /Qwen Image 3\.0/);
   assert.match(html, /id="set-qwen"/);
   assert.match(html, /id="set-qwen-endpoint"/);
   assert.match(html, /dashscope-intl\.aliyuncs\.com/);
   assert.match(html, /qwenVisionModel:state\.settings\.qwenVisionModel/);
   assert.match(html, /qwenImageModel:state\.settings\.qwenImageModel/);
   assert.match(html, /headers\['X-Qwen-Key'\]/);
+});
+
+test('all Qwen paths can bypass Cloudflare 525 in the browser', () => {
+  assert.match(html, /function isQwenTlsFailure\(error\)/);
+  assert.match(html, /async function directQwenText\(prompt,images=\[\],options=\{\}\)/);
+  assert.match(html, /async function directQwenToolText\(tool\)/);
+  assert.match(html, /async function directQwenToolPrompts\(tool\)/);
+  assert.match(html, /async function directQwenProjectPrompts\(p\)/);
+  assert.match(html, /async function directQwenImage\(images,prompt,aspect\)/);
+  assert.match(html, /async function directQwenQc\(input\)/);
+  assert.match(html, /千问浏览器直连正常（已绕开 Cloudflare 525）/);
+  assert.match(html, /正在改用浏览器直连 Qwen Image/);
 });
 
 test('all Doubao text paths can bypass Cloudflare 525 in the browser', () => {
