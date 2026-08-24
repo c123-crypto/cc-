@@ -446,3 +446,91 @@ test('image-backed text tools use the multimodal model instead of DeepSeek', asy
   assert.equal(sentBody.model, 'doubao-seed-2-1-pro-test');
   assert.equal(sentBody.messages[0].content[1].type, 'image_url');
 });
+
+test('Qwen prompt planning uses the regional OpenAI-compatible vision endpoint', async (t) => {
+  const originalFetch = globalThis.fetch;
+  let requestedUrl;
+  let sentBody;
+  globalThis.fetch = async (url, options) => {
+    requestedUrl = String(url);
+    sentBody = JSON.parse(options.body);
+    return Response.json({ choices: [{ message: { content: JSON.stringify({ summary: '千问已理解商品', prompts: [{ label: '场景 1', prompt: '真实客厅使用场景' }] }) } }] });
+  };
+  t.after(() => { globalThis.fetch = originalFetch; });
+
+  const response = await worker.fetch(apiRequest('tool-prompt', {
+    toolId: 'product-shot',
+    note: '生成场景图',
+    imageBase64s: ['data:image/png;base64,AA=='],
+    outputCount: 1,
+    provider: 'qwen',
+    textProvider: 'qwen',
+    qwenVisionModel: 'qwen3-vl-plus',
+    qwenEndpoint: 'https://dashscope-intl.aliyuncs.com',
+  }, { 'x-qwen-key': 'test-qwen-key' }), env);
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(body.provider, 'qwen');
+  assert.equal(body.model, 'qwen3-vl-plus');
+  assert.equal(requestedUrl, 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions');
+  assert.equal(sentBody.messages[0].content[0].type, 'image_url');
+  assert.equal(sentBody.messages[0].content.at(-1).type, 'text');
+  assert.deepEqual(sentBody.response_format, { type: 'json_object' });
+});
+
+test('Qwen Image edits reference images through the native multimodal endpoint', async (t) => {
+  const originalFetch = globalThis.fetch;
+  let sentBody;
+  let calls = 0;
+  globalThis.fetch = async (url, options = {}) => {
+    calls += 1;
+    if (String(url).includes('/multimodal-generation/generation')) {
+      sentBody = JSON.parse(options.body);
+      return Response.json({ output: { choices: [{ message: { content: [{ image: 'https://dashscope-result.oss-cn-shenzhen.aliyuncs.com/result.png' }] } }] } });
+    }
+    if (String(url) === 'https://dashscope-result.oss-cn-shenzhen.aliyuncs.com/result.png') {
+      return new Response(new Uint8Array([1, 2, 3]), { headers: { 'content-type': 'image/png' } });
+    }
+    throw new Error(`unexpected URL: ${url}`);
+  };
+  t.after(() => { globalThis.fetch = originalFetch; });
+
+  const response = await worker.fetch(apiRequest('tool-image', {
+    toolId: 'qwen-image-studio',
+    provider: 'qwen',
+    prompt: '真实厨房使用场景',
+    imageBase64s: ['data:image/png;base64,AA==', 'data:image/png;base64,AQ=='],
+    aspect: 'wide',
+    allowFallback: false,
+    qwenImageModel: 'qwen-image-2.0-pro',
+    qwenEndpoint: 'https://dashscope.aliyuncs.com',
+  }, { 'x-qwen-key': 'test-qwen-key' }), env);
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(body.provider, 'qwen');
+  assert.equal(body.model, 'qwen-image-2.0-pro');
+  assert.equal(body.image, 'data:image/png;base64,AQID');
+  assert.equal(sentBody.input.messages[0].content.filter(item => item.image).length, 2);
+  assert.equal(sentBody.parameters.size, '1536*1024');
+  assert.equal(sentBody.parameters.n, 1);
+  assert.equal(calls, 2);
+});
+
+test('Qwen endpoint validation rejects non-Aliyun hosts before fetching', async (t) => {
+  const originalFetch = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = async () => { calls += 1; throw new Error('unexpected upstream call'); };
+  t.after(() => { globalThis.fetch = originalFetch; });
+
+  const response = await worker.fetch(apiRequest('connection-test', {
+    provider: 'qwen',
+    qwenEndpoint: 'https://example.com',
+  }, { 'x-qwen-key': 'test-qwen-key' }), env);
+  const body = await response.json();
+
+  assert.equal(response.status, 400);
+  assert.equal(body.code, 'QWEN_ENDPOINT_INVALID');
+  assert.equal(calls, 0);
+});
