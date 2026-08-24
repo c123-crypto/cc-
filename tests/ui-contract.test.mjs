@@ -147,8 +147,32 @@ test('suite projects separate product evidence from scene references and require
   assert.match(html, /场景 \/ 风格参考（选填）/);
   assert.match(html, /productImagesBase64s:productImages/);
   assert.match(html, /styleImagesBase64s:styleImages/);
+  assert.match(html, /function projectGenerationContext\(p,index\)/);
   assert.match(html, /function projectGenerationRefs\(p,index\)/);
+  assert.match(html, /本次模型实际收到 \$\{unique\.length\} 张参考图/);
+  assert.match(html, /实际发送：\$\{labels\.join\('\s*\+\s*'\)\}/);
+  assert.match(html, /参考配方：\$\{esc\(s\.referenceRecipe\.join\('\s*\+\s*'\)\)\}/);
+  assert.match(html, /productImagesBase64s:projectProductImages\(p\)/);
   assert.match(html, /referenceImagesBase64s:refs/);
+});
+
+test('suite projects can use every output slot for a different scene', () => {
+  assert.match(html, /includeWhite:false/);
+  assert.match(html, /全部场景图（推荐）/);
+  assert.match(html, /张不同环境、镜头与卖点/);
+  assert.match(html, /function setIncludeWhite\(value\)/);
+  assert.match(html, /includeWhite:projectHasWhiteOutput\(p\)/);
+  assert.match(html, /const SCENE_ONLY_OUTPUT_LABELS=/);
+  assert.match(html, /日常使用场景/);
+  assert.match(html, /if\(hasWhiteOutput\)\{/);
+  assert.match(html, /p\.phase=hasWhiteOutput\?'正在根据已确认提示词制作白底主图':'正在生成全部场景套图'/);
+});
+
+test('suite project names come from AI product understanding instead of upload filenames', () => {
+  assert.match(html, /待识别商品 项目/);
+  assert.match(html, /function updateProjectNameFromAnalysis\(p,analysis\)/);
+  assert.match(html, /product_name/);
+  assert.doesNotMatch(html, /p\.name=valid\[0\]\.name/);
 });
 
 test('Qwen is available for text, vision, image generation and regional configuration', () => {
