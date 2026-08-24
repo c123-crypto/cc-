@@ -187,6 +187,37 @@ test('Ark prompt planning accepts plain-text gateway responses', async (t) => {
   assert.equal(body.prompts[0].prompt, '纯白背景商品图');
 });
 
+test('multi-scene prompt planning turns duplicate model output into distinct image tasks', async (t) => {
+  const originalFetch = globalThis.fetch;
+  let sentBody;
+  const repeated = Array.from({ length: 4 }, () => ({ label: '场景图', prompt: '把商品放在好看的室内场景中' }));
+  globalThis.fetch = async (_url, options) => {
+    sentBody = JSON.parse(options.body);
+    return Response.json({ choices: [{ message: { content: JSON.stringify({ summary: '场景规划', prompts: repeated }) } }] });
+  };
+  t.after(() => { globalThis.fetch = originalFetch; });
+
+  const response = await worker.fetch(apiRequest('tool-prompt', {
+    toolId: 'product-shot',
+    note: '生成收纳盒真实使用图',
+    outputCount: 4,
+    sceneMode: 'lifestyle',
+    provider: 'seedream',
+    textProvider: 'doubao',
+  }, { 'x-ark-key': 'test-ark-key' }), env);
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(body.prompts.length, 4);
+  assert.equal(new Set(body.prompts.map(item => item.label)).size, 4);
+  assert.equal(new Set(body.prompts.map(item => item.prompt)).size, 4);
+  assert.match(body.prompts[0].prompt, /日间居家使用/);
+  assert.match(body.prompts[1].prompt, /第二空间使用/);
+  assert.match(body.prompts[2].prompt, /近景互动/);
+  assert.match(body.prompts[3].prompt, /远景环境关系/);
+  assert.match(JSON.stringify(sentBody), /禁止拼图、分屏、多宫格/);
+});
+
 test('unparseable Ark responses return a useful configuration error', async (t) => {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async () => new Response('<html>proxy error</html>', {

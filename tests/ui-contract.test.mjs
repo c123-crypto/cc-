@@ -47,6 +47,19 @@ test('image tools keep working when online prompt planning is unavailable', () =
   assert.match(html, /state\.settings\.openaiKey\?'openai'/);
 });
 
+test('AI product and model studios create practical 1-to-10 multi-scene series', () => {
+  assert.match(html, /'product-shot':\{minFiles:1,maxFiles:10,adjustableCount:true/);
+  assert.match(html, /function setToolRequestedCount\(value\)/);
+  assert.match(html, /Math\.min\(10,toolSession\.requestedCount/);
+  assert.match(html, /Array\.from\(\{length:10\}/);
+  assert.match(html, /多场景使用图/);
+  assert.match(html, /function setToolSceneMode\(value\)/);
+  assert.match(html, /function toolSceneRoles\(mode,count\)/);
+  assert.match(html, /禁止拼图、分屏、多宫格和多方案合成/);
+  assert.match(html, /promptLabel:toolSession\.prompts\[i\]\.label/);
+  assert.match(html, /第\$\{i\+1\}张生成失败，已继续下一张/);
+});
+
 test('suite projects fall back to editable local prompts when both online planners fail', () => {
   assert.match(html, /function localProjectPromptPlan\(p\)/);
   assert.match(html, /在线模型不可用，已生成本地保真提示词/);
