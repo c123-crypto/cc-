@@ -287,6 +287,52 @@ test('Gemini project planning understands grouped product and scene references b
   assert.equal(sentBody.generation_config.max_output_tokens, 3000);
 });
 
+test('scene-only project planning uses all five square slots for different scenes', async (t) => {
+  const originalFetch = globalThis.fetch;
+  let sentBody;
+  globalThis.fetch = async (url, options) => {
+    assert.match(String(url), /generativelanguage\.googleapis\.com\/v1beta\/interactions/);
+    sentBody = JSON.parse(options.body);
+    return Response.json({
+      status: 'completed',
+      output_text: JSON.stringify({
+        product_name: '折叠收纳盒',
+        product_summary: '可折叠收纳盒',
+        reference_strategy: '五张图轮换环境、机位和光线',
+        white_prompt: '不应使用',
+        series: [
+          { product_refs: [1], style_ref: 1, prompt: '客厅核心卖点场景' },
+          { product_refs: [2], style_ref: 2, prompt: '卧室日常使用场景' },
+          { product_refs: [1, 2], style_ref: 1, prompt: '材质细节场景' },
+          { product_refs: [2], style_ref: 2, prompt: '尺寸感知场景' },
+          { product_refs: [1], style_ref: 1, prompt: '转化留白场景' },
+        ],
+      }),
+    });
+  };
+  t.after(() => { globalThis.fetch = originalFetch; });
+
+  const response = await worker.fetch(apiRequest('analyze', {
+    imageBase64: 'data:image/png;base64,AA==',
+    productImagesBase64s: ['data:image/png;base64,AA==', 'data:image/png;base64,AQ=='],
+    styleImagesBase64s: ['data:image/png;base64,Ag==', 'data:image/png;base64,Aw=='],
+    platform: 'taobao',
+    suiteType: 'square',
+    includeWhite: false,
+    textProvider: 'gemini',
+    imageProvider: 'gemini',
+  }, { 'x-gemini-key': 'test-gemini-key' }), env);
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(body.product_name, '折叠收纳盒');
+  assert.equal(body.white_prompt, '');
+  assert.equal(body.series.length, 5);
+  assert.deepEqual(body.roles, ['核心卖点场景', '日常使用场景', '材质做工细节', '尺寸使用感知', '转化留白构图']);
+  assert.match(sentBody.input[0].text, /本套不生成白底图/);
+  assert.match(sentBody.input[0].text, /全部输出名额都必须用于彼此不同的真实场景图/);
+});
+
 test('prompt planning preserves the selected provider error when Ark fallback hits 525', async (t) => {
   const originalFetch = globalThis.fetch;
   let calls = 0;
