@@ -156,6 +156,25 @@ test('suite projects separate product evidence from scene references and require
   assert.match(html, /referenceImagesBase64s:refs/);
 });
 
+test('suite projects can use every output slot for a different scene', () => {
+  assert.match(html, /includeWhite:false/);
+  assert.match(html, /全部场景图（推荐）/);
+  assert.match(html, /张不同环境、镜头与卖点/);
+  assert.match(html, /function setIncludeWhite\(value\)/);
+  assert.match(html, /includeWhite:projectHasWhiteOutput\(p\)/);
+  assert.match(html, /const SCENE_ONLY_OUTPUT_LABELS=/);
+  assert.match(html, /日常使用场景/);
+  assert.match(html, /if\(hasWhiteOutput\)\{/);
+  assert.match(html, /p\.phase=hasWhiteOutput\?'正在根据已确认提示词制作白底主图':'正在生成全部场景套图'/);
+});
+
+test('suite project names come from AI product understanding instead of upload filenames', () => {
+  assert.match(html, /待识别商品 项目/);
+  assert.match(html, /function updateProjectNameFromAnalysis\(p,analysis\)/);
+  assert.match(html, /product_name/);
+  assert.doesNotMatch(html, /p\.name=valid\[0\]\.name/);
+});
+
 test('Qwen is available for text, vision, image generation and regional configuration', () => {
   assert.match(html, /千问（Qwen Plus \/ Qwen3-VL）/);
   assert.match(html, /Qwen Image 3\.0/);
