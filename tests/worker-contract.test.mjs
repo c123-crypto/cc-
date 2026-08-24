@@ -534,3 +534,26 @@ test('Qwen endpoint validation rejects non-Aliyun hosts before fetching', async 
   assert.equal(body.code, 'QWEN_ENDPOINT_INVALID');
   assert.equal(calls, 0);
 });
+
+test('Qwen TLS 525 errors name Alibaba and retry before browser fallback', async (t) => {
+  const originalFetch = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = async () => {
+    calls += 1;
+    return new Response('error code: 525', { status: 525, headers: { 'content-type': 'text/plain' } });
+  };
+  t.after(() => { globalThis.fetch = originalFetch; });
+
+  const response = await worker.fetch(apiRequest('connection-test', {
+    provider: 'qwen',
+    qwenTextModel: 'qwen-plus',
+    qwenEndpoint: 'https://dashscope-intl.aliyuncs.com',
+  }, { 'x-qwen-key': 'test-qwen-key' }), env);
+  const body = await response.json();
+
+  assert.equal(response.status, 525);
+  assert.equal(body.code, 'QWEN_CHAT_TLS_525');
+  assert.match(body.error, /Cloudflare 到阿里云百炼千问/);
+  assert.doesNotMatch(body.error, /火山方舟/);
+  assert.equal(calls, 3);
+});
