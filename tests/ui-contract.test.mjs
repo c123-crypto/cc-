@@ -143,7 +143,7 @@ test('suite projects separate product evidence from scene references and require
   assert.match(html, /提升转化率/);
   assert.match(html, /参考图复刻/);
   assert.match(html, /function handleReferenceUpload\(e\)/);
-  assert.match(html, /referenceImageBase64:p\.direction==='reference'/);
+  assert.match(html, /referenceImageBase64:projectMode\(p\)==='main'&&p\.direction==='reference'/);
   assert.match(html, /先上传场景参考图/);
   assert.match(html, /productImages:\[\]/);
   assert.match(html, /styleImages:\[\]/);
@@ -160,16 +160,43 @@ test('suite projects separate product evidence from scene references and require
   assert.match(html, /referenceImagesBase64s:refs/);
 });
 
-test('suite projects can use every output slot for a different scene', () => {
+test('suite projects use six main slots with one shared-background group', () => {
   assert.match(html, /includeWhite:false/);
-  assert.match(html, /全部场景图（推荐）/);
-  assert.match(html, /张不同环境、镜头与卖点/);
+  assert.match(html, /6张场景主图（推荐）/);
+  assert.match(html, /含 3 张统一背景变化图/);
   assert.match(html, /function setIncludeWhite\(value\)/);
-  assert.match(html, /includeWhite:projectHasWhiteOutput\(p\)/);
-  assert.match(html, /const SCENE_ONLY_OUTPUT_LABELS=/);
-  assert.match(html, /日常使用场景/);
+  assert.match(html, /includeWhite:projectNeedsWhiteMaster\(p\)/);
+  assert.match(html, /const MAIN_SCENE_OUTPUT_LABELS=/);
+  assert.match(html, /同背景陈列变化/);
+  assert.match(html, /function mainSharedBackgroundRule\(index\)/);
+  assert.match(html, /主体几何必须与商品证据图完全一致/);
   assert.match(html, /if\(hasWhiteOutput\)\{/);
   assert.match(html, /p\.phase=hasWhiteOutput\?'正在根据已确认提示词制作白底主图':'正在生成全部场景套图'/);
+});
+
+test('product understanding drives dedicated detail-page and deterministic SKU workflows', () => {
+  assert.match(html, /const DETAIL_OUTPUT_LABELS=/);
+  assert.match(html, /详情首屏核心价值/);
+  assert.match(html, /真实场景与转化收尾/);
+  assert.match(html, /固定4张/);
+  assert.match(html, /function projectOutputCount\(p\)\{ return projectMode\(p\)===['"]detail['"]\?4/);
+  assert.match(html, /const MAIN_TEXT_STRATEGY=/);
+  assert.match(html, /mode:'minimal'/);
+  assert.match(html, /PRODUCT_GEOMETRY_LOCK/);
+  assert.match(html, /PRODUCT_REALISM_LOCK/);
+  assert.match(html, /长、宽、高、厚度/);
+  assert.match(html, /禁止重影、双轮廓/);
+  assert.match(html, /禁止悬浮、下陷、穿插/);
+  assert.match(html, /真实感锁定/);
+  assert.match(html, /零错位质检/);
+  assert.match(html, /const DEFAULT_PROJECT_SKUS=/);
+  assert.match(html, /function renderProjectModeSettings\(p\)/);
+  assert.match(html, /详情页套图/);
+  assert.match(html, /SKU规格图/);
+  assert.match(html, /function renderProductAnalysis\(analysis\)/);
+  assert.match(html, /function composeDetailCanvas\(imageSource,item,index,p\)/);
+  assert.match(html, /function composeSkuCanvas\(masterSource,spec,analysis,index\)/);
+  assert.match(html, /精确复制 \$\{specs\[index\]\.quantity\} 个/);
 });
 
 test('suite project names come from AI product understanding instead of upload filenames', () => {

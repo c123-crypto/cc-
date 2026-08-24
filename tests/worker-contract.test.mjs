@@ -284,10 +284,11 @@ test('Gemini project planning understands grouped product and scene references b
         reference_strategy: '轮换正面、侧面与场景参考',
         white_prompt: '保持白色收纳盒外观，生成白底图',
         series: [
-          { label: '核心卖点场景', product_refs: [1, 2], style_ref: 1, prompt: '场景提示词' },
-          { label: '材质做工细节', product_refs: [3], style_ref: 1, prompt: '细节提示词' },
-          { label: '尺寸使用感知', product_refs: [2], style_ref: 1, prompt: '尺寸提示词' },
-          { label: '转化留白构图', product_refs: [1], style_ref: 1, prompt: '留白提示词' },
+          { label: '同背景陈列变化', product_refs: [1, 2], style_ref: 1, prompt: '同背景陈列提示词' },
+          { label: '同背景使用变化', product_refs: [3], style_ref: 1, prompt: '同背景使用提示词' },
+          { label: '同背景收纳变化', product_refs: [2], style_ref: 1, prompt: '同背景收纳提示词' },
+          { label: '核心功能与材质证据', product_refs: [2], style_ref: 1, prompt: '功能材质提示词' },
+          { label: '转化收尾主视觉', product_refs: [1], style_ref: 1, prompt: '转化收尾提示词' },
         ],
       }),
     });
@@ -307,18 +308,19 @@ test('Gemini project planning understands grouped product and scene references b
 
   assert.equal(response.status, 200);
   assert.equal(body.provider, 'gemini');
-  assert.equal(body.series.length, 4);
+  assert.equal(body.series.length, 5);
   assert.deepEqual(body.series[0].product_refs, [1, 2]);
   assert.equal(body.series[0].style_ref, 1);
+  assert.match(body.white_prompt, /长、宽、高、厚度/);
   assert.equal(body.reference_strategy, '轮换正面、侧面与场景参考');
   assert.equal(sentBody.input.filter(item => item.type === 'image').length, 4);
   assert.match(sentBody.input[0].text, /前 3 张是同一商品的商品证据图/);
   assert.match(sentBody.input[0].text, /后 1 张是场景\/风格参考图/);
   assert.deepEqual(sentBody.response_format, { type: 'text', mime_type: 'application/json' });
-  assert.equal(sentBody.generation_config.max_output_tokens, 3000);
+  assert.equal(sentBody.generation_config.max_output_tokens, 4200);
 });
 
-test('scene-only project planning uses all five square slots for different scenes', async (t) => {
+test('scene-only project planning uses six slots and shares the background for slots two to four', async (t) => {
   const originalFetch = globalThis.fetch;
   let sentBody;
   globalThis.fetch = async (url, options) => {
@@ -329,14 +331,15 @@ test('scene-only project planning uses all five square slots for different scene
       output_text: JSON.stringify({
         product_name: '折叠收纳盒',
         product_summary: '可折叠收纳盒',
-        reference_strategy: '五张图轮换环境、机位和光线',
+        reference_strategy: '六张图覆盖卖点、同背景变化、证据与收尾',
         white_prompt: '不应使用',
         series: [
-          { product_refs: [1], style_ref: 1, prompt: '客厅核心卖点场景' },
-          { product_refs: [2], style_ref: 2, prompt: '卧室日常使用场景' },
-          { product_refs: [1, 2], style_ref: 1, prompt: '材质细节场景' },
-          { product_refs: [2], style_ref: 2, prompt: '尺寸感知场景' },
-          { product_refs: [1], style_ref: 1, prompt: '转化留白场景' },
+          { product_refs: [1], style_ref: 1, prompt: '爆款首图场景' },
+          { product_refs: [2], style_ref: 1, prompt: '同背景陈列变化场景' },
+          { product_refs: [1, 2], style_ref: 1, prompt: '同背景使用变化场景' },
+          { product_refs: [2], style_ref: 1, prompt: '同背景收纳变化场景' },
+          { product_refs: [1], style_ref: 2, prompt: '功能材质证据场景' },
+          { product_refs: [1], style_ref: 2, prompt: '转化收尾场景' },
         ],
       }),
     });
@@ -358,10 +361,12 @@ test('scene-only project planning uses all five square slots for different scene
   assert.equal(response.status, 200);
   assert.equal(body.product_name, '折叠收纳盒');
   assert.equal(body.white_prompt, '');
-  assert.equal(body.series.length, 5);
-  assert.deepEqual(body.roles, ['核心卖点场景', '日常使用场景', '材质做工细节', '尺寸使用感知', '转化留白构图']);
-  assert.match(sentBody.input[0].text, /本套不生成白底图/);
-  assert.match(sentBody.input[0].text, /全部输出名额都必须用于彼此不同的真实场景图/);
+  assert.equal(body.series.length, 6);
+  assert.deepEqual(body.roles, ['爆款首图核心卖点', '同背景陈列变化', '同背景使用变化', '同背景收纳变化', '核心功能与材质证据', '转化收尾主视觉']);
+  assert.match(sentBody.input[0].text, /white_prompt 必须返回空字符串/);
+  assert.match(sentBody.input[0].text, /固定输出6张/);
+  assert.match(sentBody.input[0].text, /第2—4张必须共用同一套简洁背景/);
+  assert.match(sentBody.input[0].text, /主体几何是不可变事实/);
 });
 
 test('prompt planning preserves the selected provider error when Ark fallback hits 525', async (t) => {
@@ -676,7 +681,7 @@ test('quality control compares the result with original product evidence before 
   globalThis.fetch = async (url, options = {}) => {
     assert.match(String(url), /generativelanguage\.googleapis\.com\/v1beta\/interactions/);
     sentBody = JSON.parse(options.body);
-    return Response.json({ status: 'completed', output_text: JSON.stringify({ pass: true, score: 92, summary: '商品一致', correction: '' }) });
+    return Response.json({ status: 'completed', output_text: JSON.stringify({ pass: true, alignment_pass: true, realism_pass: true, score: 92, summary: '商品一致', issues: [], correction: '' }) });
   };
   t.after(() => { globalThis.fetch = originalFetch; });
 
@@ -692,9 +697,14 @@ test('quality control compares the result with original product evidence before 
 
   assert.equal(response.status, 200);
   assert.equal(body.pass, true);
+  assert.equal(body.alignment_pass, true);
+  assert.equal(body.realism_pass, true);
   assert.equal(sentBody.input.filter(item => item.type === 'image').length, 4);
   assert.match(sentBody.input[0].text, /前 2 张是用户上传的原始商品证据图/);
   assert.match(sentBody.input[0].text, /原始商品证据图为最高事实依据/);
+  assert.match(sentBody.input[0].text, /重影、双轮廓/);
+  assert.match(sentBody.input[0].text, /悬浮、下陷、穿插/);
+  assert.match(sentBody.input[0].text, /评分不低于90/);
 });
 
 test('Qwen endpoint validation rejects non-Aliyun hosts before fetching', async (t) => {
