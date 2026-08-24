@@ -38,6 +38,7 @@
 - 原生 HTML / CSS / JavaScript 单页应用
 - 浏览器 IndexedDB + localStorage
 - 火山方舟 Chat Completions、Seedream Images Generations
+- 阿里云百炼千问兼容接口、Qwen3-VL、Qwen Image 3.0
 - OpenAI Images Edits（`multipart/form-data`）
 - Google Gemini Interactions API（文字与 Nano Banana 图片）
 - JSZip（随 npm 依赖本地提供，不依赖外部 CDN）
@@ -60,6 +61,7 @@ npm run dev
 - **Gemini API Key（推荐、选填）**：免费额度优先的文字生成、图片提示词规划和 Nano Banana 生图。
 - **火山方舟 API Key（选填）**：豆包文字理解、Seedream 生图；原商品套图流水线仍使用它完成白底和质检。
 - **OpenAI API Key（选填）**：GPT Image 2 图片生成与编辑。
+- **阿里云百炼千问 API Key（选填）**：千问文字、Qwen3-VL 商品理解和 Qwen Image 3.0；API Key、模型与请求地域必须一致。
 - **高级模型名称（选填）**：当账号开通的模型名称不同，可直接在设置中覆盖服务器默认值。
 
 不要把真实密钥写入源码、README、环境文件或部署平台的公开变量。
@@ -97,13 +99,15 @@ OPENAI_IMAGE_MODEL=gpt-image-2
 X-Ark-Key: 火山方舟 API Key
 X-OpenAI-Key: OpenAI API Key（选填）
 X-Gemini-Key: Gemini API Key（选填）
+X-Qwen-Key: 阿里云百炼千问 API Key（选填）
+X-Qwen-Endpoint: 百炼地域或工作空间专属地址（选填）
 ```
 
 ## 部署建议
 
 项目已按 Cloudflare Workers 配置。部署前先用 `npm run check` 做语法检查，再用 `npm run cf:deploy` 发布；随后在 Workers 的“域名”页面绑定自定义域名。
 
-运行环境需要允许单个请求体最多 40 MB，并能出站访问火山方舟、OpenAI 与 Google Gemini API。API Key 由用户浏览器随单次请求发送，不要写入公开的 Worker 变量或仓库。
+运行环境需要允许单个请求体最多 40 MB，并能出站访问火山方舟、阿里云百炼、OpenAI 与 Google Gemini API。API Key 由用户浏览器随单次请求发送，不要写入公开的 Worker 变量或仓库。Cloudflare 到火山方舟或阿里云百炼出现 HTTP 525 时，前端会在用户浏览器中尝试直连官方 API，并在跨域或账号权限仍不满足时给出明确错误。
 
 ## 文件结构
 
