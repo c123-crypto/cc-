@@ -115,7 +115,7 @@ test('completed tool images are cached for one day and downloadable as a named Z
 test('users can select a persistent download folder with a safe browser fallback', () => {
   assert.match(html, /window\.showDirectoryPicker/);
   assert.match(html, /idbPrefPut\('downloadFolder',handle\)/);
-  assert.match(html, /async function saveDownloadedFile\(blob,name\)/);
+  assert.match(html, /async function saveDownloadedFile\(blob,name,subfolder='其他下载'\)/);
   assert.match(html, /固定文件夹暂不可写，已改用浏览器下载/);
   assert.match(html, /选择固定文件夹/);
 });
@@ -143,7 +143,7 @@ test('suite projects separate product evidence from scene references and require
   assert.match(html, /提升转化率/);
   assert.match(html, /参考图复刻/);
   assert.match(html, /function handleReferenceUpload\(e\)/);
-  assert.match(html, /referenceImageBase64:p\.direction==='reference'/);
+  assert.match(html, /referenceImageBase64:projectMode\(p\)==='main'&&p\.direction==='reference'/);
   assert.match(html, /先上传场景参考图/);
   assert.match(html, /productImages:\[\]/);
   assert.match(html, /styleImages:\[\]/);
@@ -162,12 +162,12 @@ test('suite projects separate product evidence from scene references and require
 
 test('suite projects can use every output slot for a different scene', () => {
   assert.match(html, /includeWhite:false/);
-  assert.match(html, /全部场景图（推荐）/);
-  assert.match(html, /张不同环境、镜头与卖点/);
+  assert.match(html, /6张场景主图（推荐）/);
+  assert.match(html, /含 3 张统一背景变化图/);
   assert.match(html, /function setIncludeWhite\(value\)/);
-  assert.match(html, /includeWhite:projectHasWhiteOutput\(p\)/);
-  assert.match(html, /const SCENE_ONLY_OUTPUT_LABELS=/);
-  assert.match(html, /日常使用场景/);
+  assert.match(html, /includeWhite:projectNeedsWhiteMaster\(p\)/);
+  assert.match(html, /const MAIN_SCENE_OUTPUT_LABELS=/);
+  assert.match(html, /同背景真实使用/);
   assert.match(html, /if\(hasWhiteOutput\)\{/);
   assert.match(html, /p\.phase=hasWhiteOutput\?'正在根据已确认提示词制作白底主图':'正在生成全部场景套图'/);
 });
@@ -210,6 +210,15 @@ test('all Doubao text paths can bypass Cloudflare 525 in the browser', () => {
   assert.match(html, /已绕开 Cloudflare 525，通过浏览器直连豆包生成提示词/);
   assert.match(html, /async function projectImageCall\(p,path,data,images,aspect\)/);
   assert.match(html, /正在改用浏览器直连生图/);
+});
+
+test('main image suites contain six images and downloads use date and project folders', () => {
+  assert.match(html, /square:'6 张商品主图'/);
+  assert.match(html, /function downloadDayFolder\(date=new Date\(\)\)/);
+  assert.match(html, /function downloadProjectFolder\(name,number=''\)/);
+  assert.match(html, /getDirectoryHandle\(dayName,\{create:true\}\)/);
+  assert.match(html, /getDirectoryHandle\(safeFolder,\{create:true\}\)/);
+  assert.doesNotMatch(html, /5张正方形/);
 });
 
 test('unfinished projects and tool jobs are restored from a 24-hour local draft', () => {
