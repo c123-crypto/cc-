@@ -214,6 +214,11 @@ test('all Doubao text paths can bypass Cloudflare 525 in the browser', () => {
 
 test('main image suites contain six images and downloads use date and project folders', () => {
   assert.match(html, /square:'6 张商品主图'/);
+  assert.match(html, /'taobao-suite':\{minFiles:1,maxFiles:6,outputCount:6/);
+  assert.match(html, /输出6张淘宝套图/);
+  assert.match(html, /国内电商套图已升级/);
+  assert.match(html, /6张主图 · 4张详情 · 10张完整系列/);
+  assert.match(html, /提示词 → 生图 · 四模型可选/);
   assert.match(html, /function downloadDayFolder\(date=new Date\(\)\)/);
   assert.match(html, /function downloadProjectFolder\(name,number=''\)/);
   assert.match(html, /getDirectoryHandle\(dayName,\{create:true\}\)/);
