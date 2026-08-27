@@ -150,6 +150,8 @@ textarea.input{resize:vertical;min-height:60px}
 /* === Modal === */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto}
 .modal-overlay.show{display:flex}
+.image-preview-modal{display:none;position:fixed;inset:0;z-index:420;background:rgba(32,28,30,.82);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:28px}
+.image-preview-modal.open{display:flex}.image-preview-dialog{position:relative;max-width:min(92vw,1080px);max-height:92vh}.image-preview-dialog img{display:block;max-width:92vw;max-height:86vh;object-fit:contain;border-radius:16px;background:#fff;box-shadow:0 24px 80px rgba(0,0,0,.34)}.image-preview-close{position:absolute;right:-12px;top:-12px;width:38px;height:38px;border-radius:50%;background:#fff;color:#332c2f;font-size:24px;box-shadow:0 8px 24px rgba(0,0,0,.18)}.image-preview-title{color:#fff;text-align:center;margin-top:10px;font-size:13px}.previewable{cursor:zoom-in}
 .modal{background:#fff;border-radius:16px;width:100%;max-width:480px;padding:24px;box-shadow:var(--shadow-lg);margin:auto}
 .modal-title{font-size:18px;font-weight:700;margin-bottom:16px}
 .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}
@@ -285,6 +287,14 @@ textarea.input{resize:vertical;min-height:60px}
   <div class="modal" id="modal"></div>
 </div>
 
+<div class="image-preview-modal" id="image-preview-modal" onclick="if(event.target===this)closeImagePreview()">
+  <div class="image-preview-dialog">
+    <button class="image-preview-close" onclick="closeImagePreview()" aria-label="关闭预览">×</button>
+    <img id="image-preview-image" alt="图片大图预览">
+    <div class="image-preview-title" id="image-preview-title">图片预览</div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div class="toast-container" id="toast-container"></div>
 
@@ -311,20 +321,20 @@ const MAIN_TEXT_STRATEGY=[
   {mode:'hero',position:'bottom',badge:'购买理由'},
 ];
 const MAIN_TEXT_COPY=[
-  ['一眼看懂核心卖点','真实商品，清楚表达购买理由'],
-  ['杂乱难找，使用费时','用真实场景呈现一个具体痛点'],
-  ['同一空间真实使用','改变收纳物与商品摆位'],
-  ['整理前后，一眼看懂','同一背景对比使用前后的变化'],
-  ['功能细节清楚可见','用近景证明结构与材质'],
-  ['值得选择的理由','回扣核心价值，完成转化'],
+  ['',''],['',''],['',''],['',''],['',''],['',''],
 ];
 const DETAIL_OUTPUT_LABELS=['详情首屏核心价值','核心功能与结构说明','材质尺寸与细节证据','真实场景与转化收尾'];
+const TEXT_FREE_BASE_RULE='底图绝对禁止出现任何文字、汉字、字母、数字、序号、页码、01/06、标签、卖点标题、制作指令、Logo、水印或二维码；只生成干净摄影画面，买家文案由网页后期排版。';
+const INTERNAL_COPY_RE=/(一眼看懂核心卖点|真实商品|清楚表达购买理由|杂乱难找|使用费时|真实场景呈现|使用前后|整理前后|一个具体痛点|请核对商品资料|统一商品母版|精确数量排版|图片可逐个核对|回扣核心价值|完成转化|SKU\s*\d+|DETAIL\s*\d+|\d{2}\s*\/\s*\d{2})/i;
+function buyerFacingCopy(value,max=42){const text=String(value||'').replace(/^[【\[]?(核心卖点|使用痛点|前后对比|购买理由|第\s*\d+\s*张)[】\]：:\s-]*/,'').trim();return !text||INTERNAL_COPY_RE.test(text)?'':text.slice(0,max);}
+function userHardConstraints(note){const value=String(note||'').trim();return value?`用户最高优先级硬性要求：${value}\n这些内容是制作指令，严禁作为画面文字；背景、颜色、尺寸、数量和禁用项必须逐条执行。`:'用户未补充额外要求；不得自行添加文字、数字或序号。';}
+function seriesStyleContract(note){const value=String(note||'').trim(),dark=/黑色背景|纯黑背景|深黑背景/.test(value);return `整套统一视觉合同：全套沿用同一${dark?'黑色':'协调'}背景体系、统一主辅色、统一光线方向与色温、统一商品材质质感、统一镜头语言、统一留白与网页后期字体版式。只允许画面任务、商品摆位和机位按分镜变化，不允许每张另起一种摄影风格。`;}
 let state = { projects:[], toolJobs:[], currentProject:null, currentToolJob:null, settings:{arkKey:'',arkTextModel:'',openaiKey:'',openaiTextModel:'',geminiKey:'',qwenKey:'',qwenEndpoint:'https://dashscope.aliyuncs.com',visionModel:'',imageModel:'',openaiImageModel:'',geminiTextModel:'',geminiImageModel:'',qwenTextModel:'',qwenVisionModel:'',qwenImageModel:'',imageFallback:false} };
 let appView='catalog';
 let activeCategory='product';
 let activeTool='';
 let expandedCategory='';
-let toolSession={files:[],results:[],resultMeta:[],text:'',note:'',aspect:'square',running:false,prompts:[],promptSummary:'',provider:'seedream',textProvider:'qwen'};
+let toolSession={files:[],results:[],resultMeta:[],text:'',note:'',aspect:'square',running:false,prompts:[],promptSummary:'',seriesStyle:'',provider:'seedream',textProvider:'qwen'};
 let categoryObserver=null;
 let providerHealth={};
 let workspaceReady=false;
@@ -471,7 +481,7 @@ TOOLS.forEach(tool=>{
 });
 function makeToolSession(tool){
   const roleFiles={}; (tool?.roleUploads||[]).forEach(role=>{roleFiles[role.id]=[];});
-  return {files:[],roleFiles,sourceNames:[],results:[],resultMeta:[],text:'',note:'',aspect:tool?.aspect||'square',running:false,prompts:[],promptSummary:'',provider:tool?.provider||(state.settings.arkKey?'seedream':state.settings.qwenKey?'qwen':state.settings.openaiKey?'openai':'gemini'),textProvider:state.settings.qwenKey?'qwen':state.settings.arkKey?'doubao':state.settings.geminiKey?'gemini':state.settings.openaiKey?'openai':'qwen',requestedCount:tool?.adjustableCount?4:1,sceneMode:tool?.id==='product-shot'?'lifestyle':'auto',copyMode:'balanced'};
+  return {files:[],roleFiles,sourceNames:[],results:[],resultMeta:[],text:'',note:'',aspect:tool?.aspect||'square',running:false,prompts:[],promptSummary:'',seriesStyle:'',provider:tool?.provider||(state.settings.arkKey?'seedream':state.settings.qwenKey?'qwen':state.settings.openaiKey?'openai':'gemini'),textProvider:state.settings.qwenKey?'qwen':state.settings.arkKey?'doubao':state.settings.geminiKey?'gemini':state.settings.openaiKey?'openai':'qwen',requestedCount:tool?.adjustableCount?4:1,sceneMode:tool?.id==='product-shot'?'lifestyle':'auto',copyMode:'balanced'};
 }
 
 function loadState(){
@@ -481,6 +491,10 @@ function saveSettings(){
   localStorage.setItem(STORAGE_KEY, JSON.stringify({settings:state.settings}));
 }
 function getApiBase(){ return window.location.origin; }
+function openImagePreview(src,title='图片预览'){const modal=document.getElementById('image-preview-modal'),image=document.getElementById('image-preview-image'),label=document.getElementById('image-preview-title');if(!modal||!image)return;image.src=src;label.textContent=title;modal.classList.add('open');document.body.style.overflow='hidden';}
+function closeImagePreview(){const modal=document.getElementById('image-preview-modal'),image=document.getElementById('image-preview-image');modal?.classList.remove('open');if(image)image.removeAttribute('src');document.body.style.overflow='';}
+document.addEventListener('keydown',event=>{if(event.key==='Escape')closeImagePreview();});
+document.addEventListener('click',event=>{const image=event.target.closest?.('.tool-result img');if(image)openImagePreview(image.src,image.alt||'生成结果预览');});
 
 /* ============ IndexedDB ============ */
 let idb=null;
@@ -508,6 +522,7 @@ function normalizeDraftProject(project){
   p.mainAspect=['square','portrait'].includes(p.mainAspect)?p.mainAspect:'square';
   p.detailCount=4;
   p.skuSpecs=normalizeProjectSkuSpecs(p.skuSpecs);
+  p.seriesStyle=String(p.seriesStyle||'');p.skuBackground=['auto','white','black','warm','gray'].includes(p.skuBackground)?p.skuBackground:'auto';p.skuDimensions=String(p.skuDimensions||'');p.skuSellingPoint=String(p.skuSellingPoint||'');
   if(p.projectMode==='main'&&p.series.length){
     const labels=projectIncludesWhite(p)?MAIN_WHITE_OUTPUT_LABELS:MAIN_SCENE_OUTPUT_LABELS;
     p.series=labels.map((label,index)=>({id:index,label,prompt:'',image:'',status:'pending',model:'',provider:'',fallback:false,fallbackFrom:'',redoPrompt:'',...(p.series[index]||{}),id:index,label}));
@@ -516,7 +531,7 @@ function normalizeDraftProject(project){
   if(p.status==='running'){p.status='idle';p.phase='上次操作已中断，可从提示词或生图步骤继续';p.series=p.series.map(item=>item.status==='running'?{...item,status:'pending'}:item);}
   return p;
 }
-function normalizeDraftJob(job){const restored={...job,session:{...(job.session||{}),running:false}};if(restored.status==='running'){restored.status='idle';restored.phase='上次操作已中断，可重新生成';}return restored;}
+function normalizeDraftJob(job){const restored={...job,session:{...(job.session||{}),seriesStyle:String(job.session?.seriesStyle||''),running:false}};if(restored.status==='running'){restored.status='idle';restored.phase='上次操作已中断，可重新生成';}return restored;}
 async function loadWorkspaceDraft(){
   const draft=await idbPrefGet('workspaceDraft');if(!draft)return false;
   if(!draft.savedAt||Date.now()-draft.savedAt>HISTORY_TTL){await idbPrefPut('workspaceDraft',null);return false;}
@@ -620,7 +635,7 @@ function newProject(){
   if(state.projects.length>=MAX_PROJECTS){ toast('最多'+MAX_PROJECTS+'个项目同时运行','warn'); return; }
   const nextNumber=Math.max(0,...state.projects.map((project,index)=>Number(project.projectNumber)||index+1))+1;
   const sequence=String(nextNumber).padStart(2,'0');
-  const p={id:uid(),projectNumber:sequence,name:'待识别商品 项目 '+sequence,image:'',referenceImage:'',productImages:[],styleImages:[],projectMode:'main',mainAspect:'square',detailCount:4,skuSpecs:DEFAULT_PROJECT_SKUS.map(item=>({...item})),platform:'taobao',suiteType:'square',includeWhite:false,direction:'auto',userNote:'',textProvider:state.settings.qwenKey?'qwen':state.settings.arkKey?'doubao':state.settings.geminiKey?'gemini':state.settings.openaiKey?'openai':'qwen',imageProvider:state.settings.arkKey?'seedream':state.settings.qwenKey?'qwen':state.settings.openaiKey?'openai':'gemini',status:'idle',phase:'等待上传商品图',analysis:null,whiteImage:'',series:[],qcResults:[],createdAt:Date.now()};
+  const p={id:uid(),projectNumber:sequence,name:'待识别商品 项目 '+sequence,image:'',referenceImage:'',productImages:[],styleImages:[],projectMode:'main',mainAspect:'square',detailCount:4,skuSpecs:DEFAULT_PROJECT_SKUS.map(item=>({...item})),skuBackground:'auto',skuDimensions:'',skuSellingPoint:'',seriesStyle:'',platform:'taobao',suiteType:'square',includeWhite:false,direction:'auto',userNote:'',textProvider:state.settings.qwenKey?'qwen':state.settings.arkKey?'doubao':state.settings.geminiKey?'gemini':state.settings.openaiKey?'openai':'qwen',imageProvider:state.settings.arkKey?'seedream':state.settings.qwenKey?'qwen':state.settings.openaiKey?'openai':'gemini',status:'idle',phase:'等待上传商品图',analysis:null,whiteImage:'',series:[],qcResults:[],createdAt:Date.now()};
   state.projects.push(p); state.currentProject=p.id; appView='project';
   renderProjectList(); renderMain();
 }
@@ -764,12 +779,12 @@ function desiredOutputCount(tool){
 function setToolProvider(value){ toolSession.provider=value; toolSession.prompts=[]; toolSession.promptSummary=''; toolSession.results=[]; toolSession.resultMeta=[]; renderToolWorkspace(); }
 function setToolTextProvider(value){ toolSession.textProvider=value; toolSession.prompts=[]; toolSession.promptSummary=''; toolSession.results=[]; toolSession.resultMeta=[]; renderToolWorkspace(); }
 function setToolAspect(value){ toolSession.aspect=value; toolSession.prompts=[]; toolSession.promptSummary=''; toolSession.results=[]; toolSession.resultMeta=[]; renderToolWorkspace(); }
-function setToolRequestedCount(value){ toolSession.requestedCount=Math.max(1,Math.min(10,Number(value)||1)); toolSession.prompts=[]; toolSession.promptSummary=''; toolSession.results=[]; toolSession.resultMeta=[]; renderToolWorkspace(); }
-function setToolSceneMode(value){ toolSession.sceneMode=TOOL_SCENE_ROLES[value]?value:'auto'; toolSession.prompts=[]; toolSession.promptSummary=''; toolSession.results=[]; toolSession.resultMeta=[]; renderToolWorkspace(); }
-function setToolCopyMode(value){ toolSession.copyMode=['balanced','feature','none'].includes(value)?value:'balanced'; toolSession.prompts=[]; toolSession.promptSummary=''; toolSession.results=[]; toolSession.resultMeta=[]; renderToolWorkspace(); }
+function setToolRequestedCount(value){ toolSession.requestedCount=Math.max(1,Math.min(10,Number(value)||1)); toolSession.prompts=[]; toolSession.promptSummary='';toolSession.seriesStyle=''; toolSession.results=[]; toolSession.resultMeta=[]; renderToolWorkspace(); }
+function setToolSceneMode(value){ toolSession.sceneMode=TOOL_SCENE_ROLES[value]?value:'auto'; toolSession.prompts=[]; toolSession.promptSummary='';toolSession.seriesStyle=''; toolSession.results=[]; toolSession.resultMeta=[]; renderToolWorkspace(); }
+function setToolCopyMode(value){ toolSession.copyMode=['balanced','feature','none'].includes(value)?value:'balanced'; toolSession.prompts=[]; toolSession.promptSummary='';toolSession.seriesStyle=''; toolSession.results=[]; toolSession.resultMeta=[]; renderToolWorkspace(); }
 function setToolNote(value){
   toolSession.note=value;
-  if(toolSession.prompts.length){ toolSession.prompts=[]; toolSession.promptSummary=''; toolSession.results=[]; toolSession.resultMeta=[]; document.getElementById('prompt-editor')?.remove(); const button=document.getElementById('generate-images-btn'); if(button) button.disabled=true; }
+  if(toolSession.prompts.length){ toolSession.prompts=[]; toolSession.promptSummary='';toolSession.seriesStyle=''; toolSession.results=[]; toolSession.resultMeta=[]; document.getElementById('prompt-editor')?.remove(); const button=document.getElementById('generate-images-btn'); if(button) button.disabled=true; }
   scheduleWorkspaceSave();
 }
 function setToolPrompt(index,value){ if(toolSession.prompts[index]) toolSession.prompts[index].prompt=value; scheduleWorkspaceSave(); }
@@ -940,7 +955,7 @@ function renderProjectModeSettings(p){
   </div>
   ${mode==='main'?`<div class="logic-note" style="margin-top:18px"><strong>固定6张：</strong>爆款首图 → 同背景陈列变化 → 同背景使用变化 → 同背景收纳变化 → 功能材质证据 → 转化收尾。第2–4张使用同一背景母版与光线，只改变摆位、收纳物和机位；背景道具不超过3件。</div>`:''}
   ${mode==='detail'?`<div class="logic-note" style="margin-top:18px"><strong>固定4张：</strong>首屏价值 → 功能结构 → 材质尺寸证据 → 真实场景收尾。四张共同构成精简详情页叙事。</div>`:''}
-  ${mode==='sku'?`<div class="card-title" style="margin-top:18px">SKU规格与数量</div>${renderSkuSpecEditor(p)}<div class="logic-note">固定逻辑：所有 SKU 共用同一商品母版、同一画布、同一字体和边框；网页按数量复制商品并编号校验，避免模型把 8 个画成 1 个。规格名称和推荐标识可逐项修改。</div>`:''}
+  ${mode==='sku'?`<div class="card-title" style="margin-top:18px">SKU规格与数量</div>${renderSkuSpecEditor(p)}<div class="field-row" style="margin-top:14px"><div class="form-group"><label class="label">背景要求</label><select class="input" onchange="setSkuBackground(this.value)"><option value="auto" ${p.skuBackground==='auto'?'selected':''}>自动识别补充要求</option><option value="white" ${p.skuBackground==='white'?'selected':''}>白色背景</option><option value="black" ${p.skuBackground==='black'?'selected':''}>黑色背景</option><option value="warm" ${p.skuBackground==='warm'?'selected':''}>暖米色背景</option><option value="gray" ${p.skuBackground==='gray'?'selected':''}>浅灰背景</option></select></div><div class="form-group"><label class="label">商品长宽高</label><input class="input" maxlength="80" value="${esc(p.skuDimensions||'')}" placeholder="例如：长11.8cm × 宽7.8cm × 高6.6cm" onchange="setSkuDimensions(this.value)"></div></div><div class="form-group"><label class="label">买家主卖点</label><input class="input" maxlength="42" value="${esc(p.skuSellingPoint||'')}" placeholder="例如：透明收纳，一眼找到常用小物" onchange="setSkuSellingPoint(this.value)"><div class="model-note">只写给买家看的购买理由；不会再展示“SKU编号、请核对资料、精确排版”等内部话术。</div></div><div class="logic-note">统一逻辑：所有 SKU 共用同一商品母版、背景、配色和版式；网页按真实数量确定性排版，避免模型猜错数量。尺寸与卖点会进入首次生成和单张重做。</div>`:''}
   </div>`;
 }
 
@@ -1043,7 +1058,7 @@ function renderMain(){
         生成结果
         ${p.series.length>0?`<span class="actions"><button class="btn btn-sm" onclick="downloadAll()">整套下载ZIP</button></span>`:''}
       </div>
-      ${p.whiteImage?`<div style="margin-bottom:12px"><div style="font-size:12px;font-weight:600;margin-bottom:6px">白底基准图</div><img src="${p.whiteImage}" style="max-width:200px;border-radius:8px;border:1px solid var(--border)"></div>`:''}
+      ${p.whiteImage?`<div style="margin-bottom:12px"><div style="font-size:12px;font-weight:600;margin-bottom:6px">${projectMode(p)==='sku'?'SKU商品母版预览':'商品保真基准图'}</div><img class="previewable" src="${p.whiteImage}" onclick="openImagePreview('${p.whiteImage}','商品母版预览')" style="max-width:200px;border-radius:8px;border:1px solid var(--border)"></div>`:''}
       ${p.series.some(item=>item.image||item.status==='running'||item.status==='error')?renderSeries(p):`<div class="project-results-empty">在上方「AI 提示词助手」完成生成与确认后，图片结果会出现在这里。</div>`}
     </div>
   `;
@@ -1059,7 +1074,7 @@ function renderSeries(p){
       const isVert=projectMode(p)==='detail'||p.suiteType==='vertical'||(p.suiteType==='full'&&i>=5);
       return `<div class="gen-item">
         <div class="gen-item-img ${isVert?'vertical':''}">
-          ${s.image?`<img src="${s.image}">`:`<div class="gen-item-placeholder">${s.status==='running'?'生成中...':s.status==='error'?'❌ 失败':'⏳ 待生成'}</div>`}
+          ${s.image?`<img class="previewable" src="${s.image}" onclick="openImagePreview(this.src,'${esc(s.label||items[i])}')" alt="${esc(s.label||items[i])}">`:`<div class="gen-item-placeholder">${s.status==='running'?'生成中...':s.status==='error'?'❌ 失败':'⏳ 待生成'}</div>`}
         </div>
         <div class="gen-item-info">
           <div class="gen-item-label">${i+1}. ${esc(s.label||items[i])}</div>
@@ -1074,6 +1089,7 @@ function renderSeries(p){
             <label>这张图的重做补充提示词（可选）</label>
             <textarea class="input" maxlength="1200" placeholder="例如：保留原商品，只把场景改成明亮梳妆台；镜头稍微拉近；减少道具。" oninput="setSingleRedoPrompt(${i},this.value)">${esc(s.redoPrompt||'')}</textarea>
             <div class="single-redo-note">只影响当前第 ${i+1} 张；其他成品和原图都会保留。</div>
+            ${s.appliedRedoPrompt?`<div class="single-redo-note" style="color:var(--success)">本版实际采用：${esc(s.appliedRedoPrompt)}</div>`:''}
           </div>
           <div class="gen-item-actions">
             ${s.image?`<button class="btn btn-sm" onclick="downloadSingle(${i})">下载</button>`:''}
@@ -1087,7 +1103,7 @@ function renderSeries(p){
 
 /* ============ SETTERS ============ */
 function projectEditable(p){ if(p?.status==='running'){ toast('当前任务运行中，请完成后再修改设置','warn'); return false; } return Boolean(p); }
-function resetProjectPlan(p){ if(!p) return; p.analysis=null;p.whiteImage='';p.series=[];p.qcResults=[];p.status='idle';p.phase='设置已改变，请重新生成提示词'; }
+function resetProjectPlan(p){ if(!p) return; p.analysis=null;p.whiteImage='';p.seriesStyle='';p.series=[];p.qcResults=[];p.status='idle';p.phase='设置已改变，请重新生成提示词'; }
 function setSingleRedoPrompt(index,value){const p=getCurrentProject(),item=p?.series?.[index];if(!item)return;item.redoPrompt=String(value||'').slice(0,1200);scheduleWorkspaceSave();}
 function setPlatform(k){ const p=getCurrentProject(); if(projectEditable(p)){resetProjectPlan(p);p.platform=k;renderMain();renderProjectList();} }
 function setSuiteType(k){ const p=getCurrentProject(); if(projectEditable(p)){resetProjectPlan(p);p.suiteType=k;renderMain();renderProjectList();} }
@@ -1105,6 +1121,9 @@ function setProjectMode(mode){
 function setDetailCount(){const p=getCurrentProject();if(!projectEditable(p))return;resetProjectPlan(p);p.detailCount=4;renderMain();renderProjectList();}
 function updateSkuSpec(index,field,value){const p=getCurrentProject();if(!projectEditable(p))return;p.skuSpecs=normalizeProjectSkuSpecs(p.skuSpecs);if(!p.skuSpecs[index])return;resetProjectPlan(p);if(field==='quantity')p.skuSpecs[index].quantity=Math.max(1,Math.min(20,Number(value)||1));if(field==='name')p.skuSpecs[index].name=String(value||'规格装').trim().slice(0,24);renderMain();renderProjectList();}
 function setSkuRecommended(index){const p=getCurrentProject();if(!projectEditable(p))return;p.skuSpecs=normalizeProjectSkuSpecs(p.skuSpecs).map((item,i)=>({...item,recommended:i===index}));resetProjectPlan(p);renderMain();renderProjectList();}
+function setSkuBackground(value){const p=getCurrentProject();if(!projectEditable(p))return;resetProjectPlan(p);p.skuBackground=['auto','white','black','warm','gray'].includes(value)?value:'auto';renderMain();renderProjectList();}
+function setSkuDimensions(value){const p=getCurrentProject();if(!projectEditable(p))return;resetProjectPlan(p);p.skuDimensions=String(value||'').trim().slice(0,80);renderMain();renderProjectList();}
+function setSkuSellingPoint(value){const p=getCurrentProject();if(!projectEditable(p))return;resetProjectPlan(p);p.skuSellingPoint=String(value||'').trim().slice(0,42);renderMain();renderProjectList();}
 function addSkuSpec(){const p=getCurrentProject();if(!projectEditable(p))return;p.skuSpecs=normalizeProjectSkuSpecs(p.skuSpecs);if(p.skuSpecs.length>=10)return;p.skuSpecs.push({quantity:p.skuSpecs.length+1,name:'自定义套装',recommended:false});resetProjectPlan(p);renderMain();renderProjectList();}
 function removeSkuSpec(index){const p=getCurrentProject();if(!projectEditable(p))return;p.skuSpecs=normalizeProjectSkuSpecs(p.skuSpecs);if(p.skuSpecs.length<=1){toast('至少保留一个 SKU','warn');return;}const wasRecommended=p.skuSpecs[index]?.recommended;p.skuSpecs.splice(index,1);if(wasRecommended&&!p.skuSpecs.some(item=>item.recommended))p.skuSpecs[0].recommended=true;resetProjectPlan(p);renderMain();renderProjectList();}
 function updateNote(){ const p=getCurrentProject(); if(!projectEditable(p)){renderMain();return;} p.userNote=document.getElementById('user-note').value;resetProjectPlan(p);document.getElementById('project-prompt-plan')?.remove();document.getElementById('project-analysis')?.remove();const tag=document.getElementById('project-prompt-state');if(tag){tag.className='tag tag-info';tag.textContent='需求已修改';}const step=document.getElementById('project-prompt-step');if(step){step.classList.remove('ready');step.textContent='① 请重新生成整套提示词';}const button=document.getElementById('project-generate-btn');if(button)button.disabled=true;scheduleWorkspaceSave(); }
@@ -1207,6 +1226,7 @@ function localToolPromptPlan(tool){
   const count=desiredOutputCount(tool);
   const aspectLabel={square:'1:1 正方形',vertical:'2:3 竖版',wide:'16:9 横版'}[toolSession.aspect]||toolSession.aspect;
   const note=toolSession.note.trim()||'采用真实、克制、清晰的商业视觉';
+  const seriesStyle=seriesStyleContract(note);
   const roleGuide=tool.inputHint||`共${toolFiles(tool).length}张素材，按上传顺序理解各自用途`;
   const special={
     cutout:'移除全部背景并生成干净透明背景，保留毛发、细线、孔洞、玻璃与半透明边缘，不添加阴影、文字或新物体',
@@ -1217,8 +1237,8 @@ function localToolPromptPlan(tool){
     'logo-swap':'仅使用用户自有或已授权Logo，保持放置区域的透视、材质、反光、尺寸和边缘自然'
   }[tool.id]||tool.desc;
   const sceneRoles=tool.adjustableCount?toolSceneRoles(toolSession.sceneMode,count):Array.from({length:count},(_,index)=>count>1?`结果 ${index+1}`:tool.name);
-  const prompts=sceneRoles.map((role,index)=>{const label=role.split('：')[0],copy=toolCopyForRole(label,index);return {label,headline:copy.headline,subheadline:copy.subheadline,copyStyle:copy.style,prompt:`第${index+1}张独立图片。画面任务：${role}。执行${tool.name}。任务要求：${special}。素材关系：${roleGuide}。用户补充：${note}。输出比例：${aspectLabel}。为后期准确叠加中文短文案预留${copy.position==='bottom'?'底部':'顶部'}安全区，底图本身不要生成任何文字。本图必须与同组其他图片在场景、构图、机位和光线中至少三项明显不同，不能只是换词重复。每次只生成一张完整的单场景照片；仅“前后对比图”允许同一空间的明确左右对照，其余禁止拼图、分屏、多宫格和多方案合成。禁止只展示包装而不展示商品实际使用场景。严格保持真实商品结构、颜色、材质、数量、包装文字和标识位置；禁止虚构功能、认证、价格、销量，禁止新增无关文字、二维码、水印、边框或第三方品牌元素。只输出这一张完整结果图。`};});
-  return {summary:tool.adjustableCount?`已规划${count}个互不重复的画面目标；每张提示词可单独修改后再生成。`:`已根据${tool.name}规则和素材用途生成本地保真提示词；模型线路恢复后仍可重新智能优化。`,prompts};
+  const prompts=sceneRoles.map((role,index)=>{const label=role.split('：')[0],copy=toolCopyForRole(label,index);return {label,headline:buyerFacingCopy(copy.headline,18),subheadline:buyerFacingCopy(copy.subheadline,32),copyStyle:copy.style,prompt:`${seriesStyle}\n${userHardConstraints(note)}\n${TEXT_FREE_BASE_RULE}\n画面任务：${role}。执行${tool.name}。任务要求：${special}。素材关系：${roleGuide}。输出比例：${aspectLabel}。为网页后期买家可见文案预留${copy.position==='bottom'?'底部':'顶部'}安全区。只允许画面任务、商品摆位和机位按分镜变化，整套配色、光线、色温、质感、摄影调性保持完全一致。每次只生成一张完整的单场景照片；仅“前后对比图”允许同一空间的明确左右对照，其余禁止拼图、分屏、多宫格和多方案合成。禁止只展示包装而不展示商品实际使用场景。严格保持真实商品结构、颜色、材质、数量、包装标识位置；禁止虚构功能、认证、价格、销量或第三方品牌元素。只输出这一张完整结果图。`};});
+  return {summary:tool.adjustableCount?`已规划${count}个不同用途但共享同一视觉系统的画面；每张提示词可单独修改。`:`已根据${tool.name}规则和素材用途生成本地保真提示词。`,series_style:seriesStyle,prompts};
 }
 function toolCopyForRole(label,index){
   const text=String(label||'').trim();
@@ -1267,21 +1287,21 @@ async function generateToolPrompts(){
   toolSession.running=true; toolSession.prompts=[]; toolSession.results=[]; toolSession.resultMeta=[]; updateToolJob(tool,'running','正在生成提示词'); renderToolWorkspace();
   try{
     const data=await apiCall('/api/tool-prompt',{toolId:tool.id,note:toolSession.note,imageBase64s:toolFiles(tool),inputHint:tool.inputHint||'',outputCount:desiredOutputCount(tool),sceneMode:tool.adjustableCount?toolSession.sceneMode:undefined,aspect:toolSession.aspect,provider:toolSession.provider,textProvider:toolSession.textProvider,openaiTextModel:state.settings.openaiTextModel||undefined,visionModel:state.settings.visionModel||undefined,geminiTextModel:state.settings.geminiTextModel||undefined,qwenTextModel:state.settings.qwenTextModel||undefined,qwenVisionModel:state.settings.qwenVisionModel||undefined,qwenEndpoint:state.settings.qwenEndpoint||undefined});
-    toolSession.prompts=data.prompts||[]; toolSession.promptSummary=data.summary||'';
+    toolSession.prompts=data.prompts||[]; toolSession.promptSummary=data.summary||'';toolSession.seriesStyle=data.series_style||seriesStyleContract(toolSession.note);
     updateToolJob(tool,'idle','提示词已生成，待确认生图');
     toast(data.fallback?`原模型未通过，已自动改用${textProviderLabel(data.provider)}生成提示词`:'提示词已生成，请检查后再生图',data.fallback?'warn':'success');
   }catch(error){
     if(toolSession.textProvider==='doubao'&&isArkTlsFailure(error)){
       try{
-        const data=await directArkToolPrompts(tool);toolSession.prompts=data.prompts;toolSession.promptSummary=data.summary;
+        const data=await directArkToolPrompts(tool);toolSession.prompts=data.prompts;toolSession.promptSummary=data.summary;toolSession.seriesStyle=data.series_style||seriesStyleContract(toolSession.note);
         updateToolJob(tool,'idle','豆包直连提示词已生成，待确认生图');toast('已绕开 Cloudflare 525，通过浏览器直连豆包生成提示词','success');
-      }catch(directError){const fallback=localToolPromptPlan(tool);toolSession.prompts=fallback.prompts;toolSession.promptSummary=fallback.summary;updateToolJob(tool,'idle','本地提示词已生成，待确认生图');toast('豆包直连未完成，已使用本地专业模板：'+directError.message,'warn');}
+      }catch(directError){const fallback=localToolPromptPlan(tool);toolSession.prompts=fallback.prompts;toolSession.promptSummary=fallback.summary;toolSession.seriesStyle=fallback.series_style;updateToolJob(tool,'idle','本地提示词已生成，待确认生图');toast('豆包直连未完成，已使用本地专业模板：'+directError.message,'warn');}
     }else if(toolSession.textProvider==='qwen'&&isQwenTlsFailure(error)){
       try{
-        const data=await directQwenToolPrompts(tool);toolSession.prompts=data.prompts;toolSession.promptSummary=data.summary;
+        const data=await directQwenToolPrompts(tool);toolSession.prompts=data.prompts;toolSession.promptSummary=data.summary;toolSession.seriesStyle=data.series_style||seriesStyleContract(toolSession.note);
         updateToolJob(tool,'idle','千问直连提示词已生成，待确认生图');toast('已绕开 Cloudflare 525，通过浏览器直连千问生成提示词','success');
-      }catch(directError){const fallback=localToolPromptPlan(tool);toolSession.prompts=fallback.prompts;toolSession.promptSummary=fallback.summary;updateToolJob(tool,'idle','本地提示词已生成，待确认生图');toast('千问直连未完成，已使用本地专业模板：'+directError.message,'warn');}
-    }else{const fallback=localToolPromptPlan(tool);toolSession.prompts=fallback.prompts;toolSession.promptSummary=fallback.summary;updateToolJob(tool,'idle','本地提示词已生成，待确认生图');toast('在线提示词模型不可用，已使用本地专业模板，可直接检查并生图','warn');}
+      }catch(directError){const fallback=localToolPromptPlan(tool);toolSession.prompts=fallback.prompts;toolSession.promptSummary=fallback.summary;toolSession.seriesStyle=fallback.series_style;updateToolJob(tool,'idle','本地提示词已生成，待确认生图');toast('千问直连未完成，已使用本地专业模板：'+directError.message,'warn');}
+    }else{const fallback=localToolPromptPlan(tool);toolSession.prompts=fallback.prompts;toolSession.promptSummary=fallback.summary;toolSession.seriesStyle=fallback.series_style;updateToolJob(tool,'idle','本地提示词已生成，待确认生图');toast('在线提示词模型不可用，已使用本地专业模板，可直接检查并生图','warn');}
   }
   finally{ toolSession.running=false; renderToolWorkspace(); }
 }
@@ -1343,14 +1363,14 @@ async function projectImageCall(p,path,data,images,aspect){
   }
 }
 async function requestToolImage(tool,prompt,refs){
-  let data;
+  let data;const finalPrompt=`${toolSession.seriesStyle||seriesStyleContract(toolSession.note)}\n${userHardConstraints(toolSession.note)}\n${TEXT_FREE_BASE_RULE}\n${prompt}`;
   if(toolSession.provider==='seedream'&&state.settings.arkKey){
-    try{data=await directSeedreamImage(refs,prompt,toolSession.aspect);}
-    catch(directError){data=await apiCall('/api/tool-image',{toolId:tool.id,prompt,imageBase64s:refs,aspect:toolSession.aspect,provider:'seedream',allowFallback:false,imageModel:state.settings.imageModel||undefined,qwenEndpoint:state.settings.qwenEndpoint||undefined});}
+    try{data=await directSeedreamImage(refs,finalPrompt,toolSession.aspect);}
+    catch(directError){data=await apiCall('/api/tool-image',{toolId:tool.id,prompt:finalPrompt,userNote:toolSession.note,imageBase64s:refs,aspect:toolSession.aspect,provider:'seedream',allowFallback:false,imageModel:state.settings.imageModel||undefined,qwenEndpoint:state.settings.qwenEndpoint||undefined});}
   }else if(toolSession.provider==='qwen'&&state.settings.qwenKey){
-    try{data=await directQwenImage(refs,prompt,toolSession.aspect);}
-    catch(directError){data=await apiCall('/api/tool-image',{toolId:tool.id,prompt,imageBase64s:refs,aspect:toolSession.aspect,provider:'qwen',allowFallback:false,qwenImageModel:state.settings.qwenImageModel||undefined,qwenEndpoint:state.settings.qwenEndpoint||undefined});}
-  }else data=await apiCall('/api/tool-image',{toolId:tool.id,prompt,imageBase64s:refs,aspect:toolSession.aspect,provider:toolSession.provider,allowFallback:false,imageModel:state.settings.imageModel||undefined,openaiImageModel:state.settings.openaiImageModel||undefined,geminiImageModel:state.settings.geminiImageModel||undefined,qwenImageModel:state.settings.qwenImageModel||undefined,qwenEndpoint:state.settings.qwenEndpoint||undefined});
+    try{data=await directQwenImage(refs,finalPrompt,toolSession.aspect);}
+    catch(directError){data=await apiCall('/api/tool-image',{toolId:tool.id,prompt:finalPrompt,userNote:toolSession.note,imageBase64s:refs,aspect:toolSession.aspect,provider:'qwen',allowFallback:false,qwenImageModel:state.settings.qwenImageModel||undefined,qwenEndpoint:state.settings.qwenEndpoint||undefined});}
+  }else data=await apiCall('/api/tool-image',{toolId:tool.id,prompt:finalPrompt,userNote:toolSession.note,imageBase64s:refs,aspect:toolSession.aspect,provider:toolSession.provider,allowFallback:false,imageModel:state.settings.imageModel||undefined,openaiImageModel:state.settings.openaiImageModel||undefined,geminiImageModel:state.settings.geminiImageModel||undefined,qwenImageModel:state.settings.qwenImageModel||undefined,qwenEndpoint:state.settings.qwenEndpoint||undefined});
   if(data.provider&&data.provider!==toolSession.provider)throw new Error(`模型锁定失败：选择的是${imageProviderLabel(toolSession.provider)}，服务端却返回了${imageProviderLabel(data.provider)}`);
   if(!data.image)throw new Error(`${imageProviderLabel(toolSession.provider)} 已响应但没有返回图片`);
   return data;
@@ -1374,7 +1394,7 @@ async function generateToolImages(){
         const data=await requestToolImage(tool,toolSession.prompts[i].prompt,refs);
         const composed=tool.adjustableCount?await composeToolCanvas(data.image,toolSession.prompts[i],i,toolSession.aspect):data.image;
         toolSession.results.push(composed);
-        toolSession.resultMeta.push({promptLabel:toolSession.prompts[i].label||`场景 ${i+1}`,promptIndex:i,provider:data.provider,model:data.model,fallback:false,fallbackFrom:'',fallbackCode:'',copyApplied:composed!==data.image,redoPrompt:''});
+        toolSession.resultMeta.push({promptLabel:toolSession.prompts[i].label||`场景 ${i+1}`,promptIndex:i,provider:data.provider,model:data.model,fallback:false,fallbackFrom:'',fallbackCode:'',copyApplied:composed!==data.image,redoPrompt:'',appliedRedoPrompt:''});
       }catch(error){ failures.push({index:i,message:error.message}); toast(`第${i+1}张生成失败，已继续下一张：${error.message}`,'warn'); }
       renderToolWorkspace();
     }
@@ -1392,14 +1412,14 @@ async function regenerateToolResult(resultIndex){
   const promptItem=toolSession.prompts[promptIndex];if(!promptItem?.prompt?.trim()){toast('当前图片缺少原始提示词，请先重新生成提示词','warn');return;}
   if(!hasImageProviderKey(toolSession.provider)){toast(`请先配置所选的${imageProviderLabel(toolSession.provider)} API Key`,'warn');showSettings();return;}
   const extra=String(originalMeta.redoPrompt||'').trim();
-  const prompt=`${promptItem.prompt.trim()}\n\n本次只重做当前这一张图片。${extra?`补充要求：${extra}`:'在原方案基础上优化主体真实感、构图与画面表达。'}\n不得要求重做、拼接或改写本套其他图片；严格保持参考商品主体、比例、结构、材质、颜色、文字和数量。只输出一张完整图片。`;
+  const prompt=`本次重做最高优先级要求：${extra||'优化主体真实感、构图与画面表达'}\n${userHardConstraints(toolSession.note)}\n${toolSession.seriesStyle||seriesStyleContract(toolSession.note)}\n${TEXT_FREE_BASE_RULE}\n以下原方案仅作为次级上下文，不得覆盖本次重做要求：${promptItem.prompt.trim()}\n只允许修改当前画面，不得影响本套其他图片；严格保持参考商品主体、比例、结构、材质、颜色和数量。只输出一张完整图片。`;
   const units=generationUnits(tool),refs=units[promptIndex]||units[units.length-1]||[];
   toolSession.running=true;toolSession.resultMeta[resultIndex]={...originalMeta,regenerating:true};updateToolJob(tool,'running',`正在只重做第 ${promptIndex+1} 张`);renderToolWorkspace();
   try{
     const data=await requestToolImage(tool,prompt,refs);
     const composed=tool.adjustableCount?await composeToolCanvas(data.image,promptItem,promptIndex,toolSession.aspect):data.image;
     toolSession.results[resultIndex]=composed;
-    toolSession.resultMeta[resultIndex]={...originalMeta,promptLabel:promptItem.label||originalMeta.promptLabel||`场景 ${promptIndex+1}`,promptIndex,provider:data.provider,model:data.model,fallback:false,fallbackFrom:'',fallbackCode:'',copyApplied:composed!==data.image,redoPrompt:extra,regenerating:false};
+    toolSession.resultMeta[resultIndex]={...originalMeta,promptLabel:promptItem.label||originalMeta.promptLabel||`场景 ${promptIndex+1}`,promptIndex,provider:data.provider,model:data.model,fallback:false,fallbackFrom:'',fallbackCode:'',copyApplied:composed!==data.image,redoPrompt:extra,appliedRedoPrompt:extra,regenerating:false};
     const job=updateToolJob(tool,'done',`第 ${promptIndex+1} 张已单独重做，其他图片未消耗`);await saveToolImageHistory(tool,job);toast(`第${promptIndex+1}张已单独重做，其他图片和原任务均已保留`,'success');
   }catch(error){toolSession.results[resultIndex]=originalImage;toolSession.resultMeta[resultIndex]={...originalMeta,regenerating:false};updateToolJob(tool,'error',`第 ${promptIndex+1} 张重做失败，已保留原图`);toast('单张重做失败，已保留原图：'+error.message,'error');}
   finally{toolSession.running=false;renderToolWorkspace();renderProjectList();}
@@ -1485,11 +1505,12 @@ function localProjectPromptPlan(p){
   const platform={taobao:'淘宝真实精致、自然生活感与适度留白',pdd:'拼多多手机端强识别、主体醒目且单图单卖点','1688':'1688专业目录感、突出结构材质与采购判断'}[p.platform]||'目标平台电商规范';
   const direction={auto:'按商品特点平衡识别、卖点、细节、尺寸与场景',click:'强化第一眼主体识别和一个可见核心卖点',conversion:'覆盖功能理解、材质证明、尺寸判断与真实使用场景',reference:'仅借鉴第二张参考图的构图、配色、机位与信息节奏，禁止复制其品牌、文字和受保护元素',standard:'均衡展示商品主体、卖点、细节与场景',scene:'突出真实使用关系和自然生活氛围',detail:'突出材质、纹理、边缘、接口与表面做工',procurement:'突出结构、包装、材质和采购判断信息'}[p.direction]||'按商品和平台自动规划';
   const note=p.userNote?.trim()||'采用真实、克制、清晰的商业视觉';
+  const seriesStyle=seriesStyleContract(note);
   const labels=projectOutputLabels(p);
   const mode=projectMode(p),offset=projectHasWhiteOutput(p)?1:0;
   const preserve=`以用户上传的商品实拍图为唯一商品依据，严格保持颜色、材质、包装结构、标签原文、商标位置、配件与数量；不重新设计、不增减功能、不复制主体。${PRODUCT_GEOMETRY_LOCK}${PRODUCT_REALISM_LOCK}`;
   const forbid='禁止新增价格、促销角标、二维码、水印、边框、乱码、无关Logo、未经证实的功效、认证、销量或官方背书。';
-  const white_prompt=`将用户上传的商品实拍图处理为专业纯白背景保真主图。${preserve} 商品居中完整展示，占画面约75%，正面或最能说明结构的三分之四视角，柔和棚拍布光，边缘干净，接触阴影自然，白色背景无杂物。${forbid}`;
+  const white_prompt=`${seriesStyle}${userHardConstraints(note)}${TEXT_FREE_BASE_RULE} 将用户上传的商品实拍图处理为专业商品母版。${preserve} 商品居中完整展示，占画面约75%，正面或最能说明结构的三分之四视角，柔和棚拍布光，边缘干净，接触阴影自然。背景必须采用用户选择或补充要求指定的颜色；未指定时才使用白色。${forbid}`;
   const series=labels.slice(offset).map((label,index)=>{
     const outputIndex=index+offset,assignment=projectReferenceAssignment(p,outputIndex);
     const source=`商品证据图 ${assignment.productIndex+1}${assignment.secondaryProductIndex!==null?`，辅助核对商品证据图 ${assignment.secondaryProductIndex+1}`:''}${assignment.styleIndex!==null?`；场景灵感取自场景参考图 ${assignment.styleIndex+1}`:'；场景由本任务独立设计'}`;
@@ -1498,9 +1519,9 @@ function localProjectPromptPlan(p){
     const detailStage=mode==='detail'?`这是详情页第 ${index+1}/${labels.length} 屏，承担“${label}”的信息任务；采用2:3竖版、上中下清晰层级，预留准确中文标题区，与前后屏形成连续购买决策故事。`:'';
     const skuStage=mode==='sku'?`这是SKU“${label}”的规格脚本。生成阶段只制作单个商品白底母版，最终数量由网页确定性复制排版，禁止让图片模型猜数量。`:'';
     const variationRule=mode==='main'&&mainSharedBackgroundIndex(outputIndex)?'同背景组三张必须复用完全相同的背景与光线，但改变商品摆位、收纳物和镜头。':'不得复用其他非同背景图片的场景与镜头。';
-    return {label,headline:mode==='main'?MAIN_TEXT_COPY[outputIndex][0]:mode==='detail'?label:mode==='sku'?label:'',subheadline:mode==='main'?MAIN_TEXT_COPY[outputIndex][1]:mode==='detail'?`用真实画面证明${label}`:mode==='sku'?'统一规格模板 · 数量可核对':'',layout_notes:mode==='main'?(mainStrategy.mode==='clean'?'纯场景无字':mainStrategy.mode==='minimal'?`少字画面 · ${mainStrategy.position==='top'?'顶部':'底部'}短标签`:`${mainStrategy.mode==='hero'?'强标题':'标准标题'} · ${mainStrategy.position==='top'?'顶部':'底部'}安全区`):mode==='detail'?'竖版单屏、一个视觉焦点、标题与商品互不遮挡':mode==='sku'?'正方形白底、双线边框、顶部参数、底部规格名':'',product_refs:[assignment.productIndex+1,...(assignment.secondaryProductIndex!==null?[assignment.secondaryProductIndex+1]:[])],style_ref:assignment.styleIndex===null?null:assignment.styleIndex+1,prompt:`生成“${label}”。${mainStage}${detailStage}${skuStage}参考分工：${source}。本张独立场景：${assignment.scene}。平台要求：${platform}。画面目标：${direction}。用户补充：${note}。${preserve} 围绕“${label}”只解决一个购买问题，明确主体占比、镜头角度、构图、真实场景、自然光线、少量相关道具和安全留白；${variationRule}${forbid} 只输出一张完整单场景图片，禁止拼图、分屏和多宫格。`};
+    return {label,headline:'',subheadline:'',layout_notes:mode==='main'?(mainStrategy.mode==='clean'?'纯场景无字':`为买家可见文案预留${mainStrategy.position==='top'?'顶部':'底部'}安全区`):mode==='detail'?'竖版单屏、一个视觉焦点、标题与商品互不遮挡':mode==='sku'?'正方形统一版式、买家卖点与真实数量':'',product_refs:[assignment.productIndex+1,...(assignment.secondaryProductIndex!==null?[assignment.secondaryProductIndex+1]:[])],style_ref:assignment.styleIndex===null?null:assignment.styleIndex+1,prompt:`${seriesStyle}\n${userHardConstraints(note)}\n${TEXT_FREE_BASE_RULE}\n生成“${label}”。${mainStage}${detailStage}${skuStage}参考分工：${source}。本张独立场景：${assignment.scene}。平台要求：${platform}。画面目标：${direction}。${preserve} 围绕“${label}”只解决一个购买问题，明确主体占比、镜头角度、构图、真实场景、自然光线、少量相关道具和安全留白；${variationRule}${forbid} 只输出一张完整单场景图片，禁止拼图、分屏和多宫格。`};
   });
-  return {product_name:'商品',product_summary:`已接收 ${projectProductImages(p).length} 张商品证据图和 ${projectStyleImages(p).length} 张场景参考图。在线视觉模型暂时不可用，已按${mode==='detail'?'连续详情页分镜':mode==='sku'?'精确SKU规格模板':'不同商品角度、场景和机位'}生成可编辑保真方案；请在生图前检查商品事实。`,product_identity:{category:'待确认商品',shape:'以第1张商品证据图为主基准',materials:[],colors:[],dimensions:[],components:[],identity_markers:[]},verified_facts:['已收到商品证据图','商品外观以原图为唯一依据'],unknowns:['具体尺寸、材质与功能需以商品资料核对'],selling_points:['真实外观保真','按用途拆分信息'],use_cases:mode==='sku'?['SKU规格展示']:mode==='detail'?['连续详情页转化']:['电商商品展示'],audience:[],reference_strategy:`商品证据图用于锁定商品身份；场景参考仅用于轮换构图、机位、光线和环境。${mode==='sku'?'先生成单个白底母版，再由网页精确排版数量。':offset?'第 1 张输出为白底主图。':'本套不生成白底图，全部输出名额用于不同场景。'}`,white_prompt:projectNeedsWhiteMaster(p)?white_prompt:'',series,project_mode:mode,sku_specs:mode==='sku'?normalizeProjectSkuSpecs(p.skuSpecs):[],provider:'local',model:'本地专业模板',fallback:true,offline:true};
+  return {product_name:'商品',product_summary:`已接收 ${projectProductImages(p).length} 张商品证据图和 ${projectStyleImages(p).length} 张场景参考图。已按统一视觉合同规划可编辑保真方案。`,product_identity:{category:'待确认商品',shape:'以第1张商品证据图为主基准',materials:[],colors:[],dimensions:p.skuDimensions?[p.skuDimensions]:[],components:[],identity_markers:[]},verified_facts:['已收到商品证据图','商品外观以原图为唯一依据'],unknowns:['未提供的材质与功能需以商品资料核对'],selling_points:[p.skuSellingPoint].filter(Boolean),use_cases:mode==='sku'?['SKU规格展示']:mode==='detail'?['连续详情页转化']:['电商商品展示'],audience:[],reference_strategy:`商品证据图用于锁定商品身份；场景参考仅用于构图、机位、光线和环境，整套视觉系统保持一致。`,white_prompt:projectNeedsWhiteMaster(p)?white_prompt:'',series_style:seriesStyle,series,project_mode:mode,sku_specs:mode==='sku'?normalizeProjectSkuSpecs(p.skuSpecs):[],provider:'local',model:'本地专业模板',fallback:true,offline:true};
 }
 
 function browserModelText(message){
@@ -1575,7 +1596,7 @@ function normalizeDirectToolPrompt(item,localItem,index){
   const label=String(item?.label||localItem?.label||`结果 ${index+1}`).slice(0,50);
   const copy=toolCopyForRole(label,index);
   const requestedStyle=String(item?.copy_style||item?.copyStyle||'');
-  return {label,headline:String(item?.headline||copy.headline||'').trim().slice(0,18),subheadline:String(item?.subheadline||copy.subheadline||'').trim().slice(0,32),copyStyle:['hero','pain','compare','feature','clean'].includes(requestedStyle)?requestedStyle:copy.style,prompt:String(item?.prompt||'').trim().slice(0,12000)};
+  return {label,headline:buyerFacingCopy(item?.headline,18),subheadline:buyerFacingCopy(item?.subheadline,32),copyStyle:['hero','pain','compare','feature','clean'].includes(requestedStyle)?requestedStyle:copy.style,prompt:String(item?.prompt||'').trim().slice(0,12000)};
 }
 async function directArkToolPrompts(tool){
   const local=localToolPromptPlan(tool);
@@ -1660,12 +1681,13 @@ async function projectQcCall(p,input){
 
 function applyProjectPromptPlan(p,analysis){
   p.analysis=analysis;
+  p.seriesStyle=String(analysis.series_style||seriesStyleContract(p.userNote)).slice(0,1000);
   updateProjectNameFromAnalysis(p,analysis);
   const offset=projectHasWhiteOutput(p)?1:0;
   if(offset) p.series[0].prompt=analysis.white_prompt;
   (analysis.series||[]).forEach((task,index)=>{
     const outputIndex=index+offset,shared=projectMode(p)==='main'&&mainSharedBackgroundIndex(outputIndex);
-    if(p.series[outputIndex])p.series[outputIndex]={...p.series[outputIndex],prompt:`${String(task.prompt||'').trim()}\n${PRODUCT_GEOMETRY_LOCK}\n${PRODUCT_REALISM_LOCK}\n${shared?mainSharedBackgroundRule(outputIndex):''}`.trim(),headline:String(task.headline||''),subheadline:String(task.subheadline||''),layout_notes:String(task.layout_notes||''),product_refs:Array.isArray(task.product_refs)?task.product_refs:[],style_ref:shared&&projectStyleImages(p).length?1:task.style_ref||null};
+    if(p.series[outputIndex])p.series[outputIndex]={...p.series[outputIndex],prompt:`${p.seriesStyle}\n${userHardConstraints(p.userNote)}\n${TEXT_FREE_BASE_RULE}\n${String(task.prompt||'').trim()}\n${PRODUCT_GEOMETRY_LOCK}\n${PRODUCT_REALISM_LOCK}\n${shared?mainSharedBackgroundRule(outputIndex):''}`.trim(),headline:buyerFacingCopy(task.headline,40),subheadline:buyerFacingCopy(task.subheadline,72),layout_notes:String(task.layout_notes||''),product_refs:Array.isArray(task.product_refs)?task.product_refs:[],style_ref:shared&&projectStyleImages(p).length?1:task.style_ref||null};
   });
   if(p.series.some(item=>!item.prompt)) throw new Error('提示词数量不完整，请重新规划');
 }
@@ -1679,9 +1701,9 @@ async function generateOneTask(p,task,index){
     const aspect=outputAspect(p,index);
     const context=projectGenerationContext(p,index),refs=context.refs;
     const providerLock=projectImageProvider(p)==='seedream'?`\n${SEEDREAM_REFERENCE_LOCK}`:'';
-    const generationPrompt=`${task.prompt}\n\n${context.instruction}${providerLock}`;
+    const generationPrompt=`${p.seriesStyle||seriesStyleContract(p.userNote)}\n${userHardConstraints(p.userNote)}\n${TEXT_FREE_BASE_RULE}\n${task.prompt}\n\n${context.instruction}${providerLock}`;
     item.referenceRecipe=context.labels;
-    const imgResp=await projectImageCall(p,'/api/series-image',{prompt:generationPrompt,whiteImageBase64:p.whiteImage,referenceImagesBase64s:refs,aspect,...modelOptions(p)},refs,aspect);
+    const imgResp=await projectImageCall(p,'/api/series-image',{prompt:generationPrompt,userNote:p.userNote,whiteImageBase64:p.whiteImage,referenceImagesBase64s:refs,aspect,...modelOptions(p)},refs,aspect);
     item.image=imgResp.image; item.model=imgResp.model; item.provider=imgResp.provider; item.fallback=Boolean(imgResp.fallback); item.fallbackFrom=imgResp.fallbackFrom||''; item.status='done';
     if(imgResp.fallback) toast(`图${index+1}已从${imgResp.fallbackFrom||imageProviderLabel(projectImageProvider(p))}自动切换到${imageProviderLabel(imgResp.provider)}`,'warn');
     p.phase='正在质检第 '+(index+1)+' 张：'+item.label;
@@ -1695,7 +1717,7 @@ async function generateOneTask(p,task,index){
         const correction=(qc.correction||qc.summary||'恢复原图主体结构，修复边缘重影、悬浮、穿插、透视错位并重建真实接触阴影').slice(0,300);
         const redoPrompt=generationPrompt+'\n上一次结果已被主体保真检查拒绝。必须逐项修正：'+correction+'\n这是纠错重做，不允许发挥创意；若场景会造成穿模，请删除冲突道具或人物并简化场景，完整保留原商品。';
         const retryRefs=projectImageProvider(p)==='seedream'?(context.productRefs.length?context.productRefs:projectProductImages(p).slice(0,2)):refs;
-        const redoResp=await projectImageCall(p,'/api/series-image',{prompt:redoPrompt,whiteImageBase64:p.whiteImage,referenceImagesBase64s:retryRefs,aspect,...modelOptions(p)},retryRefs,aspect);
+        const redoResp=await projectImageCall(p,'/api/series-image',{prompt:`${p.seriesStyle||seriesStyleContract(p.userNote)}\n${userHardConstraints(p.userNote)}\n${TEXT_FREE_BASE_RULE}\n${redoPrompt}`,userNote:p.userNote,whiteImageBase64:p.whiteImage,referenceImagesBase64s:retryRefs,aspect,...modelOptions(p)},retryRefs,aspect);
         item.image=redoResp.image; item.model=redoResp.model+'-redo'; item.provider=redoResp.provider; item.fallback=Boolean(redoResp.fallback); item.fallbackFrom=redoResp.fallbackFrom||'';
         if(redoResp.fallback) toast(`图${index+1}重做时已自动切换到${imageProviderLabel(redoResp.provider)}`,'warn');
         const qc2=await projectQcCall(p,{productImagesBase64s:projectProductImages(p),whiteImageBase64:p.whiteImage,generatedImageBase64:item.image,taskLabel:item.label,platform:p.platform,imageProvider:projectImageProvider(p),textProvider:projectTextProvider(p),openaiTextModel:state.settings.openaiTextModel||undefined,visionModel:state.settings.visionModel||undefined,geminiTextModel:state.settings.geminiTextModel||undefined,qwenVisionModel:state.settings.qwenVisionModel||undefined,qwenEndpoint:state.settings.qwenEndpoint||undefined});
@@ -1747,9 +1769,8 @@ function canvasTextLines(ctx,text,maxWidth,maxLines=2){
 }
 async function composeToolCanvas(imageSource,item,index,aspect){
   const style=String(item?.copyStyle||toolCopyForRole(item?.label,index).style||'clean');
-  const fallback=toolCopyForRole(item?.label,index);
-  const headline=String(item?.headline||fallback.headline||'').trim();
-  const subheadline=String(item?.subheadline||fallback.subheadline||'').trim();
+  const headline=buyerFacingCopy(item?.headline,18);
+  const subheadline=buyerFacingCopy(item?.subheadline,32);
   if(toolSession.copyMode==='none'||style==='clean'||!headline)return imageSource;
   const source=await cacheImageSource(imageSource),img=await loadCanvasImage(source);
   const width=aspect==='wide'?1200:800,height=aspect==='vertical'?1200:aspect==='wide'?675:800;
@@ -1761,13 +1782,7 @@ async function composeToolCanvas(imageSource,item,index,aspect){
   if(bottom){gradient.addColorStop(0,'rgba(12,17,24,0)');gradient.addColorStop(.34,'rgba(12,17,24,.62)');gradient.addColorStop(1,'rgba(12,17,24,.88)');}
   else{gradient.addColorStop(0,'rgba(255,255,255,.94)');gradient.addColorStop(.78,'rgba(255,255,255,.78)');gradient.addColorStop(1,'rgba(255,255,255,0)');}
   ctx.fillStyle=gradient;ctx.fillRect(0,panelY,width,panelH);
-  const x=Math.round(width*.07),maxWidth=Math.round(width*.86),badgeY=panelY+Math.round(panelH*.16);
-  const badge=style==='pain'?'使用痛点':style==='compare'?'前后对比':style==='hero'?'核心卖点':'特点说明';
-  ctx.font=`600 ${Math.max(18,Math.round(width*.026))}px system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif`;
-  const badgeW=Math.min(Math.round(width*.25),ctx.measureText(badge).width+Math.round(width*.05));
-  ctx.fillStyle=style==='pain'?'#e34c67':style==='compare'?'#f59e0b':'#e58ab0';canvasRoundRect(ctx,x,badgeY,badgeW,Math.round(width*.052),Math.round(width*.026));ctx.fill();
-  ctx.fillStyle='#fff';ctx.textBaseline='middle';ctx.fillText(badge,x+Math.round(width*.022),badgeY+Math.round(width*.026));
-  const titleY=badgeY+Math.round(width*.084);ctx.textBaseline='top';ctx.fillStyle=bottom?'#fff':'#172033';
+  const x=Math.round(width*.07),maxWidth=Math.round(width*.86),titleY=panelY+Math.round(panelH*.28);ctx.textBaseline='top';ctx.fillStyle=bottom?'#fff':'#172033';
   const titleSize=fitCanvasText(ctx,headline,maxWidth,Math.round(width*.068),Math.round(width*.038));ctx.font=`800 ${titleSize}px system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif`;
   ctx.fillText(headline,x,titleY);
   if(subheadline){ctx.fillStyle=bottom?'rgba(255,255,255,.9)':'#4b5563';ctx.font=`500 ${Math.max(22,Math.round(width*.032))}px system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif`;canvasTextLines(ctx,subheadline,maxWidth,2).forEach((line,lineIndex)=>ctx.fillText(line,x,titleY+titleSize+Math.round(width*.026)+lineIndex*Math.round(width*.046)));}
@@ -1789,10 +1804,11 @@ async function composeMainCanvas(imageSource,item,index,p,suppressText=false){
   const strategy=MAIN_TEXT_STRATEGY[index]||MAIN_TEXT_STRATEGY[0];
   if(suppressText||strategy.mode==='clean')return canvasDataUrlUnderLimit(canvas);
   const scale=width/1024,virtualHeight=height/scale;ctx.save();ctx.scale(scale,scale);
-  const headline=String(item.headline||item.label||MAIN_SCENE_OUTPUT_LABELS[index]||'商品卖点').trim();
-  const subheadline=String(item.subheadline||'用真实画面说明商品价值').trim();
+  const headline=buyerFacingCopy(item.headline,36);
+  const subheadline=buyerFacingCopy(item.subheadline,56);
+  if(!headline){ctx.restore();return canvasDataUrlUnderLimit(canvas);}
   if(strategy.mode==='minimal'){
-    const label=String(headline||strategy.badge).slice(0,12);
+    const label=headline.slice(0,12);
     ctx.font='700 28px system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
     const pillW=Math.min(420,Math.max(180,ctx.measureText(label).width+98)),pillH=72;
     const pillX=strategy.position==='top'?54:1024-pillW-54,pillY=strategy.position==='top'?54:virtualHeight-pillH-54;
@@ -1807,14 +1823,11 @@ async function composeMainCanvas(imageSource,item,index,p,suppressText=false){
   if(top){gradient.addColorStop(0,'rgba(255,253,250,.98)');gradient.addColorStop(1,'rgba(255,250,247,.62)');}
   else{gradient.addColorStop(0,'rgba(255,250,247,.60)');gradient.addColorStop(1,'rgba(255,253,250,.98)');}
   ctx.fillStyle=gradient;ctx.fillRect(0,panelY,1024,panelH);
-  ctx.fillStyle=strategy.mode==='hero'?'#ffd45a':'#f2a6c2';canvasRoundRect(ctx,66,panelY+40,148,46,23);ctx.fill();
-  ctx.textAlign='center';ctx.fillStyle='#3c3234';ctx.font='700 20px system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif';ctx.fillText(strategy.badge,140,panelY+71);
   ctx.textAlign='left';ctx.fillStyle='#282426';fitCanvasText(ctx,headline,884,strategy.mode==='hero'?66:54,38);
-  const titleLines=canvasTextLines(ctx,headline,884,2),titleY=panelY+(strategy.mode==='hero'?142:132);
+  const titleLines=canvasTextLines(ctx,headline,884,2),titleY=panelY+(strategy.mode==='hero'?94:88);
   titleLines.forEach((line,lineIndex)=>ctx.fillText(line,66,titleY+lineIndex*(strategy.mode==='hero'?72:62)));
   ctx.font='500 27px system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif';ctx.fillStyle='#5f5559';
   const subtitleY=titleY+titleLines.length*(strategy.mode==='hero'?72:62)+6;canvasTextLines(ctx,subheadline,860,1).forEach((line,lineIndex)=>ctx.fillText(line,66,subtitleY+lineIndex*36));
-  ctx.textAlign='right';ctx.font='700 20px system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif';ctx.fillStyle='#a07a88';ctx.fillText(`${String(index+1).padStart(2,'0')} / 06`,952,panelY+70);
   ctx.restore();return canvasDataUrlUnderLimit(canvas);
 }
 async function composeDetailCanvas(imageSource,item,index,p){
@@ -1827,45 +1840,47 @@ async function composeDetailCanvas(imageSource,item,index,p){
   else{gradient.addColorStop(0,'rgba(255,255,255,.70)');gradient.addColorStop(1,'rgba(255,255,255,.98)');}
   ctx.fillStyle=gradient;ctx.fillRect(0,panelY,1024,panelH);
   ctx.fillStyle='#d86b94';ctx.fillRect(74,panelY+64,72,8);
-  const headline=String(item.headline||item.label||DETAIL_OUTPUT_LABELS[index]||'商品详情').trim();
-  const subheadline=String(item.subheadline||'用真实画面说明这一项商品价值').trim();
+  const headline=buyerFacingCopy(item.headline,40);
+  const subheadline=buyerFacingCopy(item.subheadline,72);
+  if(!headline)return canvasDataUrlUnderLimit(canvas);
   ctx.textAlign='left';ctx.fillStyle='#2f2c2d';fitCanvasText(ctx,headline,860,66,42);
   const titleLines=canvasTextLines(ctx,headline,860,2);titleLines.forEach((line,lineIndex)=>ctx.fillText(line,74,panelY+142+lineIndex*74));
   ctx.font='400 30px system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif';ctx.fillStyle='#645d60';
   const subtitleY=panelY+142+titleLines.length*74+10;canvasTextLines(ctx,subheadline,850,2).forEach((line,lineIndex)=>ctx.fillText(line,74,subtitleY+lineIndex*42));
-  ctx.textAlign='right';ctx.font='600 22px system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif';ctx.fillStyle='#a07a88';ctx.fillText(`DETAIL ${String(index+1).padStart(2,'0')} / ${String(projectOutputCount(p)).padStart(2,'0')}`,950,panelY+78);
   return canvasDataUrlUnderLimit(canvas);
 }
-async function composeSkuCanvas(masterSource,spec,analysis,index){
+function skuVisualTheme(p){const note=String(p?.userNote||''),chosen=p?.skuBackground||'auto',mode=chosen==='auto'?(/黑色背景|纯黑背景|深黑背景/.test(note)?'black':/暖米|奶油|米色背景/.test(note)?'warm':/灰色背景|浅灰背景/.test(note)?'gray':'white'):chosen;return mode==='black'?{mode,bg:'#111315',card:'#1d2023',text:'#f8fafc',sub:'#cbd5e1',border:'#4b5563'}:mode==='warm'?{mode,bg:'#fff7eb',card:'#fffdf8',text:'#362b23',sub:'#77675c',border:'#ead7bd'}:mode==='gray'?{mode,bg:'#eef1f4',card:'#f9fafb',text:'#252a31',sub:'#66707c',border:'#ccd3da'}:{mode:'white',bg:'#ffffff',card:'#fffdfb',text:'#292522',sub:'#665d58',border:'#ded5d0'};}
+function skuMasterPrompt(p){const theme=skuVisualTheme(p),background={black:'纯黑或深炭黑摄影背景',warm:'明亮暖米色摄影背景',gray:'干净浅灰摄影背景',white:'纯白摄影背景'}[theme.mode];return `${p.seriesStyle||seriesStyleContract(p.userNote)}\n${userHardConstraints(p.userNote)}\n${TEXT_FREE_BASE_RULE}\n生成一个单件商品保真母版，${background}，商品居中完整、真实接触阴影、边缘清晰，严格保持商品长宽高比例、透明度、结构、颜色与材质。${p.skuDimensions?`真实商品尺寸资料：${p.skuDimensions}；尺寸仅用于比例理解，禁止把尺寸文字画进图片。`:''}`;}
+async function composeSkuCanvas(masterSource,spec,analysis,index,p,overrideNote=''){
   const source=await cacheImageSource(masterSource),img=await loadCanvasImage(source);
   const canvas=document.createElement('canvas');canvas.width=1080;canvas.height=1080;const ctx=canvas.getContext('2d');
-  ctx.fillStyle='#fffdfb';ctx.fillRect(0,0,1080,1080);ctx.strokeStyle='#5a4a43';ctx.lineWidth=5;canvasRoundRect(ctx,34,34,1012,1012,30);ctx.stroke();ctx.lineWidth=2;canvasRoundRect(ctx,47,47,986,986,24);ctx.stroke();
-  const identity=analysis?.product_identity||{},dimensions=analysisList(identity.dimensions).join(' × '),productName=projectProductName(analysis);
-  ctx.fillStyle='#292522';ctx.textAlign='left';ctx.font='700 28px system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif';ctx.fillText(dimensions?`单个尺寸：${dimensions}`:'单个规格：请核对商品资料',78,104);
-  ctx.font='500 21px system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif';ctx.fillStyle='#665d58';ctx.fillText('统一商品母版 · 精确数量排版 · 图片可逐个核对',78,141);
+  const theme=skuVisualTheme({...p,userNote:`${p?.userNote||''} ${overrideNote}`});ctx.fillStyle=theme.bg;ctx.fillRect(0,0,1080,1080);ctx.strokeStyle=theme.border;ctx.lineWidth=4;canvasRoundRect(ctx,34,34,1012,1012,30);ctx.stroke();
+  const identity=analysis?.product_identity||{},dimensions=String(p?.skuDimensions||analysisList(identity.dimensions).join(' × ')).trim(),productName=projectProductName(analysis);
+  const verifiedSellingPoint=buyerFacingCopy(overrideNote,42)||buyerFacingCopy(p?.skuSellingPoint,42)||(analysisList(analysis?.selling_points).map(value=>buyerFacingCopy(value,42)).find(Boolean)||'');
+  ctx.fillStyle=theme.text;ctx.textAlign='left';ctx.font='800 36px system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif';ctx.fillText(verifiedSellingPoint||`${spec.quantity}个装，更好满足日常所需`,78,108);
+  if(dimensions){ctx.font='500 22px system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif';ctx.fillStyle=theme.sub;ctx.fillText(`商品尺寸 ${dimensions}`,78,148);}
   if(spec.recommended){ctx.fillStyle='#ff8b25';canvasRoundRect(ctx,838,76,158,54,27);ctx.fill();ctx.fillStyle='#fff';ctx.textAlign='center';ctx.font='700 24px system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif';ctx.fillText('推荐款',917,111);}
   const quantity=Math.max(1,Math.min(20,Number(spec.quantity)||1));
   const cols=quantity<=2?quantity:quantity<=4?2:quantity<=9?3:quantity<=12?4:5,rows=Math.ceil(quantity/cols);
-  const area={x:90,y:178,w:900,h:675},gap=12,cellW=(area.w-gap*(cols-1))/cols,cellH=(area.h-gap*(rows-1))/rows;
+  const area={x:90,y:190,w:900,h:660},gap=12,cellW=(area.w-gap*(cols-1))/cols,cellH=(area.h-gap*(rows-1))/rows;
   for(let i=0;i<quantity;i++){
     const col=i%cols,row=Math.floor(i/cols),x=area.x+col*(cellW+gap),y=area.y+row*(cellH+gap);
-    ctx.fillStyle='#fff';canvasRoundRect(ctx,x,y,cellW,cellH,16);ctx.fill();ctx.strokeStyle='#eadfd9';ctx.lineWidth=1;ctx.stroke();drawContainedImage(ctx,img,x,y,cellW,cellH,12);
-    ctx.fillStyle='rgba(65,55,49,.82)';ctx.beginPath();ctx.arc(x+22,y+22,15,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff';ctx.textAlign='center';ctx.font='700 15px system-ui';ctx.fillText(String(i+1),x+22,y+27);
+    ctx.fillStyle=theme.card;canvasRoundRect(ctx,x,y,cellW,cellH,16);ctx.fill();ctx.strokeStyle=theme.border;ctx.lineWidth=1;ctx.stroke();drawContainedImage(ctx,img,x,y,cellW,cellH,12);
   }
-  const title=`【${quantity}个${String(spec.name||'规格装').trim()}】${productName}`;
-  ctx.textAlign='center';ctx.fillStyle='#181614';fitCanvasText(ctx,title,900,49,27);ctx.fillText(title,540,936);
-  ctx.font='500 21px system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif';ctx.fillStyle='#786e68';ctx.fillText(`SKU ${String(index+1).padStart(2,'0')} · 实际画面数量 ${quantity} 个`,540,986);
+  const title=`${quantity}个装 · ${String(spec.name||'规格装').trim()}`;
+  ctx.textAlign='center';ctx.fillStyle=theme.text;fitCanvasText(ctx,title,900,52,28);ctx.fillText(title,540,936);
+  ctx.font='500 23px system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif';ctx.fillStyle=theme.sub;ctx.fillText(productName,540,982);
   return canvas.toDataURL('image/png',.96);
 }
 async function generateSkuProject(p){
   const specs=normalizeProjectSkuSpecs(p.skuSpecs),labels=projectOutputLabels(p),whiteRefs=projectProductImages(p).slice(0,6);
-  p.phase='正在生成SKU统一白底商品母版';renderMain();renderProjectList();
-  const whitePrompt=`${p.analysis.white_prompt}\n${PRODUCT_GEOMETRY_LOCK}\n${PRODUCT_REALISM_LOCK}`.trim();
-  const whiteResp=await projectImageCall(p,'/api/white-image',{prompt:whitePrompt,imageBase64:p.image,imageBase64s:whiteRefs,aspect:'square',...modelOptions(p)},whiteRefs,'square');
+  p.phase='正在生成SKU统一商品母版';renderMain();renderProjectList();
+  const whitePrompt=`${skuMasterPrompt(p)}\n${PRODUCT_GEOMETRY_LOCK}\n${PRODUCT_REALISM_LOCK}`.trim();
+  const whiteResp=await projectImageCall(p,'/api/white-image',{prompt:whitePrompt,userNote:p.userNote,imageBase64:p.image,imageBase64s:whiteRefs,aspect:'square',...modelOptions(p)},whiteRefs,'square');
   p.whiteImage=await cacheImageSource(whiteResp.image);
   for(let index=0;index<specs.length;index++){
     p.series[index].status='running';p.phase=`正在精确排版第 ${index+1}/${specs.length} 个 SKU：${labels[index]}`;renderMain();renderProjectList();
-    p.series[index]={...p.series[index],image:await composeSkuCanvas(p.whiteImage,specs[index],p.analysis,index),status:'done',model:'SKU确定性排版',provider:'local',fallback:false,referenceRecipe:['统一白底商品母版',`精确复制 ${specs[index].quantity} 个`]};
+    p.series[index]={...p.series[index],image:await composeSkuCanvas(p.whiteImage,specs[index],p.analysis,index,p),status:'done',model:'SKU确定性排版',provider:'local',fallback:false,referenceRecipe:['统一商品母版',`精确复制 ${specs[index].quantity} 个`]};
     p.qcResults[index]={pass:true,score:100,summary:`已按规格精确排版 ${specs[index].quantity} 个商品，并保留统一模板`,correction:''};
   }
 }
@@ -1875,13 +1890,13 @@ async function planProjectPrompts(){
   if(projectMode(p)==='main'&&p.direction==='reference'&&!projectStyleImages(p).length){toast('参考图复刻至少需要上传 1 张场景 / 风格参考图','warn');return;}
   if(!hasProjectTextKey(p)){ toast('请先配置所选文字模型的 API Key','warn'); showSettings(); return; }
   const labels=projectOutputLabels(p);
-  p.series=labels.map((label,index)=>({id:index,label,prompt:'',image:'',status:'pending',model:'',provider:'',fallback:false,fallbackFrom:''}));
+  p.series=labels.map((label,index)=>({id:index,label,prompt:'',image:'',status:'pending',model:'',provider:'',fallback:false,fallbackFrom:'',redoPrompt:'',appliedRedoPrompt:''}));
   p.qcResults=[]; p.status='running'; p.phase=`正在分析商品身份，并规划${projectMode(p)==='detail'?'详情页分镜':projectMode(p)==='sku'?'SKU规格模板':'商品套图'}`; p.whiteImage=''; p.analysis=null;
   renderMain(); renderProjectList();
   try{
     toast('正在先理解多张商品与场景素材，再逐张规划提示词...','');
     const productImages=projectProductImages(p),styleImages=projectStyleImages(p);
-    const analysis=await apiCall('/api/analyze',{imageBase64:p.image,referenceImageBase64:projectMode(p)==='main'&&p.direction==='reference'?p.referenceImage||undefined:undefined,productImagesBase64s:productImages,styleImagesBase64s:styleImages,projectMode:projectMode(p),mainAspect:p.mainAspect||'square',detailCount:p.detailCount,skuSpecs:normalizeProjectSkuSpecs(p.skuSpecs),platform:p.platform,suiteType:p.suiteType,includeWhite:projectNeedsWhiteMaster(p),direction:p.direction,userNote:p.userNote,textProvider:projectTextProvider(p),imageProvider:projectImageProvider(p),openaiTextModel:state.settings.openaiTextModel||undefined,visionModel:state.settings.visionModel||undefined,geminiTextModel:state.settings.geminiTextModel||undefined,qwenTextModel:state.settings.qwenTextModel||undefined,qwenVisionModel:state.settings.qwenVisionModel||undefined,qwenEndpoint:state.settings.qwenEndpoint||undefined});
+    const analysis=await apiCall('/api/analyze',{imageBase64:p.image,referenceImageBase64:projectMode(p)==='main'&&p.direction==='reference'?p.referenceImage||undefined:undefined,productImagesBase64s:productImages,styleImagesBase64s:styleImages,projectMode:projectMode(p),mainAspect:p.mainAspect||'square',detailCount:p.detailCount,skuSpecs:normalizeProjectSkuSpecs(p.skuSpecs),skuBackground:p.skuBackground,skuDimensions:p.skuDimensions,skuSellingPoint:p.skuSellingPoint,platform:p.platform,suiteType:p.suiteType,includeWhite:projectNeedsWhiteMaster(p),direction:p.direction,userNote:p.userNote,textProvider:projectTextProvider(p),imageProvider:projectImageProvider(p),openaiTextModel:state.settings.openaiTextModel||undefined,visionModel:state.settings.visionModel||undefined,geminiTextModel:state.settings.geminiTextModel||undefined,qwenTextModel:state.settings.qwenTextModel||undefined,qwenVisionModel:state.settings.qwenVisionModel||undefined,qwenEndpoint:state.settings.qwenEndpoint||undefined});
     applyProjectPromptPlan(p,analysis);
     p.status='idle'; p.phase='整套提示词已生成，等待检查与确认';
     renderMain(); renderProjectList(); toast(analysis.fallback?`原文字模型未通过，已自动改用${textProviderLabel(analysis.provider)}完成提示词`:'提示词已生成，请逐条检查后再生图',analysis.fallback?'warn':'success');
@@ -1944,7 +1959,7 @@ async function generateProjectImages(){
       const whiteRefs=projectProductImages(p).slice(0,6);
       const mainAspect=outputAspect(p);
       const whitePrompt=`${p.analysis.white_prompt}\n${PRODUCT_GEOMETRY_LOCK}\n${PRODUCT_REALISM_LOCK}`.trim();
-      const whiteResp=await projectImageCall(p,'/api/white-image',{prompt:whitePrompt,imageBase64:p.image,imageBase64s:whiteRefs,aspect:mainAspect,...modelOptions(p)},whiteRefs,mainAspect);
+      const whiteResp=await projectImageCall(p,'/api/white-image',{prompt:whitePrompt,userNote:p.userNote,imageBase64:p.image,imageBase64s:whiteRefs,aspect:mainAspect,...modelOptions(p)},whiteRefs,mainAspect);
       p.whiteImage=whiteResp.image;
       if(whiteResp.fallback) toast(`白底主图已从${whiteResp.fallbackFrom||imageProviderLabel(projectImageProvider(p))}自动切换到${imageProviderLabel(whiteResp.provider)}`,'warn');
       p.series[0]={...p.series[0],prompt:p.analysis.white_prompt,image:await composeMainCanvas(whiteResp.image,p.series[0],0,p,true),status:'done',model:(whiteResp.model||projectImageProvider(p))+' + 主图规格校正',provider:whiteResp.provider||projectImageProvider(p),fallback:Boolean(whiteResp.fallback),fallbackFrom:whiteResp.fallbackFrom||''};
@@ -1976,26 +1991,26 @@ async function regenSingle(idx){
   if(projectNeedsWhiteMaster(p)&&!p.whiteImage&&!(projectHasWhiteOutput(p)&&idx===0)){toast('请先生成白底商品母版，再单独生成当前图片','warn');return;}
   const original={...item},originalQc=p.qcResults[idx]||null,originalWhite=p.whiteImage;
   const basePrompt=String(item.prompt||'').trim(),extra=String(item.redoPrompt||'').trim();
-  const singlePrompt=`${basePrompt}${extra?`\n\n本次只重做当前这一张，补充要求：${extra}`:'\n\n本次只重做当前这一张，在保持原方案的基础上优化真实感、主体完整度和画面表达。'}\n只允许修改当前画面，不得影响或要求重做本套其他图片；严格保持原商品主体。`;
+  const singlePrompt=`本次重做最高优先级要求：${extra||'优化真实感、主体完整度和画面表达'}\n${userHardConstraints(p.userNote)}\n${p.seriesStyle||seriesStyleContract(p.userNote)}\n${TEXT_FREE_BASE_RULE}\n以下原方案仅作次级上下文，不得覆盖本次重做要求：${basePrompt}\n只允许修改当前画面，不得影响本套其他图片；严格保持原商品主体。`;
   if(projectHasWhiteOutput(p)&&idx===0){
     item.status='running';p.phase='正在只重做第 1 张白底商品主图';renderMain();renderProjectList();
     try{
       const refs=projectProductImages(p).slice(0,6),aspect=outputAspect(p);
-      const response=await projectImageCall(p,'/api/white-image',{prompt:`${singlePrompt}\n${PRODUCT_GEOMETRY_LOCK}\n${PRODUCT_REALISM_LOCK}`,imageBase64:p.image,imageBase64s:refs,aspect,...modelOptions(p)},refs,aspect);
+      const response=await projectImageCall(p,'/api/white-image',{prompt:`${singlePrompt}\n${PRODUCT_GEOMETRY_LOCK}\n${PRODUCT_REALISM_LOCK}`,userNote:p.userNote,imageBase64:p.image,imageBase64s:refs,aspect,...modelOptions(p)},refs,aspect);
       const qc=await projectQcCall(p,{productImagesBase64s:refs,whiteImageBase64:originalWhite||undefined,generatedImageBase64:response.image,taskLabel:item.label,platform:p.platform,imageProvider:projectImageProvider(p),textProvider:projectTextProvider(p),openaiTextModel:state.settings.openaiTextModel||undefined,visionModel:state.settings.visionModel||undefined,geminiTextModel:state.settings.geminiTextModel||undefined,qwenVisionModel:state.settings.qwenVisionModel||undefined,qwenEndpoint:state.settings.qwenEndpoint||undefined});
       if(!qc.pass)throw new Error(`新图主体保真质检未通过（${qc.score||0}分）`);
-      p.whiteImage=response.image;p.series[idx]={...item,prompt:basePrompt,redoPrompt:extra,image:await composeMainCanvas(response.image,item,idx,p,true),status:'done',model:(response.model||projectImageProvider(p))+' + 单张重做',provider:response.provider||projectImageProvider(p),fallback:false,fallbackFrom:''};p.qcResults[idx]={...qc,redone:true};
+      p.whiteImage=response.image;p.series[idx]={...item,prompt:basePrompt,redoPrompt:extra,appliedRedoPrompt:extra,image:await composeMainCanvas(response.image,item,idx,p,true),status:'done',model:(response.model||projectImageProvider(p))+' + 单张重做',provider:response.provider||projectImageProvider(p),fallback:false,fallbackFrom:''};p.qcResults[idx]={...qc,redone:true};
       toast('第1张已单独重做完成，其他图片未消耗','success');
     }catch(error){p.whiteImage=originalWhite;p.series[idx]={...original,status:original.image?'done':'error'};p.qcResults[idx]=originalQc;toast((original.image?'新图未通过，已保留原图：':'单张重做失败：')+error.message,'error');}
     p.status=p.series.filter(entry=>entry.image).length===projectOutputCount(p)?'done':'error';p.phase=p.status==='done'?'六张主图完整':'部分图片未完成，可只补做缺少的图片';renderMain();renderProjectList();return;
   }
   if(projectMode(p)==='sku'){
     item.status='running';renderMain();
-    try{const spec=normalizeProjectSkuSpecs(p.skuSpecs)[idx];item.image=await composeSkuCanvas(p.whiteImage,spec,p.analysis,idx);item.status='done';item.model='SKU确定性排版';item.redoPrompt=extra;p.qcResults[idx]={pass:true,score:100,summary:`已重新精确排版 ${spec.quantity} 个商品`,correction:''};toast('SKU '+(idx+1)+'重新排版完成','success');}catch(error){p.series[idx]={...original,status:original.image?'done':'error'};p.qcResults[idx]=originalQc;toast((original.image?'重排失败，已保留原图：':'SKU重做失败：')+error.message,'error');}renderMain();renderProjectList();return;
+    try{const spec=normalizeProjectSkuSpecs(p.skuSpecs)[idx];item.image=await composeSkuCanvas(p.whiteImage,spec,p.analysis,idx,p,extra);item.status='done';item.model='SKU确定性排版';item.redoPrompt=extra;item.appliedRedoPrompt=extra;p.qcResults[idx]={pass:true,score:100,summary:`已按本次补充要求重新排版 ${spec.quantity} 个商品`,correction:''};toast('当前规格图重新排版完成','success');}catch(error){p.series[idx]={...original,status:original.image?'done':'error'};p.qcResults[idx]=originalQc;toast((original.image?'重排失败，已保留原图：':'规格图重做失败：')+error.message,'error');}renderMain();renderProjectList();return;
   }
   item.status='running';item.image='';p.qcResults[idx]=null;p.phase='正在只重做第 '+(idx+1)+' 张';renderMain();renderProjectList();
   await generateOneTask(p,{label:item.label,prompt:singlePrompt},idx);
-  if(item.image){item.prompt=basePrompt;item.redoPrompt=extra;p.status=p.series.filter(entry=>entry.image).length===projectOutputCount(p)?'done':'error';p.phase=p.status==='done'?'整套图片已生成并完成质检':'部分图片未完成，可只补做缺少的图片';toast('第'+(idx+1)+'张已单独重做，其他图片未消耗','success');}
+  if(item.image){item.prompt=basePrompt;item.redoPrompt=extra;item.appliedRedoPrompt=extra;p.status=p.series.filter(entry=>entry.image).length===projectOutputCount(p)?'done':'error';p.phase=p.status==='done'?'整套图片已生成并完成质检':'部分图片未完成，可只补做缺少的图片';toast('第'+(idx+1)+'张已单独重做，其他图片未消耗','success');}
   else{p.series[idx]={...original,status:original.image?'done':'error'};p.qcResults[idx]=originalQc;p.status=p.series.filter(entry=>entry.image).length===projectOutputCount(p)?'done':'error';p.phase=original.image?'新图未通过，已保留原图':'当前图片仍未完成，可修改提示词后再单独生成';toast(original.image?'新图未通过严格质检，已自动保留原图':'第'+(idx+1)+'张单独生成失败','error');}
   renderMain();renderProjectList();
 }

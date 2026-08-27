@@ -242,11 +242,13 @@ test('multi-scene prompt planning turns duplicate model output into distinct ima
   assert.equal(body.prompts.length, 4);
   assert.equal(new Set(body.prompts.map(item => item.label)).size, 4);
   assert.equal(new Set(body.prompts.map(item => item.prompt)).size, 4);
+  assert.match(body.series_style, /整套统一视觉合同/);
   assert.match(body.prompts[0].prompt, /日间居家使用/);
   assert.match(body.prompts[1].prompt, /第二空间使用/);
   assert.match(body.prompts[2].prompt, /近景互动/);
   assert.match(body.prompts[3].prompt, /远景环境关系/);
   assert.match(JSON.stringify(sentBody), /禁止拼图、分屏、多宫格/);
+  assert.match(JSON.stringify(sentBody), /只允许画面任务、商品摆位和机位按分镜变化/);
 });
 
 test('unparseable Ark responses return a useful configuration error', async (t) => {
@@ -695,6 +697,8 @@ test('quality control compares the result with original product evidence before 
   assert.equal(sentBody.input.filter(item => item.type === 'image').length, 4);
   assert.match(sentBody.input[0].text, /前 2 张是用户上传的原始商品证据图/);
   assert.match(sentBody.input[0].text, /原始商品证据图为最高事实依据/);
+  assert.match(sentBody.input[0].text, /任何可辨识汉字、字母、数字、序号、01\/06/);
+  assert.match(sentBody.input[0].text, /底图完全无字/);
 });
 
 test('Qwen endpoint validation rejects non-Aliyun hosts before fetching', async (t) => {

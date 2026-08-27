@@ -241,3 +241,48 @@ test('encrypted settings import restores Qwen configuration too', () => {
   assert.match(html, /'qwenKey','qwenEndpoint'/);
   assert.match(html, /'qwenTextModel','qwenVisionModel','qwenImageModel'/);
 });
+
+test('multi-image jobs share one visual system while keeping scene roles distinct', () => {
+  assert.match(html, /function seriesStyleContract\(note/);
+  assert.match(html, /整套统一视觉合同/);
+  assert.match(html, /只允许画面任务、商品摆位和机位按分镜变化/);
+  assert.match(html, /toolSession\.seriesStyle=data\.series_style/);
+  assert.match(html, /p\.seriesStyle=String\(analysis\.series_style/);
+});
+
+test('latest user constraints are enforced for first generation and single-image redo', () => {
+  assert.match(html, /function userHardConstraints\(note/);
+  assert.match(html, /用户最高优先级硬性要求/);
+  assert.match(html, /这些内容是制作指令，严禁作为画面文字/);
+  assert.match(html, /本次重做最高优先级要求/);
+  assert.match(html, /appliedRedoPrompt:extra/);
+  assert.match(html, /userNote:p\.userNote/);
+  assert.match(html, /userNote:toolSession\.note/);
+});
+
+test('finished images use buyer-facing copy and never expose workflow labels or sequence counters', () => {
+  assert.match(html, /function buyerFacingCopy\(value/);
+  assert.match(html, /买家可见文案/);
+  assert.doesNotMatch(html, /ctx\.fillText\(`DETAIL /);
+  assert.doesNotMatch(html, /ctx\.fillText\(`\$\{String\(index\+1\)\.padStart\(2,'0'\)\} \/ 06`/);
+  assert.doesNotMatch(html, /统一商品母版 · 精确数量排版 · 图片可逐个核对/);
+  assert.doesNotMatch(html, /单个规格：请核对商品资料/);
+});
+
+test('SKU cards respect chosen background, exact dimensions and buyer selling points', () => {
+  assert.match(html, /skuBackground:'auto'/);
+  assert.match(html, /skuDimensions:''/);
+  assert.match(html, /skuSellingPoint:''/);
+  assert.match(html, /function skuVisualTheme\(p\)/);
+  assert.match(html, /黑色背景/);
+  assert.match(html, /买家主卖点/);
+  assert.match(html, /商品长宽高/);
+  assert.match(html, /composeSkuCanvas\(p\.whiteImage,specs\[index\],p\.analysis,index,p\)/);
+});
+
+test('generated thumbnails open a focused preview window', () => {
+  assert.match(html, /id="image-preview-modal"/);
+  assert.match(html, /function openImagePreview\(src,title/);
+  assert.match(html, /function closeImagePreview\(\)/);
+  assert.match(html, /onclick="openImagePreview\('/);
+});
