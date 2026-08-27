@@ -285,6 +285,18 @@ test('the text model writes buyer copy automatically before image generation', (
   assert.doesNotMatch(html, /item\?\.headline\|\|local\.series\[index\]\?\.headline\|\|roles\[index\]/);
 });
 
+test('single-image redo controls the webpage copy layer as well as the image model', () => {
+  assert.match(html, /function projectCopyPresentation\(item\)/);
+  assert.match(html, /保留文字、去掉文字背景/);
+  assert.match(html, /presentation==='none'/);
+  assert.match(html, /const removeCopy=!removesBackground&&/);
+  assert.match(html, /return removeCopy\?'none':'transparent'/);
+  assert.match(html, /const transparent=true/);
+  assert.doesNotMatch(html, /rgba\(255,253,250,\.98\)/);
+  assert.match(html, /ctx\.shadowBlur=12/);
+  assert.match(html, /buyerFacingCopy\(item\?\.headline,16\)/);
+});
+
 test('finished images use buyer-facing copy and never expose workflow labels or sequence counters', () => {
   assert.match(html, /function buyerFacingCopy\(value/);
   assert.match(html, /买家可见文案/);
@@ -304,6 +316,10 @@ test('SKU cards respect chosen background, exact dimensions and buyer selling po
   assert.match(html, /买家主卖点/);
   assert.match(html, /商品长宽高/);
   assert.match(html, /composeSkuCanvas\(p\.whiteImage,specs\[index\],p\.analysis,index,p\)/);
+  assert.match(html, /多件装组合/);
+  assert.match(html, /globalCompositeOperation='multiply'/);
+  assert.match(html, /const stage=\{x:52,y:226,w:976,h:610\}/);
+  assert.doesNotMatch(html, /canvasRoundRect\(ctx,34,34,1012,1012,30\)/);
 });
 
 test('generated thumbnails open a focused preview window', () => {

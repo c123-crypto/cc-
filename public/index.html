@@ -329,11 +329,17 @@ const INTERNAL_COPY_RE=/(一眼看懂核心卖点|真实商品|清楚表达购�
 function buyerFacingCopy(value,max=42){const text=String(value||'').replace(/^[【\[]?(核心卖点|使用痛点|前后对比|购买理由|第\s*\d+\s*张)[】\]：:\s-]*/,'').trim();return !text||INTERNAL_COPY_RE.test(text)?'':text.slice(0,max);}
 function userHardConstraints(note){const value=String(note||'').trim();return value?`用户最高优先级硬性要求：${value}\n这些内容是制作指令，严禁作为画面文字；背景、颜色、尺寸、数量和禁用项必须逐条执行。`:'用户未补充额外要求；不得自行添加文字、数字或序号。';}
 function redoPriorityRule(value){const text=String(value||'').trim()||'优化主体真实感、构图与画面表达';return `最终覆盖指令（最高优先级）：${text}\n这条指令排在全部旧方案之后并覆盖所有冲突内容。凡出现“去掉、不要、移除、删除、禁止、改成、只保留”等要求，指定元素必须从最终画面彻底消失或按要求替换，不能弱化、遮挡、保留局部或沿用旧方案。执行完本条后只输出一张完整图片。`;}
+function projectCopyPresentation(item){
+  const text=String(item?.redoPrompt||item?.appliedRedoPrompt||'').trim();
+  const removesBackground=/(?:文字|文案).{0,3}背景|背景.{0,8}(?:文字|文案)|保留文字/.test(text);
+  const removeCopy=!removesBackground&&/(?:去掉|删除|取消|不要|禁止|清除).{0,6}(?:所有|全部|任何)?(?:文字|文案|标题)|无字|纯图|不加文字/.test(text);
+  return removeCopy?'none':'transparent';
+}
 function seriesStyleContract(note){const value=String(note||'').trim(),dark=/黑色背景|纯黑背景|深黑背景/.test(value);return `整套统一视觉合同：全套沿用同一${dark?'黑色':'协调'}背景体系、统一主辅色、统一光线方向与色温、统一商品材质质感、统一镜头语言、统一留白与网页后期字体版式。只允许画面任务、商品摆位和机位按分镜变化，不允许每张另起一种摄影风格。`;}
 function projectMainBuyerCopy(p,item,index){
   const strategy=MAIN_TEXT_STRATEGY[index]||MAIN_TEXT_STRATEGY[0];
   if(strategy.mode==='clean')return {headline:'',subheadline:''};
-  const suppliedHeadline=buyerFacingCopy(item?.headline,36),suppliedSubheadline=buyerFacingCopy(item?.subheadline,56);
+  const suppliedHeadline=buyerFacingCopy(item?.headline,16),suppliedSubheadline=buyerFacingCopy(item?.subheadline,30);
   if(suppliedHeadline)return {headline:suppliedHeadline,subheadline:suppliedSubheadline};
   const facts=analysisList(p?.analysis?.selling_points).map(value=>buyerFacingCopy(value,32)).filter(Boolean);
   const productName=buyerFacingCopy(p?.analysis?.product_name,12);
@@ -355,7 +361,7 @@ function projectMainBuyerCopy(p,item,index){
     {headline:'选对商品，日常更省心',subheadline:facts[0]||'回到真实使用价值，购买更放心'},
   ];
   const fallback=(storage?storageCopy:generalCopy)[index]||(storage?storageCopy[5]:generalCopy[5]);
-  return {headline:buyerFacingCopy(fallback.headline,36),subheadline:buyerFacingCopy(suppliedSubheadline||fallback.subheadline,56)};
+  return {headline:buyerFacingCopy(fallback.headline,16),subheadline:buyerFacingCopy(suppliedSubheadline||fallback.subheadline,30)};
 }
 let state = { projects:[], toolJobs:[], currentProject:null, currentToolJob:null, settings:{arkKey:'',arkTextModel:'',openaiKey:'',openaiTextModel:'',geminiKey:'',qwenKey:'',qwenEndpoint:'https://dashscope.aliyuncs.com',visionModel:'',imageModel:'',openaiImageModel:'',geminiTextModel:'',geminiImageModel:'',qwenTextModel:'',qwenVisionModel:'',qwenImageModel:'',imageFallback:false} };
 let appView='catalog';
@@ -1116,7 +1122,7 @@ function renderSeries(p){
           <div class="single-redo">
             <label>这张图的重做补充提示词（可选）</label>
             <textarea class="input" maxlength="1200" placeholder="例如：保留原商品，只把场景改成明亮梳妆台；镜头稍微拉近；减少道具。" oninput="setSingleRedoPrompt(${i},this.value)">${esc(s.redoPrompt||'')}</textarea>
-            <div class="single-redo-note">只影响当前第 ${i+1} 张；其他成品和原图都会保留。</div>
+            <div class="single-redo-note">只影响当前第 ${i+1} 张；其他成品和原图都会保留。也可写“去掉文字”或“保留文字、去掉文字背景”。</div>
             ${s.appliedRedoPrompt?`<div class="single-redo-note" style="color:var(--success)">本版实际采用：${esc(s.appliedRedoPrompt)}</div>`:''}
           </div>
           <div class="gen-item-actions">
@@ -1833,7 +1839,9 @@ async function composeMainCanvas(imageSource,item,index,p,suppressText=false){
   const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;const ctx=canvas.getContext('2d');
   drawCoverImage(ctx,img,0,0,width,height);
   const strategy=MAIN_TEXT_STRATEGY[index]||MAIN_TEXT_STRATEGY[0];
-  if(suppressText||strategy.mode==='clean')return canvasDataUrlUnderLimit(canvas);
+  const presentation=projectCopyPresentation(item);
+  if(suppressText||strategy.mode==='clean'||presentation==='none')return canvasDataUrlUnderLimit(canvas);
+  const transparent=true;
   const scale=width/1024,virtualHeight=height/scale;ctx.save();ctx.scale(scale,scale);
   const copy=projectMainBuyerCopy(p,item,index),headline=copy.headline,subheadline=copy.subheadline;
   if(!headline){ctx.restore();return canvasDataUrlUnderLimit(canvas);}
@@ -1842,22 +1850,15 @@ async function composeMainCanvas(imageSource,item,index,p,suppressText=false){
     ctx.font='700 28px system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
     const pillW=Math.min(420,Math.max(180,ctx.measureText(label).width+98)),pillH=72;
     const pillX=strategy.position==='top'?54:1024-pillW-54,pillY=strategy.position==='top'?54:virtualHeight-pillH-54;
-    ctx.fillStyle='rgba(255,255,255,.92)';canvasRoundRect(ctx,pillX,pillY,pillW,pillH,36);ctx.fill();
-    ctx.strokeStyle='rgba(216,107,148,.38)';ctx.lineWidth=2;ctx.stroke();
-    ctx.fillStyle='#d86b94';ctx.beginPath();ctx.arc(pillX+36,pillY+36,8,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='#302b2d';ctx.textAlign='left';ctx.fillText(label,pillX+60,pillY+46);
+    ctx.textAlign='left';ctx.fillStyle='#fff';ctx.strokeStyle='rgba(25,25,25,.72)';ctx.lineWidth=6;ctx.lineJoin='round';ctx.shadowColor='rgba(0,0,0,.28)';ctx.shadowBlur=10;ctx.strokeText(label,pillX,pillY+46);ctx.fillText(label,pillX,pillY+46);
     ctx.restore();return canvasDataUrlUnderLimit(canvas);
   }
-  const top=strategy.position==='top',panelH=strategy.mode==='hero'?300:258,panelY=top?0:virtualHeight-panelH;
-  const gradient=ctx.createLinearGradient(0,panelY,0,panelY+panelH);
-  if(top){gradient.addColorStop(0,'rgba(255,253,250,.98)');gradient.addColorStop(1,'rgba(255,250,247,.62)');}
-  else{gradient.addColorStop(0,'rgba(255,250,247,.60)');gradient.addColorStop(1,'rgba(255,253,250,.98)');}
-  ctx.fillStyle=gradient;ctx.fillRect(0,panelY,1024,panelH);
-  ctx.textAlign='left';ctx.fillStyle='#282426';fitCanvasText(ctx,headline,884,strategy.mode==='hero'?66:54,38);
-  const titleLines=canvasTextLines(ctx,headline,884,2),titleY=panelY+(strategy.mode==='hero'?94:88);
-  titleLines.forEach((line,lineIndex)=>ctx.fillText(line,66,titleY+lineIndex*(strategy.mode==='hero'?72:62)));
-  ctx.font='500 27px system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif';ctx.fillStyle='#5f5559';
-  const subtitleY=titleY+titleLines.length*(strategy.mode==='hero'?72:62)+6;canvasTextLines(ctx,subheadline,860,1).forEach((line,lineIndex)=>ctx.fillText(line,66,subtitleY+lineIndex*36));
+  const top=strategy.position==='top',copyZoneH=strategy.mode==='hero'?248:218,panelY=top?0:virtualHeight-copyZoneH;
+  ctx.textAlign='left';ctx.fillStyle='#fff';ctx.strokeStyle='rgba(20,20,20,.74)';ctx.lineWidth=7;ctx.lineJoin='round';ctx.shadowColor='rgba(0,0,0,.30)';ctx.shadowBlur=12;fitCanvasText(ctx,headline,820,strategy.mode==='hero'?52:46,34);
+  const titleLines=canvasTextLines(ctx,headline,820,2),titleY=panelY+(strategy.mode==='hero'?76:70);
+  titleLines.forEach((line,lineIndex)=>{const y=titleY+lineIndex*(strategy.mode==='hero'?58:52);ctx.strokeText(line,58,y);ctx.fillText(line,58,y);});
+  ctx.font='600 24px system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif';ctx.fillStyle='#fff';ctx.lineWidth=5;
+  const subtitleY=titleY+titleLines.length*(strategy.mode==='hero'?58:52)+2;canvasTextLines(ctx,subheadline,800,1).forEach((line,lineIndex)=>{const y=subtitleY+lineIndex*32;ctx.strokeText(line,58,y);ctx.fillText(line,58,y);});
   ctx.restore();return canvasDataUrlUnderLimit(canvas);
 }
 async function composeDetailCanvas(imageSource,item,index,p){
@@ -1879,27 +1880,30 @@ async function composeDetailCanvas(imageSource,item,index,p){
   const subtitleY=panelY+142+titleLines.length*74+10;canvasTextLines(ctx,subheadline,850,2).forEach((line,lineIndex)=>ctx.fillText(line,74,subtitleY+lineIndex*42));
   return canvasDataUrlUnderLimit(canvas);
 }
-function skuVisualTheme(p){const note=String(p?.userNote||''),chosen=p?.skuBackground||'auto',mode=chosen==='auto'?(/黑色背景|纯黑背景|深黑背景/.test(note)?'black':/暖米|奶油|米色背景/.test(note)?'warm':/灰色背景|浅灰背景/.test(note)?'gray':'white'):chosen;return mode==='black'?{mode,bg:'#111315',card:'#1d2023',text:'#f8fafc',sub:'#cbd5e1',border:'#4b5563'}:mode==='warm'?{mode,bg:'#fff7eb',card:'#fffdf8',text:'#362b23',sub:'#77675c',border:'#ead7bd'}:mode==='gray'?{mode,bg:'#eef1f4',card:'#f9fafb',text:'#252a31',sub:'#66707c',border:'#ccd3da'}:{mode:'white',bg:'#ffffff',card:'#fffdfb',text:'#292522',sub:'#665d58',border:'#ded5d0'};}
+function skuVisualTheme(p){const note=String(p?.userNote||''),chosen=p?.skuBackground||'auto',mode=chosen==='auto'?(/黑色背景|纯黑背景|深黑背景/.test(note)?'black':/暖米|奶油|米色背景/.test(note)?'warm':/灰色背景|浅灰背景/.test(note)?'gray':'white'):chosen;return mode==='black'?{mode,bg:'#111315',card:'#263034',accent:'#74d5c8',text:'#f8fafc',sub:'#cbd5e1',border:'#4b5563'}:mode==='warm'?{mode,bg:'#fffaf2',card:'#f4eadb',accent:'#f4a261',text:'#362b23',sub:'#77675c',border:'#ead7bd'}:mode==='gray'?{mode,bg:'#f6f7f8',card:'#e5eaee',accent:'#6fb8ad',text:'#252a31',sub:'#66707c',border:'#ccd3da'}:{mode:'white',bg:'#fbfdfc',card:'#e7f3f0',accent:'#57b8aa',text:'#292522',sub:'#665d58',border:'#cfe4df'};}
 function skuMasterPrompt(p){const theme=skuVisualTheme(p),background={black:'纯黑或深炭黑摄影背景',warm:'明亮暖米色摄影背景',gray:'干净浅灰摄影背景',white:'纯白摄影背景'}[theme.mode];return `${p.seriesStyle||seriesStyleContract(p.userNote)}\n${userHardConstraints(p.userNote)}\n${TEXT_FREE_BASE_RULE}\n生成一个单件商品保真母版，${background}，商品居中完整、真实接触阴影、边缘清晰，严格保持商品长宽高比例、透明度、结构、颜色与材质。${p.skuDimensions?`真实商品尺寸资料：${p.skuDimensions}；尺寸仅用于比例理解，禁止把尺寸文字画进图片。`:''}`;}
 async function composeSkuCanvas(masterSource,spec,analysis,index,p,overrideNote=''){
   const source=await cacheImageSource(masterSource),img=await loadCanvasImage(source);
   const canvas=document.createElement('canvas');canvas.width=1080;canvas.height=1080;const ctx=canvas.getContext('2d');
-  const theme=skuVisualTheme({...p,userNote:`${p?.userNote||''} ${overrideNote}`});ctx.fillStyle=theme.bg;ctx.fillRect(0,0,1080,1080);ctx.strokeStyle=theme.border;ctx.lineWidth=4;canvasRoundRect(ctx,34,34,1012,1012,30);ctx.stroke();
+  const theme=skuVisualTheme({...p,userNote:`${p?.userNote||''} ${overrideNote}`});ctx.fillStyle=theme.bg;ctx.fillRect(0,0,1080,1080);
   const identity=analysis?.product_identity||{},dimensions=String(p?.skuDimensions||analysisList(identity.dimensions).join(' × ')).trim(),productName=projectProductName(analysis);
-  const verifiedSellingPoint=buyerFacingCopy(overrideNote,42)||buyerFacingCopy(p?.skuSellingPoint,42)||(analysisList(analysis?.selling_points).map(value=>buyerFacingCopy(value,42)).find(Boolean)||'');
-  ctx.fillStyle=theme.text;ctx.textAlign='left';ctx.font='800 36px system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif';ctx.fillText(verifiedSellingPoint||`${spec.quantity}个装，更好满足日常所需`,78,108);
-  if(dimensions){ctx.font='500 22px system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif';ctx.fillStyle=theme.sub;ctx.fillText(`商品尺寸 ${dimensions}`,78,148);}
-  if(spec.recommended){ctx.fillStyle='#ff8b25';canvasRoundRect(ctx,838,76,158,54,27);ctx.fill();ctx.fillStyle='#fff';ctx.textAlign='center';ctx.font='700 24px system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif';ctx.fillText('推荐款',917,111);}
+  const verifiedSellingPoint=buyerFacingCopy(overrideNote,16)||buyerFacingCopy(p?.skuSellingPoint,16)||(analysisList(analysis?.selling_points).map(value=>buyerFacingCopy(value,16)).find(Boolean)||'分类收纳更省心');
+  ctx.fillStyle=theme.accent;canvasRoundRect(ctx,60,58,164,46,23);ctx.fill();ctx.fillStyle=theme.mode==='black'?'#10201e':'#fff';ctx.textAlign='center';ctx.font='700 22px system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif';ctx.fillText('多件装组合',142,89);
+  ctx.fillStyle=theme.text;ctx.textAlign='left';fitCanvasText(ctx,verifiedSellingPoint,620,46,30);ctx.fillText(verifiedSellingPoint,60,160);
+  if(dimensions){ctx.font='500 21px system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif';ctx.fillStyle=theme.sub;ctx.fillText(`尺寸：${dimensions}`,60,196);}
+  if(spec.recommended){ctx.fillStyle='#ff8b25';canvasRoundRect(ctx,850,66,164,50,25);ctx.fill();ctx.fillStyle='#fff';ctx.textAlign='center';ctx.font='700 22px system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif';ctx.fillText('人气推荐',932,99);}
   const quantity=Math.max(1,Math.min(20,Number(spec.quantity)||1));
   const cols=quantity<=2?quantity:quantity<=4?2:quantity<=9?3:quantity<=12?4:5,rows=Math.ceil(quantity/cols);
-  const area={x:90,y:190,w:900,h:660},gap=12,cellW=(area.w-gap*(cols-1))/cols,cellH=(area.h-gap*(rows-1))/rows;
+  const stage={x:52,y:226,w:976,h:610};ctx.fillStyle=theme.card;canvasRoundRect(ctx,stage.x,stage.y,stage.w,stage.h,36);ctx.fill();
+  const area={x:76,y:246,w:928,h:570},gap=quantity<=4?-8:4,cellW=(area.w-gap*(cols-1))/cols,cellH=(area.h-gap*(rows-1))/rows;
   for(let i=0;i<quantity;i++){
     const col=i%cols,row=Math.floor(i/cols),x=area.x+col*(cellW+gap),y=area.y+row*(cellH+gap);
-    ctx.fillStyle=theme.card;canvasRoundRect(ctx,x,y,cellW,cellH,16);ctx.fill();ctx.strokeStyle=theme.border;ctx.lineWidth=1;ctx.stroke();drawContainedImage(ctx,img,x,y,cellW,cellH,12);
+    ctx.save();ctx.shadowColor='rgba(25,45,42,.20)';ctx.shadowBlur=18;ctx.shadowOffsetY=8;if(theme.mode!=='black')ctx.globalCompositeOperation='multiply';drawContainedImage(ctx,img,x,y,cellW,cellH,0);ctx.restore();
   }
-  const title=`${quantity}个装 · ${String(spec.name||'规格装').trim()}`;
-  ctx.textAlign='center';ctx.fillStyle=theme.text;fitCanvasText(ctx,title,900,52,28);ctx.fillText(title,540,936);
-  ctx.font='500 23px system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif';ctx.fillStyle=theme.sub;ctx.fillText(productName,540,982);
+  const specBenefit=buyerFacingCopy(spec.name,12)||'实惠组合装',title=`${quantity}个装｜${specBenefit}`;
+  ctx.textAlign='center';ctx.fillStyle=theme.text;fitCanvasText(ctx,title,940,64,36);ctx.fillText(title,540,920);
+  ctx.font='600 25px system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif';ctx.fillStyle=theme.sub;ctx.fillText(productName||'数量清楚 · 下单不易选错',540,968);
+  ctx.fillStyle=theme.accent;canvasRoundRect(ctx,438,1000,204,8,4);ctx.fill();
   return canvas.toDataURL('image/png',.96);
 }
 async function generateSkuProject(p){
