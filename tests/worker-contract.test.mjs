@@ -316,6 +316,9 @@ test('Gemini project planning understands grouped product and scene references b
   assert.equal(sentBody.input.filter(item => item.type === 'image').length, 4);
   assert.match(sentBody.input[0].text, /前 3 张是同一商品的商品证据图/);
   assert.match(sentBody.input[0].text, /后 1 张是场景\/风格参考图/);
+  assert.match(sentBody.input[0].text, /先从商品证据图分析商品身份、真实功能、结构材质、目标买家、使用痛点和购买理由/);
+  assert.match(sentBody.input[0].text, /只有“同背景真实使用”这一张纯场景图允许 headline 和 subheadline 为空/);
+  assert.match(sentBody.input[0].text, /不得使用“核心卖点、使用痛点、购买理由、第几张、商品证据图、请核对、完成转化”/);
   assert.deepEqual(sentBody.response_format, { type: 'text', mime_type: 'application/json' });
   assert.equal(sentBody.generation_config.max_output_tokens, 3000);
 });

@@ -277,6 +277,14 @@ test('six-image main suites mix buyer copy with one clean scene instead of retur
   assert.match(html, /const copy=projectMainBuyerCopy\(p,item,index\),headline=copy\.headline,subheadline=copy\.subheadline/);
 });
 
+test('the text model writes buyer copy automatically before image generation', () => {
+  assert.match(html, /AI文字模型已分析买家文案/);
+  assert.match(html, /你无需逐张填写；输入框仅供可选微调/);
+  assert.match(html, /只有“同背景真实使用”纯场景图允许标题为空/);
+  assert.match(html, /其他主图必须生成4—14字买家主标题/);
+  assert.doesNotMatch(html, /item\?\.headline\|\|local\.series\[index\]\?\.headline\|\|roles\[index\]/);
+});
+
 test('finished images use buyer-facing copy and never expose workflow labels or sequence counters', () => {
   assert.match(html, /function buyerFacingCopy\(value/);
   assert.match(html, /买家可见文案/);
