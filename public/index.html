@@ -325,10 +325,38 @@ const MAIN_TEXT_COPY=[
 ];
 const DETAIL_OUTPUT_LABELS=['详情首屏核心价值','核心功能与结构说明','材质尺寸与细节证据','真实场景与转化收尾'];
 const TEXT_FREE_BASE_RULE='底图绝对禁止出现任何文字、汉字、字母、数字、序号、页码、01/06、标签、卖点标题、制作指令、Logo、水印或二维码；只生成干净摄影画面，买家文案由网页后期排版。';
-const INTERNAL_COPY_RE=/(一眼看懂核心卖点|真实商品|清楚表达购买理由|杂乱难找|使用费时|真实场景呈现|使用前后|整理前后|一个具体痛点|请核对商品资料|统一商品母版|精确数量排版|图片可逐个核对|回扣核心价值|完成转化|SKU\s*\d+|DETAIL\s*\d+|\d{2}\s*\/\s*\d{2})/i;
+const INTERNAL_COPY_RE=/(一眼看懂核心卖点|真实商品|清楚表达购买理由|杂乱难找|使用费时|真实场景呈现|使用前后|整理前后|一个具体痛点|请核对商品资料|统一商品母版|精确数量排版|图片可逐个核对|回扣核心价值|完成转化|已收到商品证据图|商品外观以原图|商品证据图|场景参考图|待确认商品|已接收\s*\d+\s*张|SKU\s*\d+|DETAIL\s*\d+|\d{2}\s*\/\s*\d{2})/i;
 function buyerFacingCopy(value,max=42){const text=String(value||'').replace(/^[【\[]?(核心卖点|使用痛点|前后对比|购买理由|第\s*\d+\s*张)[】\]：:\s-]*/,'').trim();return !text||INTERNAL_COPY_RE.test(text)?'':text.slice(0,max);}
 function userHardConstraints(note){const value=String(note||'').trim();return value?`用户最高优先级硬性要求：${value}\n这些内容是制作指令，严禁作为画面文字；背景、颜色、尺寸、数量和禁用项必须逐条执行。`:'用户未补充额外要求；不得自行添加文字、数字或序号。';}
+function redoPriorityRule(value){const text=String(value||'').trim()||'优化主体真实感、构图与画面表达';return `最终覆盖指令（最高优先级）：${text}\n这条指令排在全部旧方案之后并覆盖所有冲突内容。凡出现“去掉、不要、移除、删除、禁止、改成、只保留”等要求，指定元素必须从最终画面彻底消失或按要求替换，不能弱化、遮挡、保留局部或沿用旧方案。执行完本条后只输出一张完整图片。`;}
 function seriesStyleContract(note){const value=String(note||'').trim(),dark=/黑色背景|纯黑背景|深黑背景/.test(value);return `整套统一视觉合同：全套沿用同一${dark?'黑色':'协调'}背景体系、统一主辅色、统一光线方向与色温、统一商品材质质感、统一镜头语言、统一留白与网页后期字体版式。只允许画面任务、商品摆位和机位按分镜变化，不允许每张另起一种摄影风格。`;}
+function projectMainBuyerCopy(p,item,index){
+  const strategy=MAIN_TEXT_STRATEGY[index]||MAIN_TEXT_STRATEGY[0];
+  if(strategy.mode==='clean')return {headline:'',subheadline:''};
+  const suppliedHeadline=buyerFacingCopy(item?.headline,36),suppliedSubheadline=buyerFacingCopy(item?.subheadline,56);
+  if(suppliedHeadline)return {headline:suppliedHeadline,subheadline:suppliedSubheadline};
+  const facts=analysisList(p?.analysis?.selling_points).map(value=>buyerFacingCopy(value,32)).filter(Boolean);
+  const productName=buyerFacingCopy(p?.analysis?.product_name,12);
+  const storage=/收纳|整理|储物|置物|分格|分类|盒|柜|架|篮/.test(`${productName} ${p?.analysis?.product_summary||''}`);
+  const storageCopy=[
+    {headline:facts[0]||'分类收纳，一盒更省心',subheadline:'常用小物集中归位，查找拿取更方便'},
+    {headline:'零散小物，不再东翻西找',subheadline:'分区整理更清楚，日常取用更省时'},
+    {headline:'',subheadline:''},
+    {headline:'收纳变化，清楚可见',subheadline:'桌面更整齐，常用物品更好找'},
+    {headline:facts[0]||'分格清楚，内容一目了然',subheadline:'结构与细节看得见，挑选更放心'},
+    {headline:'收纳有序，空间更清爽',subheadline:'分类整理到位，日常使用更顺手'},
+  ];
+  const generalCopy=[
+    {headline:facts[0]||`${productName||'商品'}亮点，看得见`,subheadline:facts[1]||'真实商品展示，购买重点更清楚'},
+    {headline:'少一点麻烦，多一点从容',subheadline:facts[0]||'从真实使用问题出发，选择更明确'},
+    {headline:'',subheadline:''},
+    {headline:'使用变化，清楚可见',subheadline:'同一场景展示，实际效果更好理解'},
+    {headline:facts[0]||'关键细节，清楚可见',subheadline:facts[1]||'结构、材质与做工看得更明白'},
+    {headline:'选对商品，日常更省心',subheadline:facts[0]||'回到真实使用价值，购买更放心'},
+  ];
+  const fallback=(storage?storageCopy:generalCopy)[index]||(storage?storageCopy[5]:generalCopy[5]);
+  return {headline:buyerFacingCopy(fallback.headline,36),subheadline:buyerFacingCopy(suppliedSubheadline||fallback.subheadline,56)};
+}
 let state = { projects:[], toolJobs:[], currentProject:null, currentToolJob:null, settings:{arkKey:'',arkTextModel:'',openaiKey:'',openaiTextModel:'',geminiKey:'',qwenKey:'',qwenEndpoint:'https://dashscope.aliyuncs.com',visionModel:'',imageModel:'',openaiImageModel:'',geminiTextModel:'',geminiImageModel:'',qwenTextModel:'',qwenVisionModel:'',qwenImageModel:'',imageFallback:false} };
 let appView='catalog';
 let activeCategory='product';
@@ -1413,7 +1441,7 @@ async function regenerateToolResult(resultIndex){
   const promptItem=toolSession.prompts[promptIndex];if(!promptItem?.prompt?.trim()){toast('当前图片缺少原始提示词，请先重新生成提示词','warn');return;}
   if(!hasImageProviderKey(toolSession.provider)){toast(`请先配置所选的${imageProviderLabel(toolSession.provider)} API Key`,'warn');showSettings();return;}
   const extra=String(originalMeta.redoPrompt||'').trim();
-  const prompt=`本次重做最高优先级要求：${extra||'优化主体真实感、构图与画面表达'}\n${userHardConstraints(toolSession.note)}\n${toolSession.seriesStyle||seriesStyleContract(toolSession.note)}\n${TEXT_FREE_BASE_RULE}\n以下原方案仅作为次级上下文，不得覆盖本次重做要求：${promptItem.prompt.trim()}\n只允许修改当前画面，不得影响本套其他图片；严格保持参考商品主体、比例、结构、材质、颜色和数量。只输出一张完整图片。`;
+  const prompt=`${userHardConstraints(toolSession.note)}\n${toolSession.seriesStyle||seriesStyleContract(toolSession.note)}\n${TEXT_FREE_BASE_RULE}\n以下原方案仅作为次级上下文：${promptItem.prompt.trim()}\n只允许修改当前画面，不得影响本套其他图片；严格保持参考商品主体、比例、结构、材质、颜色和数量。\n${redoPriorityRule(extra)}`;
   const units=generationUnits(tool),refs=units[promptIndex]||units[units.length-1]||[];
   toolSession.running=true;toolSession.resultMeta[resultIndex]={...originalMeta,regenerating:true};updateToolJob(tool,'running',`正在只重做第 ${promptIndex+1} 张`);renderToolWorkspace();
   try{
@@ -1688,7 +1716,7 @@ function applyProjectPromptPlan(p,analysis){
   if(offset) p.series[0].prompt=analysis.white_prompt;
   (analysis.series||[]).forEach((task,index)=>{
     const outputIndex=index+offset,shared=projectMode(p)==='main'&&mainSharedBackgroundIndex(outputIndex);
-    if(p.series[outputIndex])p.series[outputIndex]={...p.series[outputIndex],prompt:`${p.seriesStyle}\n${userHardConstraints(p.userNote)}\n${TEXT_FREE_BASE_RULE}\n${String(task.prompt||'').trim()}\n${PRODUCT_GEOMETRY_LOCK}\n${PRODUCT_REALISM_LOCK}\n${shared?mainSharedBackgroundRule(outputIndex):''}`.trim(),headline:buyerFacingCopy(task.headline,40),subheadline:buyerFacingCopy(task.subheadline,72),layout_notes:String(task.layout_notes||''),product_refs:Array.isArray(task.product_refs)?task.product_refs:[],style_ref:shared&&projectStyleImages(p).length?1:task.style_ref||null};
+    if(p.series[outputIndex]){const copy=projectMode(p)==='main'?projectMainBuyerCopy(p,task,outputIndex):{headline:buyerFacingCopy(task.headline,40),subheadline:buyerFacingCopy(task.subheadline,72)};p.series[outputIndex]={...p.series[outputIndex],prompt:`${p.seriesStyle}\n${userHardConstraints(p.userNote)}\n${TEXT_FREE_BASE_RULE}\n${String(task.prompt||'').trim()}\n${PRODUCT_GEOMETRY_LOCK}\n${PRODUCT_REALISM_LOCK}\n${shared?mainSharedBackgroundRule(outputIndex):''}`.trim(),headline:copy.headline,subheadline:copy.subheadline,layout_notes:String(task.layout_notes||''),product_refs:Array.isArray(task.product_refs)?task.product_refs:[],style_ref:shared&&projectStyleImages(p).length?1:task.style_ref||null};}
   });
   if(p.series.some(item=>!item.prompt)) throw new Error('提示词数量不完整，请重新规划');
 }
@@ -1702,7 +1730,7 @@ async function generateOneTask(p,task,index){
     const aspect=outputAspect(p,index);
     const context=projectGenerationContext(p,index),refs=context.refs;
     const providerLock=projectImageProvider(p)==='seedream'?`\n${SEEDREAM_REFERENCE_LOCK}`:'';
-    const generationPrompt=`${p.seriesStyle||seriesStyleContract(p.userNote)}\n${userHardConstraints(p.userNote)}\n${TEXT_FREE_BASE_RULE}\n${task.prompt}\n\n${context.instruction}${providerLock}`;
+    const generationPrompt=`${p.seriesStyle||seriesStyleContract(p.userNote)}\n${userHardConstraints(p.userNote)}\n${TEXT_FREE_BASE_RULE}\n${task.prompt}\n\n${context.instruction}${providerLock}${task.finalRequirement?`\n\n${task.finalRequirement}`:''}`;
     item.referenceRecipe=context.labels;
     const imgResp=await projectImageCall(p,'/api/series-image',{prompt:generationPrompt,userNote:p.userNote,whiteImageBase64:p.whiteImage,referenceImagesBase64s:refs,aspect,...modelOptions(p)},refs,aspect);
     item.image=imgResp.image; item.model=imgResp.model; item.provider=imgResp.provider; item.fallback=Boolean(imgResp.fallback); item.fallbackFrom=imgResp.fallbackFrom||''; item.status='done'; item.rejected=false;
@@ -1719,7 +1747,7 @@ async function generateOneTask(p,task,index){
         const correction=(qc.correction||qc.summary||'恢复原图主体结构，修复边缘重影、悬浮、穿插、透视错位并重建真实接触阴影').slice(0,300);
         const redoPrompt=generationPrompt+'\n上一次结果已被主体保真检查拒绝。必须逐项修正：'+correction+'\n这是纠错重做，不允许发挥创意；若场景会造成穿模，请删除冲突道具或人物并简化场景，完整保留原商品。';
         const retryRefs=projectImageProvider(p)==='seedream'?(context.productRefs.length?context.productRefs:projectProductImages(p).slice(0,2)):refs;
-        const redoResp=await projectImageCall(p,'/api/series-image',{prompt:`${p.seriesStyle||seriesStyleContract(p.userNote)}\n${userHardConstraints(p.userNote)}\n${TEXT_FREE_BASE_RULE}\n${redoPrompt}`,userNote:p.userNote,whiteImageBase64:p.whiteImage,referenceImagesBase64s:retryRefs,aspect,...modelOptions(p)},retryRefs,aspect);
+        const redoResp=await projectImageCall(p,'/api/series-image',{prompt:`${p.seriesStyle||seriesStyleContract(p.userNote)}\n${userHardConstraints(p.userNote)}\n${TEXT_FREE_BASE_RULE}\n${redoPrompt}${task.finalRequirement?`\n\n${task.finalRequirement}`:''}`,userNote:p.userNote,whiteImageBase64:p.whiteImage,referenceImagesBase64s:retryRefs,aspect,...modelOptions(p)},retryRefs,aspect);
         const redoCandidate={image:redoResp.image,model:redoResp.model+'-redo',provider:redoResp.provider,fallback:Boolean(redoResp.fallback),fallbackFrom:redoResp.fallbackFrom||''};
         if(redoResp.fallback) toast(`图${index+1}重做时已自动切换到${imageProviderLabel(redoResp.provider)}`,'warn');
         const qc2=await projectQcCall(p,{productImagesBase64s:projectProductImages(p),whiteImageBase64:p.whiteImage,generatedImageBase64:redoCandidate.image,taskLabel:item.label,platform:p.platform,imageProvider:projectImageProvider(p),textProvider:projectTextProvider(p),openaiTextModel:state.settings.openaiTextModel||undefined,visionModel:state.settings.visionModel||undefined,geminiTextModel:state.settings.geminiTextModel||undefined,qwenVisionModel:state.settings.qwenVisionModel||undefined,qwenEndpoint:state.settings.qwenEndpoint||undefined});
@@ -1744,7 +1772,7 @@ async function generateOneTask(p,task,index){
       item.model=(item.model||'图片模型')+' + 详情页排版';
     }
     if(projectMode(p)==='main'&&item.image){
-      item.image=await composeMainCanvas(item.image,item,index,p);
+      item.image=await composeMainCanvas(item.image,item,index,p);item.copyApplied=MAIN_TEXT_STRATEGY[index]?.mode!=='clean'&&Boolean(projectMainBuyerCopy(p,item,index).headline);
       item.model=(item.model||'图片模型')+(MAIN_TEXT_STRATEGY[index]?.mode==='clean'?' + 主图规格校正':' + 主图文案排版');
     }
   }catch(error){
@@ -1807,8 +1835,7 @@ async function composeMainCanvas(imageSource,item,index,p,suppressText=false){
   const strategy=MAIN_TEXT_STRATEGY[index]||MAIN_TEXT_STRATEGY[0];
   if(suppressText||strategy.mode==='clean')return canvasDataUrlUnderLimit(canvas);
   const scale=width/1024,virtualHeight=height/scale;ctx.save();ctx.scale(scale,scale);
-  const headline=buyerFacingCopy(item.headline,36);
-  const subheadline=buyerFacingCopy(item.subheadline,56);
+  const copy=projectMainBuyerCopy(p,item,index),headline=copy.headline,subheadline=copy.subheadline;
   if(!headline){ctx.restore();return canvasDataUrlUnderLimit(canvas);}
   if(strategy.mode==='minimal'){
     const label=headline.slice(0,12);
@@ -1995,12 +2022,13 @@ async function regenSingle(idx){
   if(projectNeedsWhiteMaster(p)&&!p.whiteImage&&!(projectHasWhiteOutput(p)&&idx===0)){toast('请先生成白底商品母版，再单独生成当前图片','warn');return;}
   const original={...item},originalQc=p.qcResults[idx]||null,originalWhite=p.whiteImage;
   const basePrompt=String(item.prompt||'').trim(),extra=String(item.redoPrompt||'').trim();
-  const singlePrompt=`本次重做最高优先级要求：${extra||'优化真实感、主体完整度和画面表达'}\n${userHardConstraints(p.userNote)}\n${p.seriesStyle||seriesStyleContract(p.userNote)}\n${TEXT_FREE_BASE_RULE}\n以下原方案仅作次级上下文，不得覆盖本次重做要求：${basePrompt}\n只允许修改当前画面，不得影响本套其他图片；严格保持原商品主体。`;
+  const finalRequirement=redoPriorityRule(extra);
+  const singlePrompt=`${userHardConstraints(p.userNote)}\n${p.seriesStyle||seriesStyleContract(p.userNote)}\n${TEXT_FREE_BASE_RULE}\n以下原方案仅作次级上下文：${basePrompt}\n只允许修改当前画面，不得影响本套其他图片；严格保持原商品主体。\n${finalRequirement}`;
   if(projectHasWhiteOutput(p)&&idx===0){
     item.status='running';p.phase='正在只重做第 1 张白底商品主图';renderMain();renderProjectList();
     try{
       const refs=projectProductImages(p).slice(0,6),aspect=outputAspect(p);
-      const response=await projectImageCall(p,'/api/white-image',{prompt:`${singlePrompt}\n${PRODUCT_GEOMETRY_LOCK}\n${PRODUCT_REALISM_LOCK}`,userNote:p.userNote,imageBase64:p.image,imageBase64s:refs,aspect,...modelOptions(p)},refs,aspect);
+      const response=await projectImageCall(p,'/api/white-image',{prompt:`${singlePrompt}\n${PRODUCT_GEOMETRY_LOCK}\n${PRODUCT_REALISM_LOCK}\n${finalRequirement}`,userNote:p.userNote,imageBase64:p.image,imageBase64s:refs,aspect,...modelOptions(p)},refs,aspect);
       const qc=await projectQcCall(p,{productImagesBase64s:refs,whiteImageBase64:originalWhite||undefined,generatedImageBase64:response.image,taskLabel:item.label,platform:p.platform,imageProvider:projectImageProvider(p),textProvider:projectTextProvider(p),openaiTextModel:state.settings.openaiTextModel||undefined,visionModel:state.settings.visionModel||undefined,geminiTextModel:state.settings.geminiTextModel||undefined,qwenVisionModel:state.settings.qwenVisionModel||undefined,qwenEndpoint:state.settings.qwenEndpoint||undefined});
       if(!qc.pass)throw new Error(`新图主体保真质检未通过（${qc.score||0}分）`);
       p.whiteImage=response.image;p.series[idx]={...item,prompt:basePrompt,redoPrompt:extra,appliedRedoPrompt:extra,image:await composeMainCanvas(response.image,item,idx,p,true),status:'done',model:(response.model||projectImageProvider(p))+' + 单张重做',provider:response.provider||projectImageProvider(p),fallback:false,fallbackFrom:''};p.qcResults[idx]={...qc,redone:true};
@@ -2013,7 +2041,7 @@ async function regenSingle(idx){
     try{const spec=normalizeProjectSkuSpecs(p.skuSpecs)[idx];item.image=await composeSkuCanvas(p.whiteImage,spec,p.analysis,idx,p,extra);item.status='done';item.model='SKU确定性排版';item.redoPrompt=extra;item.appliedRedoPrompt=extra;p.qcResults[idx]={pass:true,score:100,summary:`已按本次补充要求重新排版 ${spec.quantity} 个商品`,correction:''};toast('当前规格图重新排版完成','success');}catch(error){p.series[idx]={...original,status:original.image?'done':'error'};p.qcResults[idx]=originalQc;toast((original.image?'重排失败，已保留原图：':'规格图重做失败：')+error.message,'error');}renderMain();renderProjectList();return;
   }
   item.status='running';item.image='';p.qcResults[idx]=null;p.phase='正在只重做第 '+(idx+1)+' 张';renderMain();renderProjectList();
-  await generateOneTask(p,{label:item.label,prompt:singlePrompt},idx);
+  await generateOneTask(p,{label:item.label,prompt:singlePrompt,finalRequirement},idx);
   if(item.image){item.prompt=basePrompt;item.redoPrompt=extra;item.appliedRedoPrompt=extra;p.status=p.series.filter(entry=>entry.image).length===projectOutputCount(p)?'done':'error';p.phase=p.status==='done'?'整套图片已生成并完成质检':'部分图片未完成，可只补做缺少的图片';toast('第'+(idx+1)+'张已单独重做，其他图片未消耗','success');}
   else{p.series[idx]={...original,status:original.image?'done':'error'};p.qcResults[idx]=originalQc;p.status=p.series.filter(entry=>entry.image).length===projectOutputCount(p)?'done':'error';p.phase=original.image?'新图未通过，已保留原图':'当前图片仍未完成，可修改提示词后再单独生成';toast(original.image?'新图未通过严格质检，已自动保留原图':'第'+(idx+1)+'张单独生成失败','error');}
   renderMain();renderProjectList();

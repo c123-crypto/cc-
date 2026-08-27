@@ -254,10 +254,27 @@ test('latest user constraints are enforced for first generation and single-image
   assert.match(html, /function userHardConstraints\(note/);
   assert.match(html, /用户最高优先级硬性要求/);
   assert.match(html, /这些内容是制作指令，严禁作为画面文字/);
-  assert.match(html, /本次重做最高优先级要求/);
+  assert.match(html, /最终覆盖指令（最高优先级）/);
   assert.match(html, /appliedRedoPrompt:extra/);
   assert.match(html, /userNote:p\.userNote/);
   assert.match(html, /userNote:toolSession\.note/);
+});
+
+test('single-image redo puts the latest instruction last and makes removal terms absolute', () => {
+  assert.match(html, /function redoPriorityRule\(value\)/);
+  assert.match(html, /去掉、不要、移除、删除、禁止、改成、只保留/);
+  assert.match(html, /\$\{task\.finalRequirement\}/);
+  assert.match(html, /generateOneTask\(p,\{label:item\.label,prompt:singlePrompt,finalRequirement\},idx\)/);
+  assert.match(html, /\$\{redoPrompt\}\$\{task\.finalRequirement/);
+  assert.match(html, /\$\{PRODUCT_REALISM_LOCK\}\\n\$\{finalRequirement\}/);
+});
+
+test('six-image main suites mix buyer copy with one clean scene instead of returning all-text-free images', () => {
+  assert.match(html, /function projectMainBuyerCopy\(p,item,index\)/);
+  assert.match(html, /零散小物，不再东翻西找/);
+  assert.match(html, /收纳有序，空间更清爽/);
+  assert.match(html, /if\(strategy\.mode==='clean'\)return \{headline:'',subheadline:''\}/);
+  assert.match(html, /const copy=projectMainBuyerCopy\(p,item,index\),headline=copy\.headline,subheadline=copy\.subheadline/);
 });
 
 test('finished images use buyer-facing copy and never expose workflow labels or sequence counters', () => {
@@ -267,6 +284,7 @@ test('finished images use buyer-facing copy and never expose workflow labels or 
   assert.doesNotMatch(html, /ctx\.fillText\(`\$\{String\(index\+1\)\.padStart\(2,'0'\)\} \/ 06`/);
   assert.doesNotMatch(html, /统一商品母版 · 精确数量排版 · 图片可逐个核对/);
   assert.doesNotMatch(html, /单个规格：请核对商品资料/);
+  assert.match(html, /已收到商品证据图\|商品外观以原图\|商品证据图\|场景参考图/);
 });
 
 test('SKU cards respect chosen background, exact dimensions and buyer selling points', () => {
