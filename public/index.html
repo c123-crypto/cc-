@@ -1893,21 +1893,19 @@ async function composeSkuCanvas(masterSource,spec,analysis,index,p,overrideNote=
   const verifiedSellingPoint=buyerFacingCopy(overrideNote,16)||buyerFacingCopy(p?.skuSellingPoint,16)||(analysisList(analysis?.selling_points).map(value=>buyerFacingCopy(value,16)).find(Boolean)||'分类收纳更省心');
   const quantity=Math.max(1,Math.min(20,Number(spec.quantity)||1));
   const specName=buyerFacingCopy(spec.name,12)||'组合装';
-  ctx.fillStyle=theme.text;ctx.textAlign='left';ctx.font='900 72px system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif';ctx.fillText(`${quantity}个装`,58,116);
-  ctx.font='600 30px system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif';ctx.fillStyle=theme.sub;ctx.fillText(specName,62,160);
-  if(dimensions){ctx.textAlign='right';ctx.font='500 21px system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif';ctx.fillStyle=theme.sub;ctx.fillText(`单件尺寸 ${dimensions}`,1018,154);}
+  ctx.fillStyle=theme.text;ctx.textAlign='left';fitCanvasText(ctx,productName||'商品组合装',650,48,32);ctx.fillText(productName||'商品组合装',58,104);
+  ctx.font='500 27px "Microsoft YaHei UI","PingFang SC",sans-serif';ctx.fillStyle=theme.sub;ctx.fillText(specName,60,150);
+  if(dimensions){ctx.textAlign='right';ctx.font='500 20px "Microsoft YaHei UI","PingFang SC",sans-serif';ctx.fillStyle=theme.sub;ctx.fillText(`单件尺寸 ${dimensions}`,1018,146);}
   if(spec.recommended){ctx.fillStyle='#ff8b25';canvasRoundRect(ctx,852,66,166,48,24);ctx.fill();ctx.fillStyle='#fff';ctx.textAlign='center';ctx.font='700 22px system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif';ctx.fillText('人气推荐',935,98);}
-  ctx.fillStyle=theme.accent;canvasRoundRect(ctx,58,184,120,8,4);ctx.fill();
+  ctx.fillStyle=theme.accent;canvasRoundRect(ctx,58,174,92,7,3.5);ctx.fill();
   const transparentProduct=/透明|高透|亚克力|玻璃|水晶/.test(`${productName} ${analysis?.product_summary||''} ${verifiedSellingPoint}`),renderSource=transparentProduct?whiteBackdropCutout(img):img;
-  const cols=quantity<=2?quantity:quantity<=4?2:quantity<=9?3:quantity<=12?4:5,rows=Math.ceil(quantity/cols);
-  const area={x:52,y:210,w:976,h:650},gap=quantity<=4?-26:0,cellW=(area.w-gap*(cols-1))/cols,cellH=(area.h-gap*(rows-1))/rows;
-  for(let i=0;i<quantity;i++){
-    const col=i%cols,row=Math.floor(i/cols),x=area.x+col*(cellW+gap),y=area.y+row*(cellH+gap);
-    ctx.save();ctx.shadowColor='rgba(25,45,42,.20)';ctx.shadowBlur=22;ctx.shadowOffsetY=10;drawContainedImage(ctx,renderSource,x,y,cellW,cellH,-8);ctx.restore();
-  }
-  const benefit=transparentProduct&&/收纳|整理|储物|分格|盒/.test(`${productName} ${analysis?.product_summary||''}`)?'高透可视｜分类拿取更方便':verifiedSellingPoint;
-  ctx.textAlign='center';ctx.fillStyle=theme.text;fitCanvasText(ctx,benefit,920,42,28);ctx.fillText(benefit,540,936);
-  ctx.font='500 23px system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif';ctx.fillStyle=theme.sub;ctx.fillText(productName||`${quantity}个装 ${specName}`,540,982);
+  ctx.save();ctx.fillStyle=theme.mode==='black'?'rgba(0,0,0,.34)':'rgba(47,92,84,.11)';ctx.beginPath();ctx.ellipse(500,850,390,62,0,0,Math.PI*2);ctx.fill();ctx.restore();
+  const drawPiece=(x,y,w,h,alpha=1)=>{ctx.save();ctx.globalAlpha=alpha;ctx.shadowColor=theme.mode==='black'?'rgba(0,0,0,.46)':'rgba(25,45,42,.24)';ctx.shadowBlur=24;ctx.shadowOffsetY=12;drawContainedImage(ctx,renderSource,x,y,w,h,-8);ctx.restore();};
+  if(quantity===1){drawPiece(92,205,820,650);}
+  else if(quantity<=4){const w=760,h=570,dx=34,dy=24,startX=(1080-w-dx*(quantity-1))/2,startY=220;for(let i=0;i<quantity;i++)drawPiece(startX+dx*i,startY+dy*(quantity-1-i),w,h,i===quantity-1?1:.93);}
+  else{const leftCount=Math.ceil(quantity/2),counts=[leftCount,quantity-leftCount],w=500,h=410;counts.forEach((count,pile)=>{const dx=16,dy=18,startX=pile?520:44,startY=260;for(let i=0;i<count;i++)drawPiece(startX+dx*i,startY+dy*(count-1-i),w,h,i===count-1?1:.92);});}
+  const badgeX=900,badgeY=888;ctx.fillStyle=theme.accent;ctx.beginPath();ctx.arc(badgeX,badgeY,104,0,Math.PI*2);ctx.fill();ctx.fillStyle=theme.mode==='black'?'#12201e':'#fff';ctx.textAlign='center';ctx.font='800 64px "Microsoft YaHei UI","PingFang SC",sans-serif';ctx.fillText(`×${quantity}`,badgeX,badgeY+22);
+  ctx.textAlign='left';ctx.fillStyle=theme.text;ctx.font='700 34px "Microsoft YaHei UI","PingFang SC",sans-serif';ctx.fillText(`${quantity}个装`,62,932);ctx.font='500 22px "Microsoft YaHei UI","PingFang SC",sans-serif';ctx.fillStyle=theme.sub;ctx.fillText('数量清楚，下单不易选错',64,972);
   return canvas.toDataURL('image/png',.96);
 }
 async function generateSkuProject(p){

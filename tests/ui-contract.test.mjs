@@ -325,10 +325,13 @@ test('SKU cards respect chosen background, exact dimensions and buyer selling po
   assert.match(html, /composeSkuCanvas\(p\.whiteImage,specs\[index\],p\.analysis,index,p\)/);
   assert.match(html, /function whiteBackdropCutout\(img\)/);
   assert.match(html, /transparentProduct\?whiteBackdropCutout\(img\):img/);
-  assert.match(html, /ctx\.fillText\(`\$\{quantity\}个装`,58,116\)/);
-  assert.match(html, /高透可视｜分类拿取更方便/);
+  assert.match(html, /const drawPiece=\(x,y,w,h,alpha=1\)/);
+  assert.match(html, /else if\(quantity<=4\)/);
+  assert.match(html, /counts=\[leftCount,quantity-leftCount\]/);
+  assert.match(html, /ctx\.fillText\(`×\$\{quantity\}`/);
+  assert.match(html, /数量清楚，下单不易选错/);
   assert.doesNotMatch(html, /globalCompositeOperation='multiply'/);
-  assert.doesNotMatch(html, /const stage=/);
+  assert.doesNotMatch(html, /const cols=/);
   assert.doesNotMatch(html, /canvasRoundRect\(ctx,34,34,1012,1012,30\)/);
 });
 
