@@ -1081,7 +1081,7 @@ function renderSeries(p){
           <div class="gen-item-meta">
             ${s.model?`<span class="tag tag-info">${esc(imageModelLabel(s.model))}</span>`:''}
             ${s.fallback?`<span class="tag tag-warn">自动备用：${esc(imageProviderLabel(s.provider))}</span>`:''}
-            ${qc?qc.pass?`<span class="tag tag-success">${qc.redone?'↻ 重做通过':'✓ 主体保真通过'} ${qc.score}分</span>`:`<span class="tag tag-danger">✕ 主体保真未通过 ${qc.score}分</span>`:''}
+            ${qc?qc.pass?`<span class="tag tag-success">${qc.redone?'↻ 重做通过':'✓ 主体保真通过'} ${qc.score}分</span>`:qc.review_required?`<span class="tag tag-warn">⚠ 已保留 · 待人工复核 ${qc.score}分</span>`:`<span class="tag tag-danger">✕ 主体保真未通过 ${qc.score}分</span>`:''}
           </div>
           ${s.referenceRecipe?.length?`<div style="font-size:10px;color:var(--light);margin-top:5px;line-height:1.45">参考配方：${esc(s.referenceRecipe.join(' + '))}</div>`:''}
           ${qc?.summary?`<div style="font-size:10px;color:var(--light);margin-top:5px;line-height:1.45">${esc(qc.summary)}</div>`:''}
@@ -1092,6 +1092,7 @@ function renderSeries(p){
             ${s.appliedRedoPrompt?`<div class="single-redo-note" style="color:var(--success)">本版实际采用：${esc(s.appliedRedoPrompt)}</div>`:''}
           </div>
           <div class="gen-item-actions">
+            ${s.image?`<button class="btn btn-sm" onclick="openImagePreview(this.closest('.gen-item').querySelector('.gen-item-img img').src,'${esc(s.label||items[i])}')">预览大图</button>`:''}
             ${s.image?`<button class="btn btn-sm" onclick="downloadSingle(${i})">下载</button>`:''}
             ${s.status!=='running'&&s.prompt?`<button class="btn btn-sm" onclick="regenSingle(${i})">${s.image?'仅重做此图':'仅生成此图'}</button>`:''}
           </div>
@@ -1704,7 +1705,8 @@ async function generateOneTask(p,task,index){
     const generationPrompt=`${p.seriesStyle||seriesStyleContract(p.userNote)}\n${userHardConstraints(p.userNote)}\n${TEXT_FREE_BASE_RULE}\n${task.prompt}\n\n${context.instruction}${providerLock}`;
     item.referenceRecipe=context.labels;
     const imgResp=await projectImageCall(p,'/api/series-image',{prompt:generationPrompt,userNote:p.userNote,whiteImageBase64:p.whiteImage,referenceImagesBase64s:refs,aspect,...modelOptions(p)},refs,aspect);
-    item.image=imgResp.image; item.model=imgResp.model; item.provider=imgResp.provider; item.fallback=Boolean(imgResp.fallback); item.fallbackFrom=imgResp.fallbackFrom||''; item.status='done';
+    item.image=imgResp.image; item.model=imgResp.model; item.provider=imgResp.provider; item.fallback=Boolean(imgResp.fallback); item.fallbackFrom=imgResp.fallbackFrom||''; item.status='done'; item.rejected=false;
+    const firstGeneratedCandidate={image:item.image,model:item.model,provider:item.provider,fallback:item.fallback,fallbackFrom:item.fallbackFrom};
     if(imgResp.fallback) toast(`图${index+1}已从${imgResp.fallbackFrom||imageProviderLabel(projectImageProvider(p))}自动切换到${imageProviderLabel(imgResp.provider)}`,'warn');
     p.phase='正在质检第 '+(index+1)+' 张：'+item.label;
     renderMain();
@@ -1718,23 +1720,24 @@ async function generateOneTask(p,task,index){
         const redoPrompt=generationPrompt+'\n上一次结果已被主体保真检查拒绝。必须逐项修正：'+correction+'\n这是纠错重做，不允许发挥创意；若场景会造成穿模，请删除冲突道具或人物并简化场景，完整保留原商品。';
         const retryRefs=projectImageProvider(p)==='seedream'?(context.productRefs.length?context.productRefs:projectProductImages(p).slice(0,2)):refs;
         const redoResp=await projectImageCall(p,'/api/series-image',{prompt:`${p.seriesStyle||seriesStyleContract(p.userNote)}\n${userHardConstraints(p.userNote)}\n${TEXT_FREE_BASE_RULE}\n${redoPrompt}`,userNote:p.userNote,whiteImageBase64:p.whiteImage,referenceImagesBase64s:retryRefs,aspect,...modelOptions(p)},retryRefs,aspect);
-        item.image=redoResp.image; item.model=redoResp.model+'-redo'; item.provider=redoResp.provider; item.fallback=Boolean(redoResp.fallback); item.fallbackFrom=redoResp.fallbackFrom||'';
+        const redoCandidate={image:redoResp.image,model:redoResp.model+'-redo',provider:redoResp.provider,fallback:Boolean(redoResp.fallback),fallbackFrom:redoResp.fallbackFrom||''};
         if(redoResp.fallback) toast(`图${index+1}重做时已自动切换到${imageProviderLabel(redoResp.provider)}`,'warn');
-        const qc2=await projectQcCall(p,{productImagesBase64s:projectProductImages(p),whiteImageBase64:p.whiteImage,generatedImageBase64:item.image,taskLabel:item.label,platform:p.platform,imageProvider:projectImageProvider(p),textProvider:projectTextProvider(p),openaiTextModel:state.settings.openaiTextModel||undefined,visionModel:state.settings.visionModel||undefined,geminiTextModel:state.settings.geminiTextModel||undefined,qwenVisionModel:state.settings.qwenVisionModel||undefined,qwenEndpoint:state.settings.qwenEndpoint||undefined});
+        const qc2=await projectQcCall(p,{productImagesBase64s:projectProductImages(p),whiteImageBase64:p.whiteImage,generatedImageBase64:redoCandidate.image,taskLabel:item.label,platform:p.platform,imageProvider:projectImageProvider(p),textProvider:projectTextProvider(p),openaiTextModel:state.settings.openaiTextModel||undefined,visionModel:state.settings.visionModel||undefined,geminiTextModel:state.settings.geminiTextModel||undefined,qwenVisionModel:state.settings.qwenVisionModel||undefined,qwenEndpoint:state.settings.qwenEndpoint||undefined});
         qc2.redone=true; p.qcResults[index]=qc2;
         if(!qc2.pass){
-          item.image=''; item.status='error'; item.rejected=true;
-          p.phase='第 '+(index+1)+' 张主体保真未通过，已拒绝输出';
-          toast('图'+(index+1)+'二次质检仍发现主体改变或穿模，已拒绝输出','error');
-          renderMain(); renderProjectList(); return;
+          Object.assign(item,firstGeneratedCandidate,{status:'done',rejected:false});
+          p.qcResults[index]={...qc,redone:true,review_required:true,summary:'已保留首次成图供预览；自动重做仍未通过质检，请人工核对商品主体后决定是否重做。'};
+          p.phase='第 '+(index+1)+' 张已生成，质检存疑，等待人工复核';
+          toast('图'+(index+1)+'已保留，自动质检存疑；可预览后决定是否单张重做','warn');
+        }else{
+          Object.assign(item,redoCandidate,{status:'done',rejected:false});
         }
       }
     }catch(qcError){
-      p.qcResults[index]={pass:false,score:0,summary:'主体保真检查未完成，结果未放行',issues:[qcError.message],correction:''};
-      item.image=''; item.status='error'; item.rejected=true;
-      p.phase='第 '+(index+1)+' 张主体保真检查未完成，已停止放行';
-      toast('图'+(index+1)+'无法完成主体保真检查，已拒绝输出','error');
-      renderMain(); renderProjectList(); return;
+      Object.assign(item,firstGeneratedCandidate,{status:'done',rejected:false});
+      p.qcResults[index]={pass:false,score:0,review_required:true,summary:'图片已生成并保留，但自动质检暂时未完成，请人工预览核对。',issues:[qcError.message],correction:''};
+      p.phase='第 '+(index+1)+' 张已生成，自动质检暂不可用';
+      toast('图'+(index+1)+'已保留；自动质检暂不可用，请预览后人工核对','warn');
     }
     if(projectMode(p)==='detail'&&item.image){
       item.image=await composeDetailCanvas(item.image,item,index,p);
@@ -1972,12 +1975,13 @@ async function generateProjectImages(){
     }
 
     const doneCount=p.series.filter(item=>item.image).length;
+    const reviewCount=p.qcResults.filter(result=>result?.review_required).length;
     p.status=doneCount===labels.length?'done':'error';
-    p.phase=doneCount===labels.length?'整套图片已生成并完成质检':'部分图片未完成，可单张重做';
+    p.phase=doneCount===labels.length?(reviewCount?`整套图片已生成，${reviewCount} 张待人工复核`:'整套图片已生成并完成质检'):'部分图片未完成，可单张重做';
     renderMain(); renderProjectList();
     if(doneCount){
       await idbAdd({id:p.id,name:p.name,projectNumber:p.projectNumber,platform:p.platform,projectMode:projectMode(p),mainAspect:p.mainAspect||'square',suiteType:p.suiteType,detailCount:p.detailCount,skuSpecs:normalizeProjectSkuSpecs(p.skuSpecs),includeWhite:hasWhiteOutput,direction:p.direction,whiteImage:p.whiteImage,series:p.series.map(item=>({label:item.label,image:item.image,model:item.model,provider:item.provider,fallback:item.fallback,fallbackFrom:item.fallbackFrom,prompt:item.prompt,referenceRecipe:item.referenceRecipe||[]})),qcResults:p.qcResults,createdAt:Date.now()});
-      toast((doneCount===labels.length?'整套生成完成！':'生成完成，部分图片需要重做。')+' 已保存到历史记录',doneCount===labels.length?'success':'warn');
+      toast((doneCount===labels.length?(reviewCount?`整套已生成，${reviewCount}张待人工复核。`:'整套生成完成！'):'生成完成，部分图片需要重做。')+' 已保存到历史记录',doneCount===labels.length&&!reviewCount?'success':'warn');
     }
   }catch(error){
     p.status='error'; p.phase='任务中断'; renderMain(); renderProjectList();

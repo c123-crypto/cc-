@@ -285,4 +285,13 @@ test('generated thumbnails open a focused preview window', () => {
   assert.match(html, /function openImagePreview\(src,title/);
   assert.match(html, /function closeImagePreview\(\)/);
   assert.match(html, /onclick="openImagePreview\('/);
+  assert.match(html, />预览大图<\/button>/);
+});
+
+test('quality-control uncertainty keeps the generated image available for review', () => {
+  assert.match(html, /const firstGeneratedCandidate=/);
+  assert.match(html, /review_required:true/);
+  assert.match(html, /已保留首次成图供预览/);
+  assert.match(html, /自动质检暂时未完成，请人工预览核对/);
+  assert.doesNotMatch(html, /item\.image=''; item\.status='error'; item\.rejected=true/);
 });
