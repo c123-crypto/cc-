@@ -264,17 +264,22 @@ test('single-image redo puts the latest instruction last and makes removal terms
   assert.match(html, /function redoPriorityRule\(value\)/);
   assert.match(html, /去掉、不要、移除、删除、禁止、改成、只保留/);
   assert.match(html, /\$\{task\.finalRequirement\}/);
-  assert.match(html, /generateOneTask\(p,\{label:item\.label,prompt:singlePrompt,finalRequirement\},idx\)/);
+  assert.match(html, /redoImageBase64:original\.rawImage\|\|original\.image/);
+  assert.match(html, /appliedRedoPrompt:extra/);
+  assert.match(html, /参考图1是当前待修改图片/);
+  assert.match(html, /本次重新编写后的完整执行要求/);
+  assert.doesNotMatch(html, /以下原方案仅作次级上下文：\$\{basePrompt\}/);
   assert.match(html, /\$\{redoPrompt\}\$\{task\.finalRequirement/);
   assert.match(html, /\$\{PRODUCT_REALISM_LOCK\}\\n\$\{finalRequirement\}/);
 });
 
 test('six-image main suites mix buyer copy with one clean scene instead of returning all-text-free images', () => {
   assert.match(html, /function projectMainBuyerCopy\(p,item,index\)/);
-  assert.match(html, /零散小物，不再东翻西找/);
-  assert.match(html, /收纳有序，空间更清爽/);
+  assert.match(html, /散乱小物，一盒收好/);
+  assert.match(html, /透明可视，取用更快/);
+  assert.match(html, /copyManuallyEdited\?buyerFacingCopy/);
   assert.match(html, /if\(strategy\.mode==='clean'\)return \{headline:'',subheadline:''\}/);
-  assert.match(html, /const copy=projectMainBuyerCopy\(p,item,index\),headline=copy\.headline,subheadline=copy\.subheadline/);
+  assert.match(html, /const copy=projectMainBuyerCopy\(p,item,index\),headline=compactBuyerHeadline/);
 });
 
 test('the text model writes buyer copy automatically before image generation', () => {
@@ -291,10 +296,12 @@ test('single-image redo controls the webpage copy layer as well as the image mod
   assert.match(html, /presentation==='none'/);
   assert.match(html, /const removeCopy=!removesBackground&&/);
   assert.match(html, /return removeCopy\?'none':'transparent'/);
-  assert.match(html, /const transparent=true/);
   assert.doesNotMatch(html, /rgba\(255,253,250,\.98\)/);
-  assert.match(html, /ctx\.shadowBlur=12/);
-  assert.match(html, /buyerFacingCopy\(item\?\.headline,16\)/);
+  assert.match(html, /function chooseCanvasCopyZone\(ctx,width,height\)/);
+  assert.match(html, /function compactBuyerHeadline\(value,max=12\)/);
+  assert.match(html, /const zone=chooseCanvasCopyZone\(ctx,width,height\)/);
+  assert.doesNotMatch(html, /const pillW=/);
+  assert.match(html, /copyManuallyEdited\?buyerFacingCopy\(item\?\.headline,16\)/);
 });
 
 test('finished images use buyer-facing copy and never expose workflow labels or sequence counters', () => {
