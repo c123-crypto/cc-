@@ -1797,6 +1797,12 @@ async function runPool(tasks,limit){
 function loadCanvasImage(src){return new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(new Error('SKU商品母版无法读取，请重新生成'));img.crossOrigin='anonymous';img.src=src;});}
 function canvasRoundRect(ctx,x,y,w,h,r){const radius=Math.min(r,w/2,h/2);ctx.beginPath();ctx.moveTo(x+radius,y);ctx.arcTo(x+w,y,x+w,y+h,radius);ctx.arcTo(x+w,y+h,x,y+h,radius);ctx.arcTo(x,y+h,x,y,radius);ctx.arcTo(x,y,x+w,y,radius);ctx.closePath();}
 function drawContainedImage(ctx,img,x,y,w,h,padding=0){const scale=Math.min((w-padding*2)/img.width,(h-padding*2)/img.height);const dw=img.width*scale,dh=img.height*scale;ctx.drawImage(img,x+(w-dw)/2,y+(h-dh)/2,dw,dh);}
+function whiteBackdropCutout(img){
+  const canvas=document.createElement('canvas');canvas.width=img.naturalWidth||img.width;canvas.height=img.naturalHeight||img.height;const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(img,0,0,canvas.width,canvas.height);
+  const frame=ctx.getImageData(0,0,canvas.width,canvas.height),data=frame.data;
+  for(let i=0;i<data.length;i+=4){const hi=Math.max(data[i],data[i+1],data[i+2]),lo=Math.min(data[i],data[i+1],data[i+2]),distance=Math.max(255-lo,(hi-lo)*1.5);const strength=distance<=6?0:distance>=55?1:(distance-6)/49;data[i+3]=Math.round(data[i+3]*strength);}
+  ctx.clearRect(0,0,canvas.width,canvas.height);ctx.putImageData(frame,0,0);return canvas;
+}
 function fitCanvasText(ctx,text,maxWidth,startSize,minSize=24){let size=startSize;while(size>minSize){ctx.font=`700 ${size}px system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif`;if(ctx.measureText(text).width<=maxWidth)break;size-=2;}return size;}
 function drawCoverImage(ctx,img,x,y,w,h){const scale=Math.max(w/img.width,h/img.height),dw=img.width*scale,dh=img.height*scale;ctx.drawImage(img,x+(w-dw)/2,y+(h-dh)/2,dw,dh);}
 function canvasTextLines(ctx,text,maxWidth,maxLines=2){
@@ -1885,25 +1891,26 @@ function skuMasterPrompt(p){const theme=skuVisualTheme(p),background={black:'纯
 async function composeSkuCanvas(masterSource,spec,analysis,index,p,overrideNote=''){
   const source=await cacheImageSource(masterSource),img=await loadCanvasImage(source);
   const canvas=document.createElement('canvas');canvas.width=1080;canvas.height=1080;const ctx=canvas.getContext('2d');
-  const theme=skuVisualTheme({...p,userNote:`${p?.userNote||''} ${overrideNote}`});ctx.fillStyle=theme.bg;ctx.fillRect(0,0,1080,1080);
+  const theme=skuVisualTheme({...p,userNote:`${p?.userNote||''} ${overrideNote}`}),background=ctx.createLinearGradient(0,0,1080,1080);background.addColorStop(0,theme.bg);background.addColorStop(1,theme.mode==='black'?'#1b2022':'#ffffff');ctx.fillStyle=background;ctx.fillRect(0,0,1080,1080);
   const identity=analysis?.product_identity||{},dimensions=String(p?.skuDimensions||analysisList(identity.dimensions).join(' × ')).trim(),productName=projectProductName(analysis);
   const verifiedSellingPoint=buyerFacingCopy(overrideNote,16)||buyerFacingCopy(p?.skuSellingPoint,16)||(analysisList(analysis?.selling_points).map(value=>buyerFacingCopy(value,16)).find(Boolean)||'分类收纳更省心');
-  ctx.fillStyle=theme.accent;canvasRoundRect(ctx,60,58,164,46,23);ctx.fill();ctx.fillStyle=theme.mode==='black'?'#10201e':'#fff';ctx.textAlign='center';ctx.font='700 22px system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif';ctx.fillText('多件装组合',142,89);
-  ctx.fillStyle=theme.text;ctx.textAlign='left';fitCanvasText(ctx,verifiedSellingPoint,620,46,30);ctx.fillText(verifiedSellingPoint,60,160);
-  if(dimensions){ctx.font='500 21px system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif';ctx.fillStyle=theme.sub;ctx.fillText(`尺寸：${dimensions}`,60,196);}
-  if(spec.recommended){ctx.fillStyle='#ff8b25';canvasRoundRect(ctx,850,66,164,50,25);ctx.fill();ctx.fillStyle='#fff';ctx.textAlign='center';ctx.font='700 22px system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif';ctx.fillText('人气推荐',932,99);}
   const quantity=Math.max(1,Math.min(20,Number(spec.quantity)||1));
+  const specName=buyerFacingCopy(spec.name,12)||'组合装';
+  ctx.fillStyle=theme.text;ctx.textAlign='left';ctx.font='900 72px system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif';ctx.fillText(`${quantity}个装`,58,116);
+  ctx.font='600 30px system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif';ctx.fillStyle=theme.sub;ctx.fillText(specName,62,160);
+  if(dimensions){ctx.textAlign='right';ctx.font='500 21px system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif';ctx.fillStyle=theme.sub;ctx.fillText(`单件尺寸 ${dimensions}`,1018,154);}
+  if(spec.recommended){ctx.fillStyle='#ff8b25';canvasRoundRect(ctx,852,66,166,48,24);ctx.fill();ctx.fillStyle='#fff';ctx.textAlign='center';ctx.font='700 22px system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif';ctx.fillText('人气推荐',935,98);}
+  ctx.fillStyle=theme.accent;canvasRoundRect(ctx,58,184,120,8,4);ctx.fill();
+  const transparentProduct=/透明|高透|亚克力|玻璃|水晶/.test(`${productName} ${analysis?.product_summary||''} ${verifiedSellingPoint}`),renderSource=transparentProduct?whiteBackdropCutout(img):img;
   const cols=quantity<=2?quantity:quantity<=4?2:quantity<=9?3:quantity<=12?4:5,rows=Math.ceil(quantity/cols);
-  const stage={x:52,y:226,w:976,h:610};ctx.fillStyle=theme.card;canvasRoundRect(ctx,stage.x,stage.y,stage.w,stage.h,36);ctx.fill();
-  const area={x:76,y:246,w:928,h:570},gap=quantity<=4?-8:4,cellW=(area.w-gap*(cols-1))/cols,cellH=(area.h-gap*(rows-1))/rows;
+  const area={x:52,y:210,w:976,h:650},gap=quantity<=4?-26:0,cellW=(area.w-gap*(cols-1))/cols,cellH=(area.h-gap*(rows-1))/rows;
   for(let i=0;i<quantity;i++){
     const col=i%cols,row=Math.floor(i/cols),x=area.x+col*(cellW+gap),y=area.y+row*(cellH+gap);
-    ctx.save();ctx.shadowColor='rgba(25,45,42,.20)';ctx.shadowBlur=18;ctx.shadowOffsetY=8;if(theme.mode!=='black')ctx.globalCompositeOperation='multiply';drawContainedImage(ctx,img,x,y,cellW,cellH,0);ctx.restore();
+    ctx.save();ctx.shadowColor='rgba(25,45,42,.20)';ctx.shadowBlur=22;ctx.shadowOffsetY=10;drawContainedImage(ctx,renderSource,x,y,cellW,cellH,-8);ctx.restore();
   }
-  const specBenefit=buyerFacingCopy(spec.name,12)||'实惠组合装',title=`${quantity}个装｜${specBenefit}`;
-  ctx.textAlign='center';ctx.fillStyle=theme.text;fitCanvasText(ctx,title,940,64,36);ctx.fillText(title,540,920);
-  ctx.font='600 25px system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif';ctx.fillStyle=theme.sub;ctx.fillText(productName||'数量清楚 · 下单不易选错',540,968);
-  ctx.fillStyle=theme.accent;canvasRoundRect(ctx,438,1000,204,8,4);ctx.fill();
+  const benefit=transparentProduct&&/收纳|整理|储物|分格|盒/.test(`${productName} ${analysis?.product_summary||''}`)?'高透可视｜分类拿取更方便':verifiedSellingPoint;
+  ctx.textAlign='center';ctx.fillStyle=theme.text;fitCanvasText(ctx,benefit,920,42,28);ctx.fillText(benefit,540,936);
+  ctx.font='500 23px system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif';ctx.fillStyle=theme.sub;ctx.fillText(productName||`${quantity}个装 ${specName}`,540,982);
   return canvas.toDataURL('image/png',.96);
 }
 async function generateSkuProject(p){

@@ -316,9 +316,12 @@ test('SKU cards respect chosen background, exact dimensions and buyer selling po
   assert.match(html, /买家主卖点/);
   assert.match(html, /商品长宽高/);
   assert.match(html, /composeSkuCanvas\(p\.whiteImage,specs\[index\],p\.analysis,index,p\)/);
-  assert.match(html, /多件装组合/);
-  assert.match(html, /globalCompositeOperation='multiply'/);
-  assert.match(html, /const stage=\{x:52,y:226,w:976,h:610\}/);
+  assert.match(html, /function whiteBackdropCutout\(img\)/);
+  assert.match(html, /transparentProduct\?whiteBackdropCutout\(img\):img/);
+  assert.match(html, /ctx\.fillText\(`\$\{quantity\}个装`,58,116\)/);
+  assert.match(html, /高透可视｜分类拿取更方便/);
+  assert.doesNotMatch(html, /globalCompositeOperation='multiply'/);
+  assert.doesNotMatch(html, /const stage=/);
   assert.doesNotMatch(html, /canvasRoundRect\(ctx,34,34,1012,1012,30\)/);
 });
 
